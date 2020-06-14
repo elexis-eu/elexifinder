@@ -3,7 +3,7 @@ import re
 import json
 import csv
 
-with open('D:/LexikosMerge/Elexifinder-Lexikos-extrafields.csv', encoding="utf-8") as csvfile:
+with open('D:/xxx.csv', encoding="utf-8") as csvfile: # source file
     csvdict = csv.DictReader(csvfile, delimiter="\t")
     csvjson = []
     for itemdict in csvdict:
@@ -12,5 +12,5 @@ with open('D:/LexikosMerge/Elexifinder-Lexikos-extrafields.csv', encoding="utf-8
         csvjson.append(itemdict)
 print(csvjson)
 
-with open('D:/LexikosMerge/csv2json.json', 'w', encoding="utf-8") as json_file:
+with open('D:/yyy.json', 'w', encoding="utf-8") as json_file: # result file
 	json.dump(csvjson, json_file, ensure_ascii=False, indent=2)
