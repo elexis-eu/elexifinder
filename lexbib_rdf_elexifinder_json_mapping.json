@@ -34,11 +34,11 @@
 
     "sourceLoc": [ float(lat), float(long)],  // numeric values: coordinates
 
-    "sourceLocUri"          // (planned): lexdo:articleLoc (in Zotero, annotated in "extra" field after the semicolon). Must be English Wikipedia URL.
+    "sourceLocUri"          // lexdo:articleLoc (in Zotero, annotated in "extra" field after the semicolon). Must be English Wikipedia URL.
 
-    "sourceCity": str,			// planned for LexBib (at the moment, computed by eventregistry using locationUri)
+    "sourceCity": str,			// City (literal) corresponding to lexdo:articleLoc. Value is retrieved from Wikidata.
 
-    "sourceCountry": str,		// planned for LexBib (at the moment, computed by eventregistry using locationUri)
+    "sourceCountry": str,		// Country (literal) corresponding to lexdo:articleLoc. Value is retrieved from Wikidata.
 
     "sentiment": float(-1,1)|null   // no mapping.
 
