@@ -2,8 +2,8 @@
 import re
 import json
 
-ris_input_file = 'D:/xxx.ris'
-json_output_file = 'D:/yyy.json'
+ris_input_file = 'D:/Lab_LexBib/eLexMerge/eLex-zotero.ris'
+json_output_file = 'D:/Lab_LexBib/eLexMerge/zotero.json'
 
 with open(ris_input_file, 'r', encoding="utf-8") as risfile:
     ris = risfile.read()
