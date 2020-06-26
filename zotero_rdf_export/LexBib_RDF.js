@@ -38,9 +38,12 @@ var n = {
   doco:"http://purl.org/spar/doco/",
 	opus:"http://lsdis.cs.uga.edu/projects/semdis/opus#",
 	foaf:"http://xmlns.com/foaf/0.1/",
+	isbn:"http://worldcat.org/isbn/",
+	oclc:"http://worldcat.org/oclc/",
 	link:"http://purl.org/rss/1.0/modules/link/",
 	po:"http://purl.org/ontology/po/",
 	rdf:"http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+	rdfs:"http://www.w3.org/2000/01/rdf-schema#",
 	rel:"http://www.loc.gov/loc.terms/relators/",
 	sc:"http://umbel.org/umbel/sc/",
 	sioct:"http://rdfs.org/sioc/types#",
@@ -564,8 +567,8 @@ Type.prototype.createNodes = function(item) {
 	// for book or thesis, try Zotero ISBN field content URI, take the first ISBN in Zotero ISBN field
 	if (!nodes[ITEM] && (item.itemType === "book" || item.itemType ==="thesis")) {
 		if (item.ISBN) {
-			var isbn = item.ISBN.split(/, ?| /g)[0];
-			nodes[ITEM] = "urn:isbn:"+encodeURI(isbn);
+			var isbnumber = item.ISBN.split(/, ?| /g)[0];
+			nodes[ITEM] = n.isbn+encodeURI(isbnumber).replace(/\-/g, '');
 			if (usedURIs[nodes[ITEM]]) nodes[ITEM] = null;
 		}
 	}
@@ -761,10 +764,20 @@ CreatorProperty.prototype.mapFromCreator = function(item, creator, nodes) {
 
 	//var creatorNode = Zotero.RDF.newResource();
 
-	if (creator.fieldMode == 1) {
-		var creatorNode = Zotero.RDF.newResource(); //this creatorNode will be a blank node
-		Zotero.RDF.addStatement(creatorNode, RDF_TYPE, n.foaf+"Organization");
-		if (creator.lastName) Zotero.RDF.addStatement(creatorNode, n.foaf+"name", creator.lastName, true);
+	if (creator.fieldMode == 1) { // this is when first name field is empty (will be treated as an organization name)
+		//var creatorNode = Zotero.RDF.newResource(); //this creatorNode will be a blank node
+		var camelCreator = (creator.lastName).normalize("NFD").replace(/[\u0300-\u036f\-\. ]/g, "");
+
+		var camelSentence = function camelSentence(camelCreator) {
+	    return  (" " + camelCreator).toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, function(match, chr)
+	    {
+	        return chr.toUpperCase();
+	    });
+			}
+			var creatorNode = n.lexorg+encodeURI(camelCreator);
+		Zotero.RDF.addStatement(creatorNode, RDF_TYPE, n.owl+"NamedIndividual", false);
+		Zotero.RDF.addStatement(creatorNode, RDF_TYPE, n.lexdo+"Organization");
+		Zotero.RDF.addStatement(creatorNode, n.foaf+"name", creator.lastName, true);
 	} else {
 		// create camelcase version of name and output as lexbibperson uri, attached to creator node uwing owl:sameAs
 
@@ -784,10 +797,21 @@ CreatorProperty.prototype.mapFromCreator = function(item, creator, nodes) {
 		Zotero.RDF.addStatement(creatorNode, RDF_TYPE, n.owl+"NamedIndividual", false);
 		Zotero.RDF.addStatement(creatorNode, RDF_TYPE, n.lexdo+"Person", false);
 
-		if (creator.firstName) Zotero.RDF.addStatement(creatorNode, n.foaf+"firstName", creator.firstName, true);
-		if (creator.lastName) Zotero.RDF.addStatement(creatorNode, n.foaf+"surname", creator.lastName, true);
+		//if (creator.firstName) Zotero.RDF.addStatement(creatorNode, n.foaf+"firstName", creator.firstName, true);
+		//if (creator.lastName) Zotero.RDF.addStatement(creatorNode, n.foaf+"surname", creator.lastName, true);
 		// list in usedURIs
-		usedURIs[Zotero.RDF.getResourceURI(creatorNode)] = true;
+		//usedURIs[Zotero.RDF.getResourceURI(creatorNode)] = true;
+		if (creator.lastName) {
+					var creatorlabel = creator.lastName ;
+					Zotero.RDF.addStatement(creatorNode, n.foaf+"surname", creator.lastName, true);
+					if (creator.firstName) {
+						creatorlabel = creator.firstName+" "+creator.lastName;
+						Zotero.RDF.addStatement(creatorNode, n.foaf+"firstName", creator.firstName, true);
+					}
+					Zotero.RDF.addStatement(creatorNode, n.rdfs+"label", creatorlabel, true);
+					// list in usedURIs
+					usedURIs[Zotero.RDF.getResourceURI(creatorNode)] = true;
+				}
 		}
 	}
 	// if (creator.birthYear) Zotero.RDF.addStatement(creatorNode, n.foaf+"birthday", creator.birthYear, true);
@@ -1174,11 +1198,20 @@ function doExport() {
 		}
 
 		// add date
-		if (item.date) {
+
 			//	var year = item.date.match(/([0-9]{4})/)[1];
 			//	Zotero.RDF.addStatement(nodes[ITEM], n.dcterms+"date", year, true);
+			if (item.date) {
+				var re = new RegExp("[a-z]", "i");
+				if (re.test(item.date)) { //it seems that it is a month-name-date (in this case, German locale)
+					for (var key in GermanMonth) {
+						item.date = item.date.replace(key, GermanMonth[key]);
+						item.date = item.date.replace(new RegExp(",? ", "g"), "/");
+					}
+					//
+				}
 			var date = new Date(item.date); // js takes just any format here, but thinks this is a CET date (local system time zone)
-			date.setHours(date.getHours() + 1); // add one hour (CET vs GMT-UTC)
+			date.setHours(date.getHours() + 2); // add one hour (CET vs GMT-UTC)
 			var isodate = date.toISOString();
 			Zotero.RDF.addStatement(nodes[ITEM], n.dcterms+"date", isodate, true);
 		}
@@ -1200,7 +1233,6 @@ function doExport() {
 							Zotero.RDF.addStatement(nodes[ITEM], n.lexdo+"publicationLanguage", pLangUri, false);
 							if (i==0) {firstPubLangUri = pLangUri;}
 						}
-
 					}
 				}
 
@@ -1284,7 +1316,14 @@ function doExport() {
 
 					// allow lexdo:container property
 					if (tagprop == "container") {
-						if (/^https?:|^urn:|^info:/.test(tagobj) != true) tagobj = n.lexbib+tagobj; //if tagobj does not start with http or urn/info namespace, add lexdo namespace
+						if (/^https?:/.test(tagobj) == true) {			// if tagobj does start with http, add as it is as URI
+						} else if (/^isbn:/.test(tagobj) == true) { // starts with isbn: leave only number without "-", add isbn prefix
+							tagobj = n.isbn+tagobj.substring(5).replace(/\-/g, '');
+						} else if (/^oclc:/.test(tagobj) == true) { // starts with oclc: leave only number without "-", add oclc prefix
+							tagobj = n.oclc+tagobj.substring(5).replace(/\-/g, '');
+					  } else {  																  // if tagobj does not start with "http:" or "isbn:" or "oclc:" prefix, add lexbib prefix
+							tagobj = n.lexbib+tagobj;
+						}
 						Zotero.RDF.addStatement(nodes[ITEM], n.lexdo+tagprop, tagobj, false);
 						if (usedURIs[Zotero.RDF.getResourceURI(tagobj)] != true) {
 							Zotero.RDF.addStatement(tagobj, n.rdf+"type", n.owl+"NamedIndividual", false);
@@ -1316,10 +1355,12 @@ function doExport() {
 						}
 					}
 
-
+				}
 				// always write statement:	Zotero.RDF.addStatement(nodes[ITEM], n.lexdo+tagprop, tagobj, false);
+
+				// end of tag loop
 			}
-		}
+
 
 
 
@@ -1398,7 +1439,7 @@ function doExport() {
 		}
 
 
-
+   //end of attachment loop
 	}
 // extra field (RIS M2): we use it for 1st author location and article location (place of presentation for CONF items, place of publication for others).
 // format: literal or English Wikipedia title page URL as location URI (as needed for EventRegistry). One value for each location: <authorloc>|<articleLoc>. If URL, without brackets or quotes.
@@ -1422,6 +1463,21 @@ function doExport() {
 	}
 	//end of export function
 }
+// German Month names (Zotero with german locale produces date strings with these names)
+var GermanMonth = {
+    'Januar' : '01',
+    'Februar' : '02',
+    'März' : '03',
+    'April' : '04',
+    'Mai' : '05',
+    'Juni' : '06',
+    'Juli' : '07',
+    'August' : '08',
+    'September' : '09',
+    'Oktober' : '10',
+    'November' : '11',
+    'Dezember' : '12'
+};
 
 // lexvo mapping table http://www.lexvo.org/resources/lexvo-iso639-1.tsv
 var TwoDigitLang = {
