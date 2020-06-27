@@ -550,27 +550,29 @@ Type.prototype.addNodeRelations = function(nodes) {
  */
 Type.prototype.createNodes = function(item) {
 	var nodes = {};
+	var isbnumber = null;
+	if (item.ISBN) isbnumber = item.ISBN.split(/, ?| /g)[0].replace(/\-/g, ''); // use first number in field, remove slashes
 
 // "useritem" (zoteroitem), uri = item uri at zotero.org
 	nodes[USERITEM] = (item.uri ? item.uri : "#item_"+item.itemID);
 
-// use Zotero field archiveLocation literal content, if such, as item URI. This overrides the following options
+// use Zotero field archiveLocation literal content, if such, as item URI with correct prefix. This overrides the following options
   if (item.archiveLocation) {
-		if (/^https?:|^urn:|^info:/.test(item.archiveLocation) != true) {
-			nodes[ITEM] = n.lexbib+encodeURI(item.archiveLocation); //this in case archiveLocation does not start with http or urn/info namespace
-		} else {
-			nodes[ITEM] = item.archiveLocation.replace(/\/+$/, ''); //use archiveLocation field content, removing any slashes at the end
+		if (/^https?:|^isbn:|^oclc:/.test(item.archiveLocation) != true) {
+			nodes[ITEM] = n.lexbib+encodeURI(item.archiveLocation); //this in case archiveLocation does not start with isbn: or oclc: prefix
+		} else if (/^https?:/.test(item.archiveLocation) == true) {
+			nodes[ITEM] = item.archiveLocation.replace(/\/+$/, ''); //use archiveLocation field content (starting with http), removing any slashes at the end
+		} else if (/^isbn:/.test(item.archiveLocation) == true) {
+			nodes[ITEM] = n.isbn+item.archiveLocation.substr(5).replace(/\-/g, ''); //use archiveLocation field content (starting with isbn, remove hyphens)
+		} else if (/^oclc:/.test(item.archiveLocation) == true) {
+			nodes[ITEM] = n.oclc+item.archiveLocation.substr(5); //use archiveLocation field content (starting with oclc)
 		}
-
 		if (usedURIs[nodes[ITEM]]) nodes[ITEM] = null;
   }
 	// for book or thesis, try Zotero ISBN field content URI, take the first ISBN in Zotero ISBN field
-	if (!nodes[ITEM] && (item.itemType === "book" || item.itemType ==="thesis")) {
-		if (item.ISBN) {
-			var isbnumber = item.ISBN.split(/, ?| /g)[0];
-			nodes[ITEM] = n.isbn+encodeURI(isbnumber).replace(/\-/g, '');
-			if (usedURIs[nodes[ITEM]]) nodes[ITEM] = null;
-		}
+	if (!nodes[ITEM] && isbnumber != null && (item.itemType === "book" || item.itemType ==="thesis")) {
+		nodes[ITEM] = n.isbn+encodeURI(isbnumber);
+		if (usedURIs[nodes[ITEM]]) nodes[ITEM] = null;
 	}
   // try Zotero DOI field content as URI
 	if (!nodes[ITEM] && item.DOI) {
@@ -589,11 +591,22 @@ Type.prototype.createNodes = function(item) {
 		nodes[ITEM] = "http://doi.org/"+encodeURI(doi);
 		if (usedURIs[nodes[ITEM]]) nodes[ITEM] = null;
 	}
+
+	// for chapters and conference papers without archiveLocation or DOI field value, try isbn plus first page as URI (lexbib namespace)
+	if (!nodes[ITEM] && (item.itemType === "bookSection" || item.itemType === "conferencePaper") && item.pages && (isbnumber != null)) {
+		nodes[ITEM] = n.lexbib+encodeURI("isbn"+isbnumber+"_"+item.pages.split(/\-/)[0]);
+		if (usedURIs[nodes[ITEM]]) nodes[ITEM] = null;
+	}
+
 	// try Zotero URL field content as URI
 	if (!nodes[ITEM] && item.url) {
 		nodes[ITEM] = encodeURI(item.url).replace(/\/+$/, ''); // use URL field content removing any slashes at the end
 		if (usedURIs[nodes[ITEM]]) nodes[ITEM] = null;
 	}
+
+
+
+
 	// no suitable item URI; fall back to a blank node
 	if (!nodes[ITEM]) nodes[ITEM] = Zotero.RDF.newResource();
 	// list in usedURIs
@@ -1331,6 +1344,7 @@ function doExport() {
 							// list in usedURIs
 							usedURIs[Zotero.RDF.getResourceURI(tagobj)] = true;
 						}
+						Zotero.RDF.addStatement(tagobj, n.lexdo+"contains", nodes[ITEM]);
 					}
 					// allow lexdo:event property. At the moment, only Conference subclass of Event
 					if (tagprop == "event") {
