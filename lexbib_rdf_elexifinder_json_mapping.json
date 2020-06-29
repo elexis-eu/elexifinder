@@ -2,7 +2,7 @@
 
 {
 
-    "version": int  // version for the format. For internal use only. Can be 1 and updated according to the updates in our database.
+    "version": int,  // version for the format. For internal use only. Can be 1 and updated according to the updates in our database.
 
     "uri": str,     // MANDATORY. LexBib bibitem URI (members of class lexdo:BibItem). literal string, containing http URI (in Zotero, field "AN" (archive Location)"; if empty, DOI, ISBN, or URL encoded as URI)
 
@@ -11,6 +11,17 @@
     "url": str,     // MANDATORY. lexdo:url (Content LexBib Zotero Item's "URL" field). literal. can be same as bibitem uri, or link to direct PDF access.
 
     "alternativeUrls": [str, ...],  // no mapping.
+
+    "details":
+        {
+
+        "zoteroItemUri": str, // e.g. "https://www.zotero.org/groups/1892855/lexbib/items/DZGSZRD6"
+
+        "prop2": val2, // any other key-value pair can be added
+
+        ....
+        } ,
+
 
     "type": "news" | "blog" | "pr" | "video"  // MANDATORY. LexBib bibitem type (rdf:type property). In conversion script, default is "news", if type=VIDEO, value is "video"
 
