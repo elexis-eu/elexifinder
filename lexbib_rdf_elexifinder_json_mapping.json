@@ -15,7 +15,7 @@
     "details":
         {
 
-        "zoteroItemUri": str, // e.g. "https://www.zotero.org/groups/1892855/lexbib/items/DZGSZRD6"
+        "zoteroItemUri": str, // e.g. "https://www.zotero.org/groups/1892855/lexbib/items/R3AIMXJ9"
 
         "prop2": val2, // any other key-value pair can be added
 
