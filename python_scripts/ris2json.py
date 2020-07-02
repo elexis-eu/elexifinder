@@ -2,8 +2,8 @@
 import re
 import json
 
-ris_input_file = 'D:/Lab_LexBib/eLexMerge/eLex-zotero.ris'
-json_output_file = 'D:/Lab_LexBib/eLexMerge/zotero.json'
+ris_input_file = 'D:/Lab_LexBib/BibMerge/lexno-zotero.ris'
+json_output_file = 'D:/Lab_LexBib/BibMerge/lexno-zotero.json'
 
 with open(ris_input_file, 'r', encoding="utf-8") as risfile:
     ris = risfile.read()
@@ -12,7 +12,12 @@ risjson = []
 risobjects = ris.split('\nER  - \n')
 for risobject in risobjects:
     risdict = {}
-    rislines = risobject.split('\n')
+    # notrisline = "^[^A-Z]{2}  \- "
+    risobject = re.sub(r"([A-Z][A-Z1-4]  \- )", r"@@@\1", risobject)
+    risobject = re.sub(r"^@@@", "", risobject)
+    #risobject = re.sub(r'\n', '\r\n', risobject)
+    #risobject = re.sub("\n@@@", "@@@", risobject)
+    rislines = risobject.split('\n@@@')
     for risline in rislines:
         try:
             splitline = risline.split('  - ',1)
@@ -24,10 +29,7 @@ for risobject in risobjects:
                 risdict[riskey] = [risvalue]
         except IndexError:
             pass
-        #risdict['ER']=''
-        #    riskey = "ER"
-        #    risvalue = ""
-        #print(riskey+risvalue)
+
     risjson.append(risdict)
 print(risjson)
 
