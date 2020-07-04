@@ -1,4 +1,6 @@
 ## treats output from LexBib RDF database (SPARQL query result as JSON, produced in VocBench3)
+## these are snippets for keyword extraction tests performed with language names
+## the file I actually use is lexbibjson2elexifinderjson.py
 
 import re
 import json
