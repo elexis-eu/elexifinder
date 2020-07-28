@@ -1,5 +1,5 @@
 // json keys for elexifinder eventregistry: datatype // mapping to LexBib RDF, format, comments
-
+[
 {
 
     "version": int,  // version for the format. For internal use only. Can be 1 and updated according to the updates in our database.
@@ -8,36 +8,36 @@
 
     "lang": str,    // MANDATORY. LexBib publication language (value of lexdo:publicationLanguage). literal, three-letter ISO639-3 codes, e.g. "eng" for English, "deu" for German, "fra" for French.
 
-    "url": str,     // MANDATORY. lexdo:url (Content LexBib Zotero Item's "URL" field). literal. can be same as bibitem uri, or link to direct PDF access.
+    "url": str,     // MANDATORY. lexdo:fullTextUrl (Content LexBib Zotero Item's "URL" field). literal. can be same as bibitem uri, or link to direct PDF access.
 
     "alternativeUrls": [str, ...],  // no mapping.
 
     "details":
-        {
-
+      {
         "zoteroItemUri": str, // e.g. "https://www.zotero.org/groups/1892855/lexbib/items/R3AIMXJ9"
 
         "prop2": val2, // any other key-value pair can be added
 
-        ....
-        } ,
+        // ... possible to include any more properties
+      }
 
 
-    "type": "news" | "blog" | "pr" | "video"  // MANDATORY. LexBib bibitem type (rdf:type property). In conversion script, default is "news", if type=VIDEO, value is "video"
+
+    "type": "news" | "blog" | "pr" | "video"  // MANDATORY. LexBib bibitem type (rdf:type property). In conversion script, default is "news", if type is stated as lexdo:ertype, then take that value
 
     "articleTm": str("YYYY-MM-DDTHH:MM:SS.XX"),    // MANDATORY. dcterms:date (Date of publication)
 
-    "pubTm": str("YYYY-MM-DDTHH:MM:SS.XX"),         // OPTIONAL. zotexport:modified (content of Zotero Item's "date modified" field) // export fails, created a ticket https://forums.zotero.org/discussion/83222/dateadded-datemodified-rdf-export-fails
+    "pubTm": str("YYYY-MM-DDTHH:MM:SS.XX"),         // Creation date of LexBib RDF export file. [zotexport:modified (content of Zotero Item's "date modified" field): export fails, created a ticket https://forums.zotero.org/discussion/83222/dateadded-datemodified-rdf-export-fails ]
 
     "crawlTm": str("YYYY-MM-DDTHH:MM:SS.XX"),       // OPTIONAL. zotexport:created (content of Zotero Item's "date added" field) // export fails, created a ticket https://forums.zotero.org/discussion/83222/dateadded-datemodified-rdf-export-fails
 
     "title": str,               // MANDATORY. dcterms:title
 
-    "body": str,                // MANDATORY. In the order of priority, (1) cleaned full text, or (2) full text pdf2text, or (3) abstract.
+    "body": str,                // MANDATORY. In the order of priority, (1) cleaned full text, or (2) full text pdf2text [implemented], or (3) abstract [TODO]
 
     "sourceUri": str,           // MANDATORY. lexdo:container property value. literal string, containing http URI of the container bibitem.
 
-    "sourceTitle": str,         // MANDATORY. Zotero Item's "short title" field content. (That field in Zotero is meant for item short title, we use it for container short title.)
+    "sourceTitle": str,         // MANDATORY. lexdo:containerShortTitle property value. Zotero Item's "short title" field content. (That field in Zotero is meant for item short title, we use it for container short title.)
 
     "sourceType": str,          // no mapping.
 
@@ -80,9 +80,9 @@
 
             "desc": str,        // TODO (optional)
 
-            "wgt": float(0-1)   // TODO (relevance of the concept)
+            "wgt": float(0-1),   // TODO (relevance of the concept)
 
-        },
+        }
 
         ...
 
@@ -167,6 +167,4 @@
 
         }
 
-      ]
-
-}
+]
