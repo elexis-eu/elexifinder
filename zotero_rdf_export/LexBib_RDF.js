@@ -1207,7 +1207,10 @@ function doExport() {
 
 // try item.dateModified
 		if(item.dateModified) {
-			Zotero.RDF.addStatement(nodes[USERITEM], n.zotexport+"dateModified", item.dateModified, true);
+			var moddate = new Date(item.dateModified); // js takes just any format here, but thinks this is a CET date (local system time zone)
+			//date.setHours(moddate.getHours() + 2); // add one hour (CET vs GMT-UTC)
+			var modisodate = moddate.toISOString();
+			Zotero.RDF.addStatement(nodes[USERITEM], n.zotexport+"dateModified", modisodate, true);
 		}
 
 		// add date
@@ -1357,6 +1360,10 @@ function doExport() {
 							usedURIs[Zotero.RDF.getResourceURI(tagobj)] = true;
 						}
 					}
+					// allow lexdo:collection property. This must be a number, later used for elexifinder export and updates
+					if (tagprop == "collection") {
+						Zotero.RDF.addStatement(nodes[ITEM], n.lexdo+tagprop, tagobj, true);
+						}
 					// allow lexdo:publisher property
 					if (tagprop == "publisher") {
 						if (tagobj.startsWith('http') != true) tagobj = n.lexorg+tagobj;
