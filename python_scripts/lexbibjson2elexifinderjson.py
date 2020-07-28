@@ -16,6 +16,9 @@ results = data['results']
 bindings = results['bindings']
 print(bindings)
 elexifinder = []
+txtfilecount = 0
+grobidcount = 0
+pdftxtcount = 0
 
 for item in bindings:
 	target = {}
@@ -61,20 +64,33 @@ for item in bindings:
 	else:
 		target['type'] = "news" # default event registry type
 
-	# load txt
+	# load txt. Try (1), txt file manually attached to Zotero item, (2) GROBID body TXT, (3) pdf2txt
 	txtfile = ""
+	grobidbody = ""
+
+
 	if 'txtfile' in item:
 		txtfile = item['txtfile']['value']
 		print("\nFound cleaned full text path at "+txtfile+" for "+target['uri'])
+		txtfilecount = txtfilecount + 1
+	elif 'pdffile' in item:
+		#textname = re.match(r'/[A-Z0-9]+/[^\.]+\.pdf', item['pdffile']['value']).group(0).replace('.pdf','_body.txt')
+		grobidbody =  re.match(r'([^\.]+)\.pdf', item['pdffile']['value']).group(1).replace('D:/Zotero/storage/', 'D:/LexBib/exports/exported_PDF/')+'_body.txt'
+		print(grobidbody)
+		if os.path.exists(grobidbody):
+			txtfile = grobidbody
+			print("\nFound GROBID processed full text body at "+txtfile+" for "+target['uri'])
+			grobidcount = grobidcount + 1
 	elif 'pdftxt' in item:
 		txtfile = item['pdftxt']['value']
 		print("\nFound pdf2txt full text path at "+txtfile+" for "+target['uri'])
+		pdftxtcount = pdftxtcount + 1
 	if txtfile != "":
 		try:
 			with open(txtfile, 'r', encoding="utf-8", errors="ignore") as file:
 				fulltxt = file.read().replace('\n', ' ')
 				target['body'] = fulltxt
-				print("\nCaught full text from "+txtfile+" for "+target['uri'])
+				#print("\nCaught full text from "+txtfile+" for "+target['uri'])
 		except:
 			print("\n File "+txtfile+" for "+target['uri']+" was supposed to be there but not found")
 			pass
@@ -85,4 +101,4 @@ for item in bindings:
 
 with open('D:/LexBib/rdf2json/processed.json', 'w', encoding="utf-8") as json_file: # path to result JSON file
 	json.dump(elexifinder, json_file, indent=2)
-	print("\nCreated processed JSON file. Finished.")
+	print("\n=============================================\nCreated processed JSON file. Finished.\n\n"+str(txtfilecount)+" files from manual attachments, "+str(grobidcount)+" files from GROBID output, "+str(pdftxtcount)+" files from Zotero pdf2txt")
