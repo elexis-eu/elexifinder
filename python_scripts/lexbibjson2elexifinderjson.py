@@ -33,7 +33,9 @@ for item in bindings:
 	if 'title' in item:
 		target['title'] = item['title']['value']
 	if 'articleTM' in item:
-		target['articleTM'] = item['articleTM']['value'][0:21]
+		target['articleTm'] = item['articleTM']['value'][0:22]
+	if 'modTM' in item:
+		target['crawlTm'] = item['modTM']['value'].replace(' ', 'T')+'.00'
 	if 'zotItemUri' in item:
 		zotItemUri = item['zotItemUri']['value']    #+'?usenewlibrary=0'
 		target['details'] = {"zotItemUri":zotItemUri}
@@ -75,7 +77,7 @@ for item in bindings:
 		txtfilecount = txtfilecount + 1
 	elif 'pdffile' in item:
 		#textname = re.match(r'/[A-Z0-9]+/[^\.]+\.pdf', item['pdffile']['value']).group(0).replace('.pdf','_body.txt')
-		grobidbody =  re.match(r'([^\.]+)\.pdf', item['pdffile']['value']).group(1).replace('D:/Zotero/storage/', 'D:/LexBib/exports/exported_PDF/')+'_body.txt'
+		grobidbody =  re.match(r'([^\.]+)\.pdf', item['pdffile']['value']).group(1).replace('D:/Zotero/storage/', 'D:/LexBib/exports/exported_files/')+'_body.txt'
 		print(grobidbody)
 		if os.path.exists(grobidbody):
 			txtfile = grobidbody
