@@ -15,8 +15,10 @@ import json
 import csv
 import shutil
 from SPARQLWrapper import SPARQLWrapper, JSON
+import time
+from rdflib import URIRef, Literal, Namespace, Graph
 
-zotero_lexbib_rdf_export_file = 'D:/LexBib/exports/elex-2009-2017.rdf'
+zotero_lexbib_rdf_export_file = 'D:/LexBib/exports/LEXICONORDICA.rdf'
 
 with open(zotero_lexbib_rdf_export_file, 'r', encoding="utf-8") as infile:
     exportlines = infile.readlines()
@@ -51,11 +53,11 @@ with open(os.path.splitext(zotero_lexbib_rdf_export_file)[0]+"_wikidata.rdf", 'w
                 entities = wdjson['entities']
                 for wdid in entities:
                     print("found new wdid "+wdid+" for AUTHORLOC "+wppage)
-                    line = aulocmatch.group(1)+'<lexdo:firstAuLoc rdf:resource="http://wikidata.org/entity/'+wdid+'"/>\n'
+                    line = aulocmatch.group(1)+'<lexdo:firstAuLoc rdf:resource="http://www.wikidata.org/entity/'+wdid+'"/>\n'
                     wikipairs[wppage] = wdid
             else:
                 wdid = wikipairs[wppage]
-                line = aulocmatch.group(1)+'<lexdo:firstAuLoc rdf:resource="http://wikidata.org/entity/'+wdid+'"/>\n'
+                line = aulocmatch.group(1)+'<lexdo:firstAuLoc rdf:resource="http://www.wikidata.org/entity/'+wdid+'"/>\n'
                 print("used known wdid "+wdid+" for AUTHORLOC "+wppage)
         if arlocmatch != None:
             #print(arlocmatch.group(2))
@@ -66,11 +68,11 @@ with open(os.path.splitext(zotero_lexbib_rdf_export_file)[0]+"_wikidata.rdf", 'w
                 entities = wdjson['entities']
                 for wdid in entities:
                     print("found new wdid "+wdid+" for ARTICLELOC "+wppage)
-                    line = arlocmatch.group(1)+'<lexdo:articleLoc rdf:resource="http://wikidata.org/entity/'+wdid+'"/>\n'
+                    line = arlocmatch.group(1)+'<lexdo:articleLoc rdf:resource="http://www.wikidata.org/entity/'+wdid+'"/>\n'
                     wikipairs[wppage] = wdid
             else:
                 wdid = wikipairs[wppage]
-                line = arlocmatch.group(1)+'<lexdo:articleLoc rdf:resource="http://wikidata.org/entity/'+wdid+'"/>\n'
+                line = arlocmatch.group(1)+'<lexdo:articleLoc rdf:resource="http://www.wikidata.org/entity/'+wdid+'"/>\n'
                 print("used known wdid " +wdid+" for ARTICLELOC "+wppage)
         if pdfmatch != None:
             pdffile = replace_entities(pdfmatch.group(1))
@@ -80,7 +82,7 @@ with open(os.path.splitext(zotero_lexbib_rdf_export_file)[0]+"_wikidata.rdf", 'w
             if pdffile in pdflist:
                 print('This file has been exported at '+pdflist[pdffile]+': '+pdffile)
             else:
-                newpath = 'D:/LexBib/exports/exported_PDF/'+attachfolder.group(1)
+                newpath = 'D:/LexBib/exports/exported_files/'+attachfolder.group(1)
                 if not os.path.isdir(newpath):
                     os.makedirs(newpath)
                 shutil.copy('D:/Zotero/storage/'+attachfolder.group(1)+'/'+attachfolder.group(2), newpath+'/'+attachfolder.group(2))
@@ -108,13 +110,14 @@ except:
     lpdict = {}
     print("\ncreated new lexplacefile\n")
 wdquerycount = 0
+wdsucc = 0
 for mapping in wikipairs:
     if wikipairs[mapping] not in lpdict:
         print(mapping+" "+wikipairs[mapping]+" not found in lexplacefile, will query wikidata")
         wdid = wikipairs[mapping]
 
         #query wikidata
-        sparql = SPARQLWrapper("https://query.wikidata.org/sparql")
+        sparql = SPARQLWrapper("https://query.wikidata.org/sparql", agent='LexBib-Bibliodata-enrichment-script (lexbib.org)')
         sparql.setQuery("""SELECT ?label ?country ?countrylabel
                     WHERE {
                         wd:"""+wdid+""" rdfs:label ?label .
@@ -126,6 +129,7 @@ for mapping in wikipairs:
         sparql.setReturnFormat(JSON)
         wdquerycount = wdquerycount + 1
         try:
+            time.sleep(1.5)
             wddict = sparql.query().convert()
             datalist = wddict['results']['bindings']
             print(datalist[0])
@@ -136,22 +140,58 @@ for mapping in wikipairs:
             wpurl = "http://en.wikipedia.org/wiki/"+mapping
             print(wpurl)
             lpdict[wdid] = {"wpurl":wpurl, "country":countryNode, "countrylabel":countrylabel, "citylabel":citylabel}
+            wdsucc = wdsucc + 1
 
-        except:
-            print(mapping+" "+wikipairs[mapping]+" not found on wikidata")
+        except Exception as ex:
+            print(mapping+" "+wikipairs[mapping]+" not found on wikidata, error: "+str(ex))
             pass
     else:
         print(mapping+" "+wikipairs[mapping]+" found in lexplacefile, no wikidata query needed")
 
-print("\nPerformed "+str(wdquerycount)+" wikidata queries.")
+print("\nTried to perform "+str(wdquerycount)+" wikidata queries. Actually retrieved "+str(wdsucc)+" answers from Wikidata.")
 #print(lpdict)
 with open('D:/LexBib/lexplaces.json', 'w', encoding="utf-8") as json_file:
 	json.dump(lpdict, json_file, ensure_ascii=False, indent=2)
-print("\nlexplacefile json updated, finished.")
+print("\nlexplacefile json updated.")
+
+gn = Namespace('http://www.geonames.org/ontology#')
+rdf = Namespace('http://www.w3.org/1999/02/22-rdf-syntax-ns#')
+skos = Namespace('http://www.w3.org/2004/02/skos/core#')
+schema = Namespace ('http://schemas.talis.com/2005/address/schema#')
+wd = Namespace ('http://www.wikidata.org/entity/')
+lexdotop = Namespace ('http://lexbib.org/lexdo-top/')
+
+placesgraph = Graph()
+placesgraph.bind("gn", gn)
+placesgraph.bind("skos", skos)
+placesgraph.bind("rdf", rdf)
+placesgraph.bind("schema", schema)
+placesgraph.bind("wd", wd)
+placesgraph.bind("lexdo-top", lexdotop)
+
+for wdplace, placedata in lpdict.items():
+    #print(wdplace)
+    #print(placedata)
+    placenode = URIRef('http://www.wikidata.org/entity/'+wdplace)
+    countrynode = URIRef(placedata['country'])
+    countrylabel = Literal(placedata['countrylabel'])
+    citylabel = Literal(placedata['citylabel'])
+    wpurl = URIRef(placedata['wpurl'])
+    placesgraph.add((placenode, rdf.type, schema.City))
+    placesgraph.add((placenode, rdf.type, lexdotop.Place))
+    placesgraph.add((placenode, schema.containedInPlace, countrynode))
+    placesgraph.add((placenode, gn.wikipediaArticle, wpurl))
+    placesgraph.add((placenode, skos.prefLabel, citylabel))
+    placesgraph.add((countrynode, rdf.type, schema.Country))
+    placesgraph.add((countrynode, skos.prefLabel, countrylabel))
+
+placesgraph.serialize(destination="D:/LexBib/lexplaces.ttl", format="turtle")
+
+print("Lexplaces TTL file updated.")
 
 with open("D:/LexBib/lexplaces.csv", "w", encoding="utf-8", newline="") as csv_file:
     f = csv.writer(csv_file, delimiter="\t", lineterminator="\n")
     f.writerow(["Wikidata URI", "gn:wikipediaArticle", "rdfs:label@en", "schema:containedInPlace", "countryLabel"])
     for place in lpdict:
-        f.writerow(["http://wikidata.org/entity/"+place, lpdict[place]['wpurl'], lpdict[place]['citylabel'], lpdict[place]['country'], lpdict[place]['countrylabel']])
-print("\nlexplacefile csv updated, finished.")
+        f.writerow(["http://www.wikidata.org/entity/"+place, lpdict[place]['wpurl'], lpdict[place]['citylabel'], lpdict[place]['country'], lpdict[place]['countrylabel']])
+print("lexplacefile csv updated, finished.")
