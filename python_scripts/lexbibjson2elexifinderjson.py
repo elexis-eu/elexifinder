@@ -2,8 +2,15 @@
 
 import re
 import json
+import os
+from datetime import datetime
 
-with open("D:/LexBib/rdf2json/query-result.json", encoding="utf-8") as f: # path to LexBibRDF JSON SPARQL result
+infile = "D:/LexBib/rdf2json/query-result.json" # path to LexBibRDF JSON SPARQL result
+
+pubTime = str(datetime.fromtimestamp(os.path.getmtime(infile)))[0:22].replace(' ','T')
+print(pubTime)
+
+with open(infile, encoding="utf-8") as f:
 	data =  json.load(f, encoding="utf-8")
 results = data['results']
 bindings = results['bindings']
@@ -12,7 +19,7 @@ elexifinder = []
 
 for item in bindings:
 	target = {}
-	txtfile = ""
+	target['pubTm'] = pubTime
 
 	if 'authorsJson' in item:
 		authorsJson = item['authorsJson']
@@ -54,8 +61,8 @@ for item in bindings:
 	else:
 		target['type'] = "news" # default event registry type
 
-		# load txt
-
+	# load txt
+	txtfile = ""
 	if 'txtfile' in item:
 		txtfile = item['txtfile']['value']
 		print("\nFound cleaned full text path at "+txtfile+" for "+target['uri'])
