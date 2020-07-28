@@ -45,6 +45,11 @@ with open(os.path.splitext(zotero_lexbib_rdf_export_file)[0]+"_wikidata.rdf", 'w
         aulocmatch = re.search('([^<]*)<lexdo:firstAuLoc>https?://en.wikipedia.org/wiki/([^<]+)</lexdo:firstAuLoc>', line)
         arlocmatch = re.search('([^<]*)<lexdo:articleLoc>https?://en.wikipedia.org/wiki/([^<]+)</lexdo:articleLoc>', line)
         pdfmatch = re.search('[^<]*<zotexport:pdfFile>(D:/Zotero/storage/[^<]+)</zotexport:pdfFile>', line) # Zotero storage folder path / attachment folder / filename.pdf
+        if "'" in pdfmatch:
+            print("PDF file "+pdfmatch+" will be renamed (remove single quote from name)")
+            line = line.replace("'", "")
+            os.rename(pdfmatch, pdfmatch.replace("'", ""))
+            pdfmatch = pdfmatch.replace("'", "")
         if aulocmatch != None:
             wppage = (aulocmatch.group(2))
             if wppage not in wikipairs:
