@@ -6,6 +6,7 @@
 # by dlindem
 
 from datetime import datetime
+import sys
 import re
 import os
 import requests
@@ -17,39 +18,61 @@ import shutil
 from SPARQLWrapper import SPARQLWrapper, JSON
 import time
 from rdflib import URIRef, Literal, Namespace, Graph
+from unidecode import unidecode
 
-zotero_lexbib_rdf_export_file = 'D:/LexBib/exports/LEXICONORDICA.rdf'
-
-with open(zotero_lexbib_rdf_export_file, 'r', encoding="utf-8") as infile:
-    exportlines = infile.readlines()
+print('Type the filename of Zotero export file in D:/LexBib/exports, without .rdf extension. This will be the collection (group) name.')
+collname = input()
+zotero_lexbib_rdf_export_file = 'D:/LexBib/exports/'+collname+'.rdf'
+print('File to process is '+zotero_lexbib_rdf_export_file)
 
 try:
-    with open('D:/LexBib/exported_PDF_list.json', 'r', encoding="utf-8") as pdflistfile:
+    #time.sleep(1)
+    with open(zotero_lexbib_rdf_export_file, 'r', encoding="utf-8") as infile:
+        exportlines = infile.readlines()
+    infiletime = str(datetime.fromtimestamp(os.path.getmtime(zotero_lexbib_rdf_export_file)))[0:22].replace(' ','T')
+    print('File found. Will start to process.')
+    #time.sleep(1)
+except:
+    print('File not found')
+    sys.exit()
+
+print('Which version is this? Type the number.')
+
+try:
+    version = int(input())
+except:
+    print ('Error: This has to be a number.')
+    sys.exit()
+
+try:
+    with open('D:/LexBib/exports/exported_PDF.json', 'r', encoding="utf-8") as pdflistfile:
         pdflist = json.load(pdflistfile, encoding="urf-8")
 except:
     print('\npdflistfile not there, will save in a new one.')
     pdflist = {}
 
+errorlog = []
 
 
 #print(exportlines)
 
 try:
-    with open('D:/LexBib/wppage-wdid-mappings.json', encoding="utf-8") as f:
+    with open('D:/LexBib/places/wppage-wdid-mappings.json', encoding="utf-8") as f:
     	wikipairs =  json.load(f, encoding="utf-8")
 except:
     wikipairs = {}
 
-with open(os.path.splitext(zotero_lexbib_rdf_export_file)[0]+"_wikidata.rdf", 'w', encoding="utf-8") as outfile:
+with open(os.path.splitext(zotero_lexbib_rdf_export_file)[0]+"_upload_"+str(version)+".rdf", 'w', encoding="utf-8") as outfile:
     for line in exportlines:
+        authormatch = re.search('(.*\")(http://lexbib.org/agents/person/[^\"]+)(\".*)', line)
         aulocmatch = re.search('([^<]*)<lexdo:firstAuLoc>https?://en.wikipedia.org/wiki/([^<]+)</lexdo:firstAuLoc>', line)
         arlocmatch = re.search('([^<]*)<lexdo:articleLoc>https?://en.wikipedia.org/wiki/([^<]+)</lexdo:articleLoc>', line)
-        pdfmatch = re.search('[^<]*<zotexport:pdfFile>(D:/Zotero/storage/[^<]+)</zotexport:pdfFile>', line) # Zotero storage folder path / attachment folder / filename.pdf
-        if "'" in pdfmatch:
-            print("PDF file "+pdfmatch+" will be renamed (remove single quote from name)")
-            line = line.replace("'", "")
-            os.rename(pdfmatch, pdfmatch.replace("'", ""))
-            pdfmatch = pdfmatch.replace("'", "")
+        pdfmatch = re.search('([^<]*<zotexport:pdfFile>)(D:/Zotero/storage)/([A-Z0-9]+)/([^<]+)(</zotexport:pdfFile>.*)', line) # Zotero storage folder path / attachment folder / filename.pdf
+        if authormatch != None:
+            author = authormatch.group(2)
+            author = re.sub(r'[^A-Za-z:/]', '', unidecode(author))
+            print (author)
+            line = authormatch.group(1)+author+authormatch.group(3)
         if aulocmatch != None:
             wppage = (aulocmatch.group(2))
             if wppage not in wikipairs:
@@ -57,13 +80,14 @@ with open(os.path.splitext(zotero_lexbib_rdf_export_file)[0]+"_wikidata.rdf", 'w
                 wdjson =  wdjsonsource.json()
                 entities = wdjson['entities']
                 for wdid in entities:
-                    print("found new wdid "+wdid+" for AUTHORLOC "+wppage)
+                    #print("found new wdid "+wdid+" for AUTHORLOC "+wppage)
                     line = aulocmatch.group(1)+'<lexdo:firstAuLoc rdf:resource="http://www.wikidata.org/entity/'+wdid+'"/>\n'
                     wikipairs[wppage] = wdid
             else:
                 wdid = wikipairs[wppage]
                 line = aulocmatch.group(1)+'<lexdo:firstAuLoc rdf:resource="http://www.wikidata.org/entity/'+wdid+'"/>\n'
-                print("used known wdid "+wdid+" for AUTHORLOC "+wppage)
+                #print("used known wdid "+wdid+" for AUTHORLOC "+wppage)
+
         if arlocmatch != None:
             #print(arlocmatch.group(2))
             wppage = (arlocmatch.group(2))
@@ -72,43 +96,52 @@ with open(os.path.splitext(zotero_lexbib_rdf_export_file)[0]+"_wikidata.rdf", 'w
                 wdjson =  wdjsonsource.json()
                 entities = wdjson['entities']
                 for wdid in entities:
-                    print("found new wdid "+wdid+" for ARTICLELOC "+wppage)
+                    #print("found new wdid "+wdid+" for ARTICLELOC "+wppage)
                     line = arlocmatch.group(1)+'<lexdo:articleLoc rdf:resource="http://www.wikidata.org/entity/'+wdid+'"/>\n'
                     wikipairs[wppage] = wdid
             else:
                 wdid = wikipairs[wppage]
                 line = arlocmatch.group(1)+'<lexdo:articleLoc rdf:resource="http://www.wikidata.org/entity/'+wdid+'"/>\n'
-                print("used known wdid " +wdid+" for ARTICLELOC "+wppage)
+                #print("used known wdid " +wdid+" for ARTICLELOC "+wppage)
+
         if pdfmatch != None:
-            pdffile = replace_entities(pdfmatch.group(1))
-            print(pdffile)
-            attachfolder = re.search('D:/Zotero/storage/([A-Z0-9]+)/(.*)', pdffile)
-            print(attachfolder.group(1))
-            if pdffile in pdflist:
-                print('This file has been exported at '+pdflist[pdffile]+': '+pdffile)
+            pdffolder = pdfmatch.group(3)
+            pdfoldfile = pdfmatch.group(4)
+            forbidden = re.compile(r'[^a-zA-Z0-9_\.]')
+            if forbidden.search(pdfoldfile):
+                print("PDF file "+pdfoldfile+" will be renamed (remove [^a-zA-Z0-9_] from name)")
+                pdfnewfile = forbidden.sub('', pdfoldfile)
+                #line = pdfmatch.group(1)+pdfmatch.group(2)+pdfoldpath+pdfnewfile+pdfmatch.group(4)
+                print('Renamed PDF file to handle is '+pdfnewfile)
+                #time.sleep(1)
             else:
-                newpath = 'D:/LexBib/exports/exported_files/'+attachfolder.group(1)
+                pdfnewfile = pdfoldfile
+                print('PDF file to handle is '+pdfnewfile)
+            if pdffolder+'/'+pdfnewfile in pdflist:
+                print('This file has been exported already (collection_version_time): '+pdflist[pdffolder+'/'+pdfnewfile]+': '+pdfnewfile)
+            else:
+                newpath = 'D:/LexBib/exports/export_filerepo/'+pdffolder
                 if not os.path.isdir(newpath):
                     os.makedirs(newpath)
-                shutil.copy('D:/Zotero/storage/'+attachfolder.group(1)+'/'+attachfolder.group(2), newpath+'/'+attachfolder.group(2))
-                print('Found and copied '+pdffile)
-                pdflist[pdffile] = str(datetime.now())
-                print(pdflist[pdffile])
+                shutil.copy('D:/Zotero/storage/'+pdffolder+'/'+pdfoldfile, newpath+'/'+pdfnewfile)
+                print('Found and copied '+pdfnewfile)
+                pdflist[pdffolder+'/'+pdfnewfile] = infiletime+'_'+collname+'_v'+str(version)
+                #print(pdflist[pdfnewfile])
 
         outfile.write(line)
 
 # save updated PDF list
-with open('D:/LexBib/exported_PDF_list.json', 'w', encoding="utf-8") as pdflistfile:
+with open('D:/LexBib/exports/exported_PDF.json', 'w', encoding="utf-8") as pdflistfile:
     json.dump(pdflist, pdflistfile, ensure_ascii=False, indent=2)
 
 # save known wikipedia-wikidata mappings to file
-with open('D:/LexBib/wppage-wdid-mappings.json', 'w', encoding="utf-8") as mappingfile:
+with open('D:/LexBib/places/wppage-wdid-mappings.json', 'w', encoding="utf-8") as mappingfile:
 	json.dump(wikipairs, mappingfile, ensure_ascii=False, indent=2)
-print('\nsaved knwon Wikipedia-Wikdiata mappings.')
+print('\nsaved known Wikipedia-Wikdiata mappings.')
 
 # update lexplaces.json
 try:
-    with open('D:/LexBib/lexplaces.json', encoding="utf-8") as lexplacefile:
+    with open('D:/LexBib/places/lexplaces.json', encoding="utf-8") as lexplacefile:
         lpdict =  json.load(lexplacefile, encoding="utf-8")
         print("\nloaded lexplacefile\n")
 except:
@@ -117,7 +150,7 @@ except:
 wdquerycount = 0
 wdsucc = 0
 for mapping in wikipairs:
-    if wikipairs[mapping] not in lpdict:
+    if 'Q' in wikipairs[mapping] and wikipairs[mapping] not in lpdict:
         print(mapping+" "+wikipairs[mapping]+" not found in lexplacefile, will query wikidata")
         wdid = wikipairs[mapping]
 
@@ -149,13 +182,14 @@ for mapping in wikipairs:
 
         except Exception as ex:
             print(mapping+" "+wikipairs[mapping]+" not found on wikidata, error: "+str(ex))
+            errorlog.append({wdid:str(ex)})
             pass
-    else:
-        print(mapping+" "+wikipairs[mapping]+" found in lexplacefile, no wikidata query needed")
+    #else:
+        #print(mapping+" "+wikipairs[mapping]+" found in lexplacefile, no wikidata query needed")
 
 print("\nTried to perform "+str(wdquerycount)+" wikidata queries. Actually retrieved "+str(wdsucc)+" answers from Wikidata.")
 #print(lpdict)
-with open('D:/LexBib/lexplaces.json', 'w', encoding="utf-8") as json_file:
+with open('D:/LexBib//places/lexplaces.json', 'w', encoding="utf-8") as json_file:
 	json.dump(lpdict, json_file, ensure_ascii=False, indent=2)
 print("\nlexplacefile json updated.")
 
@@ -190,13 +224,18 @@ for wdplace, placedata in lpdict.items():
     placesgraph.add((countrynode, rdf.type, schema.Country))
     placesgraph.add((countrynode, skos.prefLabel, countrylabel))
 
-placesgraph.serialize(destination="D:/LexBib/lexplaces.ttl", format="turtle")
+placesgraph.serialize(destination="D:/LexBib/places/lexplaces.ttl", format="turtle")
 
 print("Lexplaces TTL file updated.")
 
-with open("D:/LexBib/lexplaces.csv", "w", encoding="utf-8", newline="") as csv_file:
+with open("D:/LexBib/places/lexplaces.csv", "w", encoding="utf-8", newline="") as csv_file:
     f = csv.writer(csv_file, delimiter="\t", lineterminator="\n")
     f.writerow(["Wikidata URI", "gn:wikipediaArticle", "rdfs:label@en", "schema:containedInPlace", "countryLabel"])
     for place in lpdict:
         f.writerow(["http://www.wikidata.org/entity/"+place, lpdict[place]['wpurl'], lpdict[place]['citylabel'], lpdict[place]['country'], lpdict[place]['countrylabel']])
 print("lexplacefile csv updated, finished.")
+
+if len(errorlog) > 0:
+    print('Error log is saved as wikidata_error.log')
+    with open("D:/LexBib/places/wikidata_error.log", "w", encoding="utf-8") as errorfile:
+        json.dump(errorlog, errorfile, ensure_ascii=False, indent=2)
