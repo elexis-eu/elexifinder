@@ -62,7 +62,7 @@ try:
 except:
     wikipairs = {}
 
-with open(os.path.splitext(zotero_lexbib_rdf_export_file)[0]+"_upload_"+str(version)+".rdf", 'w', encoding="utf-8") as outfile:
+with open(os.path.splitext(zotero_lexbib_rdf_export_file)[0]+"_upload_v"+str(version)+".rdf", 'w', encoding="utf-8") as outfile:
     for line in exportlines:
         authormatch = re.search('(.*\")(http://lexbib.org/agents/person/[^\"]+)(\".*)', line)
         aulocmatch = re.search('([^<]*)<lexdo:firstAuLoc>https?://en.wikipedia.org/wiki/([^<]+)</lexdo:firstAuLoc>', line)
@@ -71,7 +71,7 @@ with open(os.path.splitext(zotero_lexbib_rdf_export_file)[0]+"_upload_"+str(vers
         if authormatch != None:
             author = authormatch.group(2)
             author = re.sub(r'[^A-Za-z:/]', '', unidecode(author))
-            print (author)
+            #print (author)
             line = authormatch.group(1)+author+authormatch.group(3)
         if aulocmatch != None:
             wppage = (aulocmatch.group(2))
