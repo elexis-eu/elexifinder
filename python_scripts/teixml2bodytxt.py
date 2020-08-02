@@ -6,7 +6,7 @@ import re
 from bs4 import BeautifulSoup
 import os
 
-parent_dir = 'D:/LexBib/exports/exported_files'
+parent_dir = 'D:/LexBib/exports/export_filerepo'
 
 skipcount = 0
 processcount = 0
