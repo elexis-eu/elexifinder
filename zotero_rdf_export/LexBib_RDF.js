@@ -776,10 +776,11 @@ CreatorProperty.prototype.mapFromCreator = function(item, creator, nodes) {
 	}
 
 	//var creatorNode = Zotero.RDF.newResource();
-
+  //var unidecode = require('unidecode');
 	if (creator.fieldMode == 1) { // this is when first name field is empty (will be treated as an organization name)
 		//var creatorNode = Zotero.RDF.newResource(); //this creatorNode will be a blank node
-		var camelCreator = (creator.lastName).normalize("NFD").replace(/[\u0300-\u036f\-\. ]/g, "");
+		var camelCreator = creator.lastName;
+		//var camelCreator = creator.lastName; //.normalize("NFD").replace(/[\u0300-\u036f\-\. ]/g, "");
 
 		var camelSentence = function camelSentence(camelCreator) {
 	    return  (" " + camelCreator).toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, function(match, chr)
@@ -787,14 +788,14 @@ CreatorProperty.prototype.mapFromCreator = function(item, creator, nodes) {
 	        return chr.toUpperCase();
 	    });
 			}
-			var creatorNode = n.lexorg+encodeURI(camelCreator);
+			var creatorNode = n.lexorg+camelCreator;
 		Zotero.RDF.addStatement(creatorNode, RDF_TYPE, n.owl+"NamedIndividual", false);
 		Zotero.RDF.addStatement(creatorNode, RDF_TYPE, n.lexdo+"Organization");
 		Zotero.RDF.addStatement(creatorNode, n.foaf+"name", creator.lastName, true);
 	} else {
 		// create camelcase version of name and output as lexbibperson uri, attached to creator node uwing owl:sameAs
 
-		var camelCreator = (creator.lastName+creator.firstName).normalize("NFD").replace(/[\u0300-\u036f\-\. ]/g, "");
+		var camelCreator = creator.lastName+creator.firstName; //.normalize("NFD").replace(/[\u0300-\u036f\-\. ]/g, "");
 
 		var camelSentence = function camelSentence(camelCreator) {
 	    return  (" " + camelCreator).toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, function(match, chr)
@@ -802,7 +803,7 @@ CreatorProperty.prototype.mapFromCreator = function(item, creator, nodes) {
 	        return chr.toUpperCase();
 	    });
 			}
-			var creatorNode = n.lexperson+encodeURI(camelCreator);
+			var creatorNode = n.lexperson+camelCreator; // this produces illegal URI (special chars, spaces, single O'Hara quote, etc., which is fixed later by zotexport2lexbib.py)
 
 		// if this camelCreator has not appeared before, write data to creatorNode
 		if (usedURIs[Zotero.RDF.getResourceURI(creatorNode)] != true) {
