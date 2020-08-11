@@ -53,7 +53,8 @@ var n = {
 	lexdo:"http://lexbib.org/lexdo/",
 	lexperson:"http://lexbib.org/agents/person/",
 	lexorg:"http://lexbib.org/agents/organization/",
-	lexevent:"http://lexbib.org/events/"
+	lexevent:"http://lexbib.org/events/",
+	skosxl:"http://www.w3.org/2008/05/skos-xl#"
 };
 
 
@@ -806,27 +807,33 @@ CreatorProperty.prototype.mapFromCreator = function(item, creator, nodes) {
 			var creatorNode = n.lexperson+camelCreator; // this produces illegal URI (special chars, spaces, single O'Hara quote, etc., which is fixed later by zotexport2lexbib.py)
 
 		// if this camelCreator has not appeared before, write data to creatorNode
-		if (usedURIs[Zotero.RDF.getResourceURI(creatorNode)] != true) {
+		if (usedURIs[Zotero.RDF.getResourceURI(creatorNode)] != true) { // if new camelCreator
 		// Zotero.RDF.addStatement(creatorNode, RDF_TYPE, n.foaf+"Person");
-		Zotero.RDF.addStatement(creatorNode, RDF_TYPE, n.owl+"NamedIndividual", false);
-		Zotero.RDF.addStatement(creatorNode, RDF_TYPE, n.lexdo+"Person", false);
+
+			Zotero.RDF.addStatement(creatorNode, RDF_TYPE, n.owl+"NamedIndividual", false);
+			Zotero.RDF.addStatement(creatorNode, RDF_TYPE, n.lexdo+"Person", false);
+		}
 
 		//if (creator.firstName) Zotero.RDF.addStatement(creatorNode, n.foaf+"firstName", creator.firstName, true);
 		//if (creator.lastName) Zotero.RDF.addStatement(creatorNode, n.foaf+"surname", creator.lastName, true);
 		// list in usedURIs
 		//usedURIs[Zotero.RDF.getResourceURI(creatorNode)] = true;
 		if (creator.lastName) {
-					var creatorlabel = creator.lastName ;
-					Zotero.RDF.addStatement(creatorNode, n.foaf+"surname", creator.lastName, true);
-					if (creator.firstName) {
-						creatorlabel = creator.firstName+" "+creator.lastName;
-						Zotero.RDF.addStatement(creatorNode, n.foaf+"firstName", creator.firstName, true);
-					}
-					Zotero.RDF.addStatement(creatorNode, n.rdfs+"label", creatorlabel, true);
-					// list in usedURIs
-					usedURIs[Zotero.RDF.getResourceURI(creatorNode)] = true;
-				}
+			var aunamenode = Zotero.RDF.newResource();
+			Zotero.RDF.addStatement(aunamenode, RDF_TYPE, n.skosxl+"Label");
+			Zotero.RDF.addStatement(creatorNode, n.skosxl+"altLabel", aunamenode);
+			var creatorlabel = creator.lastName ;
+			Zotero.RDF.addStatement(aunamenode, n.foaf+"surname", creator.lastName, true);
+			if (creator.firstName) {
+				creatorlabel = creator.firstName+" "+creator.lastName;
+				Zotero.RDF.addStatement(aunamenode, n.foaf+"firstName", creator.firstName, true);
+			}
+			Zotero.RDF.addStatement(aunamenode, n.skosxl+"literalForm", creatorlabel, true);
+			Zotero.RDF.addStatement(aunamenode, n.dcterms+"source", nodes[ITEM], false);
+			// list in usedURIs
+			usedURIs[Zotero.RDF.getResourceURI(creatorNode)] = true;
 		}
+
 	}
 	// if (creator.birthYear) Zotero.RDF.addStatement(creatorNode, n.foaf+"birthday", creator.birthYear, true);
 	// if (creator.shortName) Zotero.RDF.addStatement(creatorNode, n.foaf+"nick", creator.shortName, true);
