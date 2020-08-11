@@ -61,18 +61,18 @@ try:
     	wikipairs =  json.load(f, encoding="utf-8")
 except:
     wikipairs = {}
-
-with open(os.path.splitext(zotero_lexbib_rdf_export_file)[0]+"_upload_v"+str(version)+".rdf", 'w', encoding="utf-8") as outfile:
+interimfile = os.path.splitext(zotero_lexbib_rdf_export_file)[0]+"_pp_v"+str(version)+".rdf"
+with open(interimfile, 'w', encoding="utf-8") as tmpfile:
     for line in exportlines:
-        authormatch = re.search('(.*\")(http://lexbib.org/agents/person/[^\"]+)(\".*)', line)
+        authormatch = re.search('(.*\")(http://lexbib.org/agents/person/)([^\"]+)(\".*)', line)
         aulocmatch = re.search('([^<]*)<lexdo:firstAuLoc>https?://en.wikipedia.org/wiki/([^<]+)</lexdo:firstAuLoc>', line)
         arlocmatch = re.search('([^<]*)<lexdo:articleLoc>https?://en.wikipedia.org/wiki/([^<]+)</lexdo:articleLoc>', line)
         pdfmatch = re.search('([^<]*<zotexport:pdfFile>)(D:/Zotero/storage)/([A-Z0-9]+)/([^<]+)(</zotexport:pdfFile>.*)', line) # Zotero storage folder path / attachment folder / filename.pdf
         if authormatch != None:
-            author = authormatch.group(2)
+            author = authormatch.group(3)
             author = re.sub(r'[^A-Za-z:/]', '', unidecode(author))
             #print (author)
-            line = authormatch.group(1)+author+authormatch.group(3)
+            line = authormatch.group(1)+authormatch.group(2)+author+authormatch.group(4)
         if aulocmatch != None:
             wppage = (aulocmatch.group(2))
             if wppage not in wikipairs:
@@ -109,17 +109,15 @@ with open(os.path.splitext(zotero_lexbib_rdf_export_file)[0]+"_upload_v"+str(ver
             pdfoldfile = pdfmatch.group(4)
             forbidden = re.compile(r'[^a-zA-Z0-9_\.]')
             if forbidden.search(pdfoldfile):
-                print("PDF file "+pdfoldfile+" will be renamed (remove [^a-zA-Z0-9_] from name)")
+                #print("PDF file "+pdfoldfile+" will be renamed (remove [^a-zA-Z0-9_] from name)")
                 pdfnewfile = forbidden.sub('', pdfoldfile)
                 #line = pdfmatch.group(1)+pdfmatch.group(2)+pdfoldpath+pdfnewfile+pdfmatch.group(4)
-                print('Renamed PDF file to handle is '+pdfnewfile)
+                #print('Renamed PDF file to handle is '+pdfnewfile)
                 #time.sleep(1)
             else:
                 pdfnewfile = pdfoldfile
-                print('PDF file to handle is '+pdfnewfile)
-            if pdffolder+'/'+pdfnewfile in pdflist:
-                print('This file has been exported already (collection_version_time): '+pdflist[pdffolder+'/'+pdfnewfile]+': '+pdfnewfile)
-            else:
+                #print('PDF file to handle is '+pdfnewfile)
+            if pdffolder+'/'+pdfnewfile not in pdflist:
                 newpath = 'D:/LexBib/exports/export_filerepo/'+pdffolder
                 if not os.path.isdir(newpath):
                     os.makedirs(newpath)
@@ -128,7 +126,7 @@ with open(os.path.splitext(zotero_lexbib_rdf_export_file)[0]+"_upload_v"+str(ver
                 pdflist[pdffolder+'/'+pdfnewfile] = infiletime+'_'+collname+'_v'+str(version)
                 #print(pdflist[pdfnewfile])
 
-        outfile.write(line)
+        tmpfile.write(line)
 
 # save updated PDF list
 with open('D:/LexBib/exports/exported_PDF.json', 'w', encoding="utf-8") as pdflistfile:
@@ -239,3 +237,119 @@ if len(errorlog) > 0:
     print('Error log is saved as wikidata_error.log')
     with open("D:/LexBib/places/wikidata_error.log", "w", encoding="utf-8") as errorfile:
         json.dump(errorlog, errorfile, ensure_ascii=False, indent=2)
+
+print('Begin person information treatment and TTL export...')
+
+try:
+    with open('D:/LexBib/persons/lexpersons.json', encoding="utf-8") as f:
+    	authordic =  json.load(f, encoding="utf-8")
+except:
+    print('\ncreatorlistfile not there, will save in a new one.')
+    authordic = {}
+
+
+g = Graph()
+
+gn = Namespace('http://www.geonames.org/ontology#')
+rdf = Namespace('http://www.w3.org/1999/02/22-rdf-syntax-ns#')
+skos = Namespace('http://www.w3.org/2004/02/skos/core#')
+dcterms = Namespace ('http://purl.org/dc/terms/')
+wd = Namespace ('http://www.wikidata.org/entity/')
+foaf = Namespace ('http://xmlns.com/foaf/0.1/')
+skosxl = Namespace('http://www.w3.org/2008/05/skos-xl#')
+
+g.bind("gn", gn)
+g.bind("skos", skos)
+g.bind("rdf", rdf)
+g.bind("dcterms", dcterms)
+g.bind("wd", wd)
+g.bind("foaf", foaf)
+g.bind("skosxl", skosxl)
+
+g.parse(interimfile, format="xml")
+
+authors = g.query(
+    """select DISTINCT ?lexdo_Person ?foaf_firstname ?foaf_surname ?skosxl_literalForm ?dct_source where {
+	   ?lexdo_Person rdf:type lexdo:Person .
+       ?lexdo_Person skosxl:altLabel ?personLabel .
+       ?personLabel foaf:firstName ?foaf_firstname
+                ; foaf:surname ?foaf_surname
+    			; skosxl:literalForm ?skosxl_literalForm
+                ; dcterms:source ?dct_source .
+
+
+     } """)
+
+authorsdic = {}
+for row in authors:
+    if str(row.lexdo_Person) not in authorsdic:
+        authorsdic[str(row.lexdo_Person)] = {str(row.dct_source):{'foaf_firstname' : str(row.foaf_firstname), 'foaf_surname' : str(row.foaf_surname), 'skosxl_literalForm' : str(row.skosxl_literalForm)}}
+    else:
+        authorsdic[str(row.lexdo_Person)].update({str(row.dct_source):{'foaf_firstname' : str(row.foaf_firstname), 'foaf_surname' : str(row.foaf_surname), 'skosxl_literalForm' : str(row.skosxl_literalForm)}})
+
+#print(authorsdic)
+with open('D:/LexBib/persons/lexpersons.json', 'w', encoding="utf-8") as json_file: # path to result JSON file
+	json.dump(authorsdic, json_file, indent=2)
+print('Updated lexpersons.json')
+
+print ('...creating csv for person data post-processing')
+
+authorlist = {}
+for authoruri in authorsdic:
+    #print(authordic[authoruri])
+    if authoruri not in authorlist:
+        authorlist[authoruri] = []
+
+    for puburi in authorsdic[authoruri]:
+    #print(authorsdic[authoruri][puburi]['skosxl_literalForm'])
+        literal = authorsdic[authoruri][puburi]['skosxl_literalForm']
+        #print(literal)
+        if len(authorlist[authoruri]) > 0 :
+            seen = 0
+            for valuelist in authorlist[authoruri]:
+                if seen == 0:
+                    #print(valuelist['skosxl_literalForm'])
+                    if valuelist['skosxl_literalForm'] == literal:
+                        valuelist['count'] += 1
+                        seen = 1
+                    else:
+                        authorlist[authoruri].append({"skosxl_literalForm":literal, "foaf_firstname":authorsdic[authoruri][puburi]['foaf_firstname'], "foaf_surname":authorsdic[authoruri][puburi]['foaf_surname'], "count" : 1})
+                        seen = 1
+            #    if literal not in valuelist:
+            #        print ('found new form')
+        else:
+            authorlist[authoruri] = [{"skosxl_literalForm":literal, "foaf_firstname":authorsdic[authoruri][puburi]['foaf_firstname'], "foaf_surname":authorsdic[authoruri][puburi]['foaf_surname'], "count" : 1}]
+
+with open("D:/LexBib/persons/lexpersons.csv", "w", encoding="utf-8", newline="") as csv_file:
+    f = csv.writer(csv_file, delimiter="\t", lineterminator="\n")
+    f.writerow(["lexdo_Person", "skosxl_literalForm", "foaf_firstname", "foaf_surname", "count"])
+    for authoruri in authorlist:
+        for valuelist in authorlist[authoruri]:
+            #print(valuelist)
+            f.writerow([authoruri, valuelist['skosxl_literalForm'], valuelist['foaf_firstname'], valuelist['foaf_surname'], valuelist['count']])
+print("lexperson csv updated, finished.")
+
+
+#        for entry in authorlist[authoruri]:
+#            if authorlist[authoruri][entry]:
+#        if authorsdic[authoruri][puburi]['skosxl_literalForm']:
+#            authorlist[authoruri].append(authorsdic[authoruri][puburi]['skosxl_literalForm'])
+#            print(authorlist[authoruri])
+#        else:
+#
+
+#print('\n----begin authorlist')
+#print(authorlist)
+
+
+
+print ('...removing Person data from RDF, saving result as .TTL, ready for upload to Ontotext GraphDB')
+for s, p, o in g:
+    if 'BNode' in str(type(s)):
+        g.remove((s,None,None))
+    if 'http://lexbib.org/agents/person' in str(s):
+        g.remove((s,None,None))
+
+
+
+g.serialize(destination=interimfile.replace('.rdf', '_upload.ttl'), format="turtle")
