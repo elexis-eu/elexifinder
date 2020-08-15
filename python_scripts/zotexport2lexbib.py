@@ -17,7 +17,7 @@ import csv
 import shutil
 from SPARQLWrapper import SPARQLWrapper, JSON
 import time
-from rdflib import URIRef, Literal, Namespace, Graph
+from rdflib import Graph, Namespace, BNode, URIRef, Literal
 from unidecode import unidecode
 
 print('Type the filename of Zotero export file in D:/LexBib/exports, without .rdf extension. This will be the collection (group) name.')
@@ -40,6 +40,7 @@ print('Which version is this? Type the number.')
 
 try:
     version = int(input())
+    print ('OK, version is '+str(version)+', will start to process...')
 except:
     print ('Error: This has to be a number.')
     sys.exit()
@@ -242,10 +243,10 @@ print('Begin person information treatment and TTL export...')
 
 try:
     with open('D:/LexBib/persons/lexpersons.json', encoding="utf-8") as f:
-    	authordic =  json.load(f, encoding="utf-8")
+    	authorsdic =  json.load(f, encoding="utf-8")
 except:
     print('\ncreatorlistfile not there, will save in a new one.')
-    authordic = {}
+    authorsdic = {}
 
 
 g = Graph()
@@ -280,7 +281,7 @@ authors = g.query(
 
      } """)
 
-authorsdic = {}
+
 for row in authors:
     if str(row.lexdo_Person) not in authorsdic:
         authorsdic[str(row.lexdo_Person)] = {str(row.dct_source):{'foaf_firstname' : str(row.foaf_firstname), 'foaf_surname' : str(row.foaf_surname), 'skosxl_literalForm' : str(row.skosxl_literalForm)}}
@@ -294,56 +295,96 @@ print('Updated lexpersons.json')
 
 print ('...creating csv for person data post-processing')
 
-authorlist = {}
+authordic = {}
 for authoruri in authorsdic:
     #print(authordic[authoruri])
-    if authoruri not in authorlist:
-        authorlist[authoruri] = []
-
+    if authoruri not in authordic:
+        authordic[authoruri] = {}
+    seen = []
     for puburi in authorsdic[authoruri]:
     #print(authorsdic[authoruri][puburi]['skosxl_literalForm'])
         literal = authorsdic[authoruri][puburi]['skosxl_literalForm']
         #print(literal)
-        if len(authorlist[authoruri]) > 0 :
-            seen = 0
-            for valuelist in authorlist[authoruri]:
-                if seen == 0:
-                    #print(valuelist['skosxl_literalForm'])
-                    if valuelist['skosxl_literalForm'] == literal:
-                        valuelist['count'] += 1
-                        seen = 1
-                    else:
-                        authorlist[authoruri].append({"skosxl_literalForm":literal, "foaf_firstname":authorsdic[authoruri][puburi]['foaf_firstname'], "foaf_surname":authorsdic[authoruri][puburi]['foaf_surname'], "count" : 1})
-                        seen = 1
-            #    if literal not in valuelist:
-            #        print ('found new form')
-        else:
-            authorlist[authoruri] = [{"skosxl_literalForm":literal, "foaf_firstname":authorsdic[authoruri][puburi]['foaf_firstname'], "foaf_surname":authorsdic[authoruri][puburi]['foaf_surname'], "count" : 1}]
+        if len(authordic[authoruri]) > 0 : # if this author already has labels
+            #print(authoruri+' already has labels')
+            #for valuelist in authordic[authoruri]:
+            #    if valuelist['skosxl_literalForm'] not in seen:
+            if literal in seen:
+                authordic[authoruri][literal]['count'] += 1
+
+            else:
+                authordic[authoruri][literal] = {"foaf_firstname":authorsdic[authoruri][puburi]['foaf_firstname'], "foaf_surname":authorsdic[authoruri][puburi]['foaf_surname'], "count" : 1}
+                seen.append(literal)
+        else: # if this author still has no labels
+            authordic[authoruri][literal] = {"foaf_firstname":authorsdic[authoruri][puburi]['foaf_firstname'], "foaf_surname":authorsdic[authoruri][puburi]['foaf_surname'], "count" : 1}
+            seen.append(literal)
+    #for autlabel in seen:
+        #print(autlabel)
+
+with open('D:/LexBib/persons/authordic.json', 'w', encoding="utf-8") as json_file: # path to result JSON file
+	json.dump(authordic, json_file, indent=2)
+print('Updated authordic.json')
 
 with open("D:/LexBib/persons/lexpersons.csv", "w", encoding="utf-8", newline="") as csv_file:
     f = csv.writer(csv_file, delimiter="\t", lineterminator="\n")
     f.writerow(["lexdo_Person", "skosxl_literalForm", "foaf_firstname", "foaf_surname", "count"])
-    for authoruri in authorlist:
-        for valuelist in authorlist[authoruri]:
+    for authoruri in authordic:
+        for label in authordic[authoruri]:
             #print(valuelist)
-            f.writerow([authoruri, valuelist['skosxl_literalForm'], valuelist['foaf_firstname'], valuelist['foaf_surname'], valuelist['count']])
+            f.writerow([authoruri, label, authordic[authoruri][label]['foaf_firstname'], authordic[authoruri][label]['foaf_surname'], authordic[authoruri][label]['count']])
 print("lexperson csv updated, finished.")
 
+print("Will now update lexpersons.ttl...")
 
-#        for entry in authorlist[authoruri]:
-#            if authorlist[authoruri][entry]:
-#        if authorsdic[authoruri][puburi]['skosxl_literalForm']:
-#            authorlist[authoruri].append(authorsdic[authoruri][puburi]['skosxl_literalForm'])
-#            print(authorlist[authoruri])
-#        else:
-#
+ag = Graph()
 
-#print('\n----begin authorlist')
-#print(authorlist)
+gn = Namespace('http://www.geonames.org/ontology#')
+rdf = Namespace('http://www.w3.org/1999/02/22-rdf-syntax-ns#')
+skos = Namespace('http://www.w3.org/2004/02/skos/core#')
+dcterms = Namespace ('http://purl.org/dc/terms/')
+wd = Namespace ('http://www.wikidata.org/entity/')
+foaf = Namespace ('http://xmlns.com/foaf/0.1/')
+skosxl = Namespace('http://www.w3.org/2008/05/skos-xl#')
+lexdo = Namespace('http://lexbib.org/lexdo/')
+lexperson = Namespace('http://lexbib.org/agents/person/')
+
+ag.bind("gn", gn)
+ag.bind("skos", skos)
+ag.bind("rdf", rdf)
+ag.bind("dcterms", dcterms)
+ag.bind("wd", wd)
+ag.bind("foaf", foaf)
+ag.bind("skosxl", skosxl)
+ag.bind("lexdo", lexdo)
+ag.bind("lexperson", lexperson)
 
 
+for authoruri in authordic:
+    #print(authorsdic[authoruri])
+    author = URIRef(authoruri)
+    ag.add((author, rdf.type, lexdo.Person))
+    count = 0
+    #seenlabels = []
+    labelcount = {}
+    for label in authordic[authoruri]:
+        labelnode = BNode()
+        ag.add((labelnode, rdf.type, skosxl.Label))
+        ag.add((author, skosxl.altLabel, labelnode))
+        ag.add((labelnode, foaf.firstName, Literal(authordic[authoruri][label]['foaf_firstname'])))
+        ag.add((labelnode, foaf.surname, Literal(authordic[authoruri][label]['foaf_surname'])))
+        ag.add((labelnode, skosxl.literalForm, Literal(label)))
+        ag.add((labelnode, lexdo.nameVarFreq, Literal(authordic[authoruri][label]['count'])))
+        labelcount[labelnode]=authordic[authoruri][label]['count']
+    #print(labelcount)
+    max_label = max(labelcount, key=labelcount.get)
+    #print(max_label)
+    ag.remove((author, skosxl.altLabel, max_label))
+    ag.add((author, skosxl.prefLabel, max_label))
 
-print ('...removing Person data from RDF, saving result as .TTL, ready for upload to Ontotext GraphDB')
+ag.serialize(destination='D:/LexBib/persons/lexpersons.ttl', format="turtle")
+
+
+print ('...now removing Person data from infile RDF, saving result as .TTL, ready for upload to Ontotext GraphDB')
 for s, p, o in g:
     if 'BNode' in str(type(s)):
         g.remove((s,None,None))
