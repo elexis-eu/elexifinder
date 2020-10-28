@@ -1,11 +1,11 @@
 # joins two RIS-JSON files, using one RIS key as Pivot, by dlindem
 import json
 
-pk = 'AN' # pivot key is AN
-risjson_file_orig_items = 'D:/Lab_LexBib/BibMerge/lexno-zotero.json'
-risjson_file_new_items = 'D:/Lab_LexBib/BibMerge/lexno-elexifinder.json'
-new_items_not_found_in_orig ='D:/Lab_LexBib/BibMerge/lexno_new.json'
-merged_result = 'D:/Lab_LexBib/BibMerge/lexno-mergedris.json'
+pk = 'UR' # pivot key is AN
+risjson_file_orig_items = 'D:/Lab_LexBib/BibMerge/videos_old.json'
+risjson_file_new_items = 'D:/Lab_LexBib/BibMerge/videos_locs.json'
+new_items_not_found_in_orig ='D:/Lab_LexBib/BibMerge/videos_new_items.json'
+merged_result = 'D:/Lab_LexBib/BibMerge/videos_merged.json'
 
 with open(risjson_file_orig_items, encoding="utf-8") as f:
 	original =  json.load(f, encoding="utf-8")

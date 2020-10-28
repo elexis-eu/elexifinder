@@ -3,11 +3,49 @@
 import re
 import json
 import os
+import csv
 from datetime import datetime
 import shutil
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 import sys
+import spacy
+sp = spacy.load('en_core_web_sm') # SpaCy English NLP module
+from flashtext import KeywordProcessor
+keyword_processor = KeywordProcessor()
+
+# import stopword processor
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+stopWords = set(stopwords.words('english')) #adds standard English stopwords
+ #add extra stopwords here: disturbing terms
+stopWords.update({'example'})
+ #add extra stopwords here: disturbing language names
+stopWords.update({'even', 'axi', 'e', 'car', 'day', 'duke', 'en', 'toto', 'male', 'boon', 'bali', 'yoke', 'hu', 'u', 'gen', 'label', 'are', 'as', 'are', 'doe', 'fore', 'to', 'bit', 'bete', 'dem', 'mono', 'sake', 'pal', 'au', 'na', 'notre', 'rien', 'lui', 'papi', 'ce', 'sur', 'dan', 'busa', 'ki', 'were', 'ir', 'idi', 'kol', 'fut', 'maria', 'mano', 'ata', 'fur', 'lengua', 'mon', 'para', 'haya', 'war', 'garo', 'tera', 'sonde', 'amis', 'fam', 'pe', 'mari', 'laura', 'duma', 'lame', 'crow', 'nage', 'ha', 'pero', 'piu', 'ese', 'carrier', 'alas', 'ali', 'kis', 'lou' })
+#print(stopWords)
+
+# load subject list
+with open('D:/LexBib/rdf2json/Subjects_json.json', encoding="utf-8") as infile:
+	reader = json.load(infile, encoding="utf-8")
+	results = reader['results']
+	bindings = results['bindings']
+	keydict = {}
+	for item in bindings:
+		termlabel = item['sLab']['value']
+		termuri = item['subject']['value']
+		if termlabel.lower() not in list(stopWords):
+			keydict[termuri] = [termlabel]
+		else:
+			print('Skipped term '+termuri+' ('+termlabel+')')
+	#print(keydict)
+# feed subject list to KeywordProcessor
+	keyword_processor.add_keywords_from_dict(keydict)
+# build subject dictionary with labels for Elexifinder
+	subjdict = {}
+	for item in bindings:
+		subjdict[item['subject']['value']] = {'erUri':'Lexicography/'+item['broadest']['value'].replace("http://lexbib.org/terms#","")+'/'+item['subject']['value'].replace("http://lexbib.org/terms#",""),'erLabel':item['brprefLab']['value']+'/'+item['sLab']['value']}
+	#print(subjdict)
+
 
 Tk().withdraw()
 infile = askopenfilename()
@@ -45,7 +83,7 @@ for item in bindings:
 	target = {}
 	target['pubTm'] = pubTime
 	target['version'] = version
-	target['details'] = [{'collection_version':version}]
+	target['details'] = {'collection_version':version}
 
 	if 'authorsJson' in item:
 		authorsJson = item['authorsJson']
@@ -61,10 +99,10 @@ for item in bindings:
 		target['crawlTm'] = item['modTM']['value'][0:22]
 	if 'zotItemUri' in item:
 		zotItemUri = item['zotItemUri']['value']    #+'?usenewlibrary=0'
-		target['details'].append({'zotItemUri':zotItemUri})
+		target['details']['zotItemUri']=zotItemUri
 	if 'collection' in item:
 		collection = int(item['collection']['value'])
-		target['details'].append({'collection':collection})
+		target['details']['collection']=collection
 	if 'container' in item:
 		target['sourceUri'] = item['container']['value']
 	if 'containerShortTitle' in item:
@@ -84,10 +122,15 @@ for item in bindings:
 		target['locationUri'] = item['authorLoc']['value']
 	if 'fullTextUrl' in item:
 		target['url'] = item['fullTextUrl']['value']
+
 	if 'ertype' in item:
-		target['type'] = item['ertype']
+		target['type'] = item['ertype'] # not implemented yet; default is "news", if "videolectures" in "fullTextUrl", then "video"
 	else:
 		target['type'] = "news" # default event registry type
+		if 'fullTextUrl' in item:
+			if "videolectures" in item['fullTextUrl']['value']:
+				target['type'] = "video"
+
 	# load txt. Try (1), txt file manually attached to Zotero item, (2) GROBID body TXT, (3) pdf2txt
 	txtfile = ""
 	grobidbody = ""
@@ -97,6 +140,8 @@ for item in bindings:
 		txtfilecount = txtfilecount + 1
 	if txtfile == "" and 'pdffile' in item:
 		pdffullpath = item['pdffile']['value']
+	else:
+		pdffullpath = ""
 	try:
 		pdffoldname = re.match('D:/Zotero/storage/([^\.]+)\.pdf', pdffullpath).group(1)
 		grobidbodyfile = 'D:/LexBib/exports/export_filerepo/'+pdffoldname+'_body.txt'
@@ -108,6 +153,9 @@ for item in bindings:
 			print("Found GROBID processed full text body at "+txtfile+" for "+target['uri'])
 			grobidcount = grobidcount + 1
 	except:
+		if pdffullpath == "":
+			pdffoldname = "NO PDF ATTACHMENT FOLDER"
+		print('...could not find GROBID _body.txt in folder '+pdffoldname+' (Text '+txtfile+')')
 		pass
 	if txtfile== "" and 'pdftxt' in item:
 		txtfile = item['pdftxt']['value']
@@ -122,10 +170,46 @@ for item in bindings:
 		except:
 			print("\n File "+txtfile+" for "+target['uri']+" was supposed to be there but not found")
 			pass
+	else:
+		bodytxt = ""
+
+# lemmatize english text or abstract
+	bodylem = ""
+	for token in sp(bodytxt):
+		bodylem+=("%s " % token.lemma_)
+# remove stop words
+	lemtokens = word_tokenize(bodylem)
+	print(lemtokens)
+	cleantokens = []
+	stopchars = re.compile('[0-9\/_\.:;,\(\)\[\]\{\}<>]') # tokens with these characters are skipped
+	for token in lemtokens:
+	   if stopchars.search(token) == None:
+		   cleantokens.append(token)
+	cleantext = ' '.join([str(x) for x in cleantokens])
+	print(cleantext)
+
+# keyword extraction
+
+	if target['lang'][-3:] == "eng":
+		keywords = keyword_processor.extract_keywords(cleantext)
+		keywordsfreqsort = sorted(keywords,key=keywords.count,reverse=False)
+		used = set()
+		keywordset = [x for x in keywordsfreqsort if x not in used and (used.add(x) or True)]
+
+	# result
+	print(keywordset)
+	categoryset = []
+	count=1
+	for term in keywordset:
+		category = {'uri':subjdict[term]['erUri'].replace("http://lexvo.org/id/iso639-3/",""),'label':subjdict[term]['erLabel'],'wgt':count/len(keywordset)}
+		categoryset.append(category)
+		count=count+1
+	target['categories'] = categoryset
 
 
-		elexifinder.append(target)
-
+#write to JSON
+	elexifinder.append(target)
+# end of item loop
 
 with open(infile.replace('.json', '_EF.json'), 'w', encoding="utf-8") as json_file: # path to result JSON file
 	json.dump(elexifinder, json_file, indent=2)

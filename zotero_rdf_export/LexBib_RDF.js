@@ -320,7 +320,7 @@ var CREATORS = {
 	"contributor":		[ITEM,			CONTRIBUTOR_LIST,	n.dcterms+"contributor"],
 	"cosponsor":		[ITEM,			CONTRIBUTOR_LIST,	n.rel+"SPN"],
 	"counsel":			[ITEM,			CONTRIBUTOR_LIST,	n.zotexport+"counsel"],
-	"director":			[ITEM,			CONTRIBUTOR_LIST,	n.bibo+"director"],
+	"director":			[ITEM,			CONTRIBUTOR_LIST,	n.lexdo+"creator"],
 	"editor":			[ITEM,	EDITOR_LIST,		n.lexdo+"editor"],
 	"guest":			[ITEM,			CONTRIBUTOR_LIST,	n.po+"participant"],
 	"interviewer":		[ITEM,			CONTRIBUTOR_LIST,	n.bibo+"interviewer"],
@@ -1361,12 +1361,12 @@ function doExport() {
 					if (tagprop == "event") {
 						if (tagobj.startsWith('http') != true) tagobj = n.lexevent+tagobj;
 						Zotero.RDF.addStatement(nodes[ITEM], n.lexdo+tagprop, tagobj, false);
-						if (usedURIs[Zotero.RDF.getResourceURI(tagobj)] != true) {
-							Zotero.RDF.addStatement(tagobj, n.rdf+"type", n.owl+"NamedIndividual", false);
-							Zotero.RDF.addStatement(tagobj, n.rdf+"type", n.lexdo+"Conference", false);
-							// list in usedURIs
-							usedURIs[Zotero.RDF.getResourceURI(tagobj)] = true;
-						}
+				//		if (usedURIs[Zotero.RDF.getResourceURI(tagobj)] != true) {
+			//				Zotero.RDF.addStatement(tagobj, n.rdf+"type", n.owl+"NamedIndividual", false);
+			//				Zotero.RDF.addStatement(tagobj, n.rdf+"type", n.lexdo+"Conference", false);
+			//				// list in usedURIs
+			//				usedURIs[Zotero.RDF.getResourceURI(tagobj)] = true;
+		//				}
 					}
 					// allow lexdo:collection property. This must be a number, later used for elexifinder export and updates
 					if (tagprop == "collection") {

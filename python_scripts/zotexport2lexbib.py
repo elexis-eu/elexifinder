@@ -104,7 +104,6 @@ with open(interimfile, 'w', encoding="utf-8") as tmpfile:
                 wdid = wikipairs[wppage]
                 line = arlocmatch.group(1)+'<lexdo:articleLoc rdf:resource="http://www.wikidata.org/entity/'+wdid+'"/>\n'
                 #print("used known wdid " +wdid+" for ARTICLELOC "+wppage)
-
         if pdfmatch != None:
             pdffolder = pdfmatch.group(3)
             pdfoldfile = pdfmatch.group(4)
