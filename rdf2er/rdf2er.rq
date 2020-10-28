@@ -1,0 +1,89 @@
+PREFIX : <http://lexbib.org/lexdo/>
+PREFIX bibo: <http://purl.org/ontology/bibo/>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX grddl: <http://www.w3.org/2003/g/data-view#>
+PREFIX lexperson: <http://lexbib.org/agents/person#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX skosxl: <http://www.w3.org/2008/05/skos-xl#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX zotexport: <http://www.zotero.org/namespaces/export#>
+PREFIX gn: <http://www.geonames.org/ontology#>
+PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX schema: <http://schemas.talis.com/2005/address/schema#>
+# Query for custom CSV output, used for generating a JSON file to be imported into Elexifinder
+# (variant with author lists as JSON objects, which need to be parsed separately)
+
+SELECT DISTINCT ?uri (xsd:integer(?coll) as ?collection) ?title (xsd:dateTime(?date) as ?articleTM) ?zotItemUri
+(CONCAT('[ ',GROUP_CONCAT(?authordata; separator=","),' ]') AS ?authorsJson)
+#?abstractlang ?abstracttext
+?publang ?pdffile ?pdftxt ?txtfile ?fullTextUrl
+?container ?containerShortTitle ?articleLocNode
+?articleLoc ?articleLocLabel ?articleCountryLabel ?authorLoc # ?authorLocLabel ?authorCountryLabel
+WHERE {
+  ?uri rdf:type :BibItem
+     ; dct:title ?title
+    ; dct:date ?date
+    ; :collection ?coll
+
+     ; :zoteroItemUri ?zotItemUri .
+
+
+    OPTIONAL   {  ?uri :publicationLanguage ?publanguri .}
+
+    ?uri :zoteroItemUri ?zotitemnode .
+    OPTIONAL{ ?uri :container ?container .}
+    OPTIONAL{ ?uri :fullTextUrl ?fullTextUrl.}
+    OPTIONAL {?zotitemnode zotexport:pdfFile ?pdffile .}
+    OPTIONAL {?zotitemnode zotexport:pdf2txt ?pdftxt .}
+    OPTIONAL {?zotitemnode zotexport:txtFile ?txtfile}
+   # OPTIONAL{ ?uri :abstract ?abstractnode .
+   #     OPTIONAL{		  ?abstractnode :abstractText ?abstracttext . }
+    #   OPTIONAL{ ?abstractnode :abstractLanguage ?abstractlanguri .}
+    #}
+
+
+    OPTIONAL {?uri :containerShortTitle ?containerShortTitle .}
+    OPTIONAL {
+        ?uri :firstAuLoc ?authorLoc .
+    	?authorLoc gn:wikipediaArticle ?authorlocwppage .
+      #  ?authorLoc skos:prefLabel ?authorLocLabel .
+      #  ?authorLoc <http://schema.org/containedInPlace> ?authorCountry .
+      #  ?authorCountry skos:prefLabel ?authorCountryLabel .
+    }
+
+  OPTIONAL {
+        ?uri :articleLoc ?articleLocNode .
+        ?articleLocNode gn:wikipediaArticle ?articlelocwppage .
+        ?articleLocNode skos:prefLabel ?articleLocLabel .
+        ?articleLocNode schema:containedInPlace ?articleCountry .
+        ?articleCountry skos:prefLabel ?articleCountryLabel .
+   }
+  {
+    # Use a nested query because that's the one that will give you
+    # the authors sorted properly for each publication
+    SELECT DISTINCT ?uri ?seqnum ?authordata WHERE {
+      ?uri bibo:authorList ?authorseq .
+      ?authorseq ?seqprop ?authornode .
+            FILTER regex(str(?seqprop), "rdf-syntax-ns#_[0-9]+")
+            OPTIONAL    { ?authornode skosxl:prefLabel ?authorlabel.
+	  ?authorlabel foaf:firstName ?firstname
+                ; foaf:surname ?lastname .}
+
+      # remember to cast the seqnum to integer, otherwise the ordering will be 1, 10, 11, 2, 3...
+      BIND ( STRDT(strafter(str(?seqprop),"_"), xsd:integer) as ?seqnum )
+      # Build the JSON object for a single author
+      BIND ( CONCAT('{ "uri" : "', str(?authornode), '", "name": "', ?firstname, " ", ?lastname, '" }') as ?authordata )
+    } ORDER BY ?uri ?seqnum
+  }
+
+} GROUP BY (str(?uri) as ?uri) ?coll ?title ?date (str(?zotItemUri) as ?zotItemUri)
+#(STRAFTER( str(?abstractlanguri), "iso639-3/" ) as ?abstractlang) ?abstracttext
+(STRAFTER( str(?publanguri), "iso639-3/" ) as ?publang) ?pdffile ?pdftxt ?txtfile ?fullTextUrl (str(?container) as ?container) ?containerShortTitle
+(str(?authorlocwppage) as ?authorLoc) # ?authorLocLabel ?authorCountryLabel
+?articleLocNode
+(str(?articlelocwppage) as ?articleLoc) ?articleLocLabel ?articleCountryLabel
