@@ -1,0 +1,33 @@
+#sparql query for LexDo Subject Headings SKOS vocabulary, to be exported as JSON-LD
+
+PREFIX : <http://lexbib.org/lexdo/>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX grddl: <http://www.w3.org/2003/g/data-view#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT
+
+?subject ?subjectLabel
+(group_concat(?broader; SEPARATOR="@") as ?broaders)
+
+#(group_concat(BIND(REPLACE(str(?broader), "[/#]([^#/]+)$", "$1") AS ?cleanbroader)) as ?broaders)
+
+(group_concat(?broaderLabel; SEPARATOR="@") as ?broaderLabels)
+
+
+
+
+WHERE {
+    ?subject rdf:type skos:Concept .
+    ?subject skos:prefLabel ?subjectLabel .
+    ?subject skos:broader* <http://lexbib.org/terms#Term_Lexicography> .
+    ?subject skos:broader* ?broader .
+    ?broader skos:prefLabel ?broaderLabel .
+
+}
+GROUP BY ?subjectLabel ?subject
