@@ -19,10 +19,18 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 import time
 from rdflib import Graph, Namespace, BNode, URIRef, Literal
 from unidecode import unidecode
+from tkinter import Tk
+from tkinter.filedialog import askopenfilename
 
-print('Type the filename of Zotero export file in D:/LexBib/exports, without .rdf extension. This will be the collection (group) name.')
-collname = input()
-zotero_lexbib_rdf_export_file = 'D:/LexBib/exports/'+collname+'.rdf'
+with open('eventlist.csv', encoding="utf-8") as csvfile: # event mapping csv
+    eventdict = csv.DictReader(csvfile, delimiter="\t")
+    eventkeydict = {}
+    for item in eventdict:
+        eventkeydict[item['LexBibUri']] = item['place']
+
+
+Tk().withdraw()
+zotero_lexbib_rdf_export_file = askopenfilename()
 print('File to process is '+zotero_lexbib_rdf_export_file)
 
 try:
@@ -67,8 +75,11 @@ with open(interimfile, 'w', encoding="utf-8") as tmpfile:
     for line in exportlines:
         authormatch = re.search('(.*\")(http://lexbib.org/agents/person/)([^\"]+)(\".*)', line)
         aulocmatch = re.search('([^<]*)<lexdo:firstAuLoc>https?://en.wikipedia.org/wiki/([^<]+)</lexdo:firstAuLoc>', line)
-        arlocmatch = re.search('([^<]*)<lexdo:articleLoc>https?://en.wikipedia.org/wiki/([^<]+)</lexdo:articleLoc>', line)
+        arlocmatch = re.search('([^<]*)<lexdo:event rdf:resource=\"(http[^\"]+)\"/>', line)
         pdfmatch = re.search('([^<]*<zotexport:pdfFile>)(D:/Zotero/storage)/([A-Z0-9]+)/([^<]+)(</zotexport:pdfFile>.*)', line) # Zotero storage folder path / attachment folder / filename.pdf
+        pdf2textmatch = re.search('[^<]*<zotexport:txtFile>D:/Zotero/storage/[^\/]+/pdf2text.txt</zotexport:txtFile>.*', line)
+        if pdf2textmatch != None:
+            line = "" # eliminates manually added pdf2text attachments (visible and syncable duplicates of .zotero-ft-cache file)
         if authormatch != None:
             author = authormatch.group(3)
             author = re.sub(r'[^A-Za-z:/]', '', unidecode(author))
@@ -91,19 +102,14 @@ with open(interimfile, 'w', encoding="utf-8") as tmpfile:
 
         if arlocmatch != None:
             #print(arlocmatch.group(2))
-            wppage = (arlocmatch.group(2))
-            if wppage not in wikipairs:
-                wdjsonsource = requests.get(url='https://www.wikidata.org/w/api.php?action=wbgetentities&sites=enwiki&format=json&titles='+wppage)
-                wdjson =  wdjsonsource.json()
-                entities = wdjson['entities']
-                for wdid in entities:
-                    #print("found new wdid "+wdid+" for ARTICLELOC "+wppage)
-                    line = arlocmatch.group(1)+'<lexdo:articleLoc rdf:resource="http://www.wikidata.org/entity/'+wdid+'"/>\n'
-                    wikipairs[wppage] = wdid
+            eventurl = (arlocmatch.group(2))
+            if eventurl in eventkeydict:
+                wdid = eventkeydict[eventurl] # gets event location from eventlist mapping
             else:
-                wdid = wikipairs[wppage]
-                line = arlocmatch.group(1)+'<lexdo:articleLoc rdf:resource="http://www.wikidata.org/entity/'+wdid+'"/>\n'
-                #print("used known wdid " +wdid+" for ARTICLELOC "+wppage)
+                print("WARNING: event "+eventurl+" NOT FOUND in event uri-place dictionary!")
+                time.sleep(10)
+            line = arlocmatch.group(0)+'\n        <lexdo:articleLoc rdf:resource="http://www.wikidata.org/entity/'+wdid+'"/>\n'
+            print("used known wdid " +wdid+" for EVENT LOCATION of "+eventurl)
         if pdfmatch != None:
             pdffolder = pdfmatch.group(3)
             pdfoldfile = pdfmatch.group(4)
@@ -123,7 +129,7 @@ with open(interimfile, 'w', encoding="utf-8") as tmpfile:
                     os.makedirs(newpath)
                 shutil.copy('D:/Zotero/storage/'+pdffolder+'/'+pdfoldfile, newpath+'/'+pdfnewfile)
                 print('Found and copied '+pdfnewfile)
-                pdflist[pdffolder+'/'+pdfnewfile] = infiletime+'_'+collname+'_v'+str(version)
+                pdflist[pdffolder+'/'+pdfnewfile] = infiletime+'_'+zotero_lexbib_rdf_export_file+'_v'+str(version)
                 #print(pdflist[pdfnewfile])
 
         tmpfile.write(line)

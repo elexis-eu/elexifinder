@@ -1478,9 +1478,9 @@ function doExport() {
 		if (locs[0]) {
 			Zotero.RDF.addStatement(nodes[ITEM], n.lexdo+"firstAuLoc", locs[0].trim(), true);
 		}
-		if (locs[1]) {
-			Zotero.RDF.addStatement(nodes[ITEM], n.lexdo+"articleLoc", locs[1].trim(), true);
-		}
+		//if (locs[1]) != "" { // old place for article locations, substituted by event location
+		//	Zotero.RDF.addStatement(nodes[ITEM], n.lexdo+"articleLoc", locs[1].trim(), true);
+	//	}
 	}
 
 

@@ -19,32 +19,37 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 stopWords = set(stopwords.words('english')) #adds standard English stopwords
  #add extra stopwords here: disturbing terms
-stopWords.update({'example'})
+stopWords.update({'example', 'context'})
  #add extra stopwords here: disturbing language names
 stopWords.update({'even', 'axi', 'e', 'car', 'day', 'duke', 'en', 'toto', 'male', 'boon', 'bali', 'yoke', 'hu', 'u', 'gen', 'label', 'are', 'as', 'are', 'doe', 'fore', 'to', 'bit', 'bete', 'dem', 'mono', 'sake', 'pal', 'au', 'na', 'notre', 'rien', 'lui', 'papi', 'ce', 'sur', 'dan', 'busa', 'ki', 'were', 'ir', 'idi', 'kol', 'fut', 'maria', 'mano', 'ata', 'fur', 'lengua', 'mon', 'para', 'haya', 'war', 'garo', 'tera', 'sonde', 'amis', 'fam', 'pe', 'mari', 'laura', 'duma', 'lame', 'crow', 'nage', 'ha', 'pero', 'piu', 'ese', 'carrier', 'alas', 'ali', 'kis', 'lou' })
 #print(stopWords)
 
 # load subject list
-with open('D:/LexBib/rdf2json/Subjects_json.json', encoding="utf-8") as infile:
-	reader = json.load(infile, encoding="utf-8")
-	results = reader['results']
-	bindings = results['bindings']
+with open('D:/LexBib/rdf2json/keyextractlist.json', encoding="utf-8") as infile:
+	terms = json.load(infile, encoding="utf-8")
 	keydict = {}
-	for item in bindings:
-		termlabel = item['sLab']['value']
-		termuri = item['subject']['value']
-		if termlabel.lower() not in list(stopWords):
-			keydict[termuri] = [termlabel]
+	print(terms)
+	for term in terms:
+		uri = term['uri']
+		label = term['label']
+		#print(label)
+		if label.lower() not in list(stopWords):
+			keydict[uri] = [label]
 		else:
-			print('Skipped term '+termuri+' ('+termlabel+')')
+			print('Skipped term '+uri+' ('+label+')')
 	#print(keydict)
 # feed subject list to KeywordProcessor
 	keyword_processor.add_keywords_from_dict(keydict)
+
+
 # build subject dictionary with labels for Elexifinder
+with open('D:/LexBib/rdf2json/erkeys.json', encoding="utf-8") as infile:
+	terms = json.load(infile, encoding="utf-8")
 	subjdict = {}
-	for item in bindings:
-		subjdict[item['subject']['value']] = {'erUri':'Lexicography/'+item['broadest']['value'].replace("http://lexbib.org/terms#","")+'/'+item['subject']['value'].replace("http://lexbib.org/terms#",""),'erLabel':item['brprefLab']['value']+'/'+item['sLab']['value']}
-	#print(subjdict)
+	for term in terms:
+		subjdict[term['subject_uri']] = {'er_uri':term['er_uri'], 'er_label':term['er_label']}
+	print(subjdict)
+
 
 
 Tk().withdraw()
@@ -73,13 +78,15 @@ except:
 
 results = data['results']
 bindings = results['bindings']
-print(bindings)
+#print(bindings)
 elexifinder = []
 txtfilecount = 0
 grobidcount = 0
 pdftxtcount = 0
+itemcount = 0
 
 for item in bindings:
+	itemcount += 1
 	target = {}
 	target['pubTm'] = pubTime
 	target['version'] = version
@@ -91,6 +98,7 @@ for item in bindings:
 		target['authors'] = json.loads(authorsliteral)
 	if 'uri' in item:
 		target['uri'] = item['uri']['value']
+		print('['+str(itemcount)'] '+target['uri'])
 	if 'title' in item:
 		target['title'] = item['title']['value']
 	if 'articleTM' in item:
@@ -103,6 +111,7 @@ for item in bindings:
 	if 'collection' in item:
 		collection = int(item['collection']['value'])
 		target['details']['collection']=collection
+		target['images']=['http://lexbib.org/images/collection_'+str(collection)+'.jpg']
 	if 'container' in item:
 		target['sourceUri'] = item['container']['value']
 	if 'containerShortTitle' in item:
@@ -133,33 +142,38 @@ for item in bindings:
 
 	# load txt. Try (1), txt file manually attached to Zotero item, (2) GROBID body TXT, (3) pdf2txt
 	txtfile = ""
+	fulltextsource = "missing"
 	grobidbody = ""
+	pdffullpath = ""
 	if 'txtfile' in item:
 		txtfile = item['txtfile']['value']
-		print("\nFound manually attached "+txtfile+" for "+target['uri'])
+		print("Found manually attached "+txtfile)
+		fulltextsource = "manual_txt"
 		txtfilecount = txtfilecount + 1
 	if txtfile == "" and 'pdffile' in item:
 		pdffullpath = item['pdffile']['value']
-	else:
-		pdffullpath = ""
-	try:
+
+	try: # try if grobidbody is there
 		pdffoldname = re.match('D:/Zotero/storage/([^\.]+)\.pdf', pdffullpath).group(1)
 		grobidbodyfile = 'D:/LexBib/exports/export_filerepo/'+pdffoldname+'_body.txt'
 		if os.path.exists(grobidbodyfile):
 			txtfile = grobidbodyfile
+			fulltextsource = "grobid"
 			copyfilepath = 'D:/Zotero/storage/'
 			shutil.copy('D:/LexBib/exports/export_filerepo/'+pdffoldname+'.tei.xml', copyfilepath+pdffoldname+'.tei.xml')
 			shutil.copy('D:/LexBib/exports/export_filerepo/'+pdffoldname+'_body.txt', copyfilepath+pdffoldname+'_body.txt')
-			print("Found GROBID processed full text body at "+txtfile+" for "+target['uri'])
+			print("Found GROBID processed full text body at "+txtfile)
 			grobidcount = grobidcount + 1
 	except:
-		if pdffullpath == "":
+		if txtfile == "" and pdffullpath == "":
 			pdffoldname = "NO PDF ATTACHMENT FOLDER"
-		print('...could not find GROBID _body.txt in folder '+pdffoldname+' (Text '+txtfile+')')
+			print('\n...could not find GROBID _body.txt in folder '+pdffoldname+' (Text '+txtfile+'))
+			print('Something is strange with this item: '+target['title']+'\n')
 		pass
 	if txtfile== "" and 'pdftxt' in item:
 		txtfile = item['pdftxt']['value']
-		print("\nFound pdf2txt full text path at "+txtfile+" for "+target['uri'])
+		fulltextsource = "pdf2txt"
+		print("Found .zotero-fulltext-cache path at "+txtfile)
 		pdftxtcount = pdftxtcount + 1
 	if txtfile != "":
 		try:
@@ -168,10 +182,12 @@ for item in bindings:
 				target['body'] = bodytxt
 				#print("\nCaught full text from "+txtfile+" for "+target['uri'])
 		except:
-			print("\n File "+txtfile+" for "+target['uri']+" was supposed to be there but not found")
+			print("File "+txtfile+" for "+target['uri']+" was supposed to be there but not found")
 			pass
 	else:
 		bodytxt = ""
+	if fulltextsource != "":
+		target['details']['bodytxtstatus'] = fulltextsource
 
 # lemmatize english text or abstract
 	bodylem = ""
@@ -179,29 +195,31 @@ for item in bindings:
 		bodylem+=("%s " % token.lemma_)
 # remove stop words
 	lemtokens = word_tokenize(bodylem)
-	print(lemtokens)
+	#print(lemtokens)
 	cleantokens = []
 	stopchars = re.compile('[0-9\/_\.:;,\(\)\[\]\{\}<>]') # tokens with these characters are skipped
 	for token in lemtokens:
 	   if stopchars.search(token) == None:
 		   cleantokens.append(token)
 	cleantext = ' '.join([str(x) for x in cleantokens])
-	print(cleantext)
+	#print(cleantext)
 
 # keyword extraction
-
-	if target['lang'][-3:] == "eng":
-		keywords = keyword_processor.extract_keywords(cleantext)
-		keywordsfreqsort = sorted(keywords,key=keywords.count,reverse=False)
-		used = set()
-		keywordset = [x for x in keywordsfreqsort if x not in used and (used.add(x) or True)]
+	if target['lang'] !="":
+		if target['lang'][-3:] == "eng":
+			keywords = keyword_processor.extract_keywords(cleantext)
+			keywordsfreqsort = sorted(keywords,key=keywords.count,reverse=False)
+			used = set()
+			keywordset = [x for x in keywordsfreqsort if x not in used and (used.add(x) or True)]
 
 	# result
-	print(keywordset)
+	#print(keywordset)
 	categoryset = []
 	count=1
-	for term in keywordset:
-		category = {'uri':subjdict[term]['erUri'].replace("http://lexvo.org/id/iso639-3/",""),'label':subjdict[term]['erLabel'],'wgt':count/len(keywordset)}
+	for termuri in keywordset:
+		#print(termuri)
+		#print(subjdict[termuri])
+		category = {'uri':subjdict[termuri]['er_uri'],'label':subjdict[termuri]['er_label'],'wgt':count/len(keywordset)}
 		categoryset.append(category)
 		count=count+1
 	target['categories'] = categoryset
