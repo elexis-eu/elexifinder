@@ -85,6 +85,7 @@ grobidcount = 0
 pdftxtcount = 0
 itemcount = 0
 useduri = []
+problemlog = []
 
 for item in bindings:
 	itemuri = item['uri']['value']
@@ -92,7 +93,7 @@ for item in bindings:
 		itemcount += 1
 		target = {}
 		target['uri'] = itemuri
-		print('['+str(itemcount)+'] '+itemuri)
+		print('\n['+str(itemcount)+'] '+itemuri)
 		useduri.append(itemuri)
 
 		target['pubTm'] = pubTime
@@ -173,6 +174,7 @@ for item in bindings:
 				pdffoldname = "NO PDF ATTACHMENT FOLDER"
 				print('\n...could not find GROBID _body.txt in folder '+pdffoldname+' (Text '+txtfile)
 				print('Something is strange with this item: '+target['title']+'\n')
+				problemlog.append(itemuri+' - no PDF found')
 			pass
 		if txtfile== "" and 'pdftxt' in item:
 			txtfile = item['pdftxt']['value']
@@ -216,26 +218,30 @@ for item in bindings:
 				used = set()
 				keywordset = [x for x in keywordsfreqsort if x not in used and (used.add(x) or True)]
 
-		# result
-		#print(keywordset)
-		categoryset = []
-		count=1
-		for termuri in keywordset:
-			#print(termuri)
-			#print(subjdict[termuri])
-			category = {'uri':subjdict[termuri]['er_uri'],'label':subjdict[termuri]['er_label'],'wgt':count/len(keywordset)}
-			categoryset.append(category)
-			count=count+1
-		target['categories'] = categoryset
-
-
+			# result
+			#print(keywordset)
+			categoryset = []
+			count=1
+			for termuri in keywordset:
+				#print(termuri)
+				#print(subjdict[termuri])
+				category = {'uri':subjdict[termuri]['er_uri'],'label':subjdict[termuri]['er_label'],'wgt':count/len(keywordset)}
+				categoryset.append(category)
+				count=count+1
+			target['categories'] = categoryset
+			print('['+str(itemcount)+'] was English text; term discovery done.')
+			problemlog.append(itemuri+' - multiple attachments')
 	#write to JSON
 		elexifinder.append(target)
-		print('['+str(itemcount)+'] term discovery done.')
+
 	# if uri appears twice:
 	else:
 		print('\nItem '+itemuri+' is a duplicate, something is wrong with it.\n')
+
 # end of item loop
+
+with open(infile.replace('.json', '_problemlog.json'), 'w', encoding="utf-8") as problemfile:
+	problemfile.write(str(problemlog))
 
 with open(infile.replace('.json', '_EF.json'), 'w', encoding="utf-8") as json_file: # path to result JSON file
 	json.dump(elexifinder, json_file, indent=2)
