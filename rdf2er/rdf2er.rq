@@ -21,26 +21,42 @@ PREFIX schema: <http://schemas.talis.com/2005/address/schema#>
 SELECT DISTINCT ?uri (xsd:integer(?coll) as ?collection) ?title (xsd:dateTime(?date) as ?articleTM) ?zotItemUri
 (CONCAT('[ ',GROUP_CONCAT(?authordata; separator=","),' ]') AS ?authorsJson)
 #?abstractlang ?abstracttext
-?publang ?pdffile ?pdftxt ?txtfile ?fullTextUrl
-?container ?containerShortTitle ?articleLocNode
+?publang (SAMPLE(?pdffiles) AS ?pdffile) (SAMPLE(?pdftxts) AS ?pdftxt) (SAMPLE(?txtfiles) AS ?txtfile)
+
+#(str(COALESCE (?containerFullTextUrl, ?container)) as ?containerUrl)
+# BIND (
+#(COALESCE (
+#            IF ((strStarts(?containerFullTextUrl, "http"), ?containerFullTextUrl),
+#        IF ((strStarts(str(?containerFullTextUrl)), "http"), ?containerFullTextUrl, 1/0), str(?container))
+#    AS ?containerUrl)
+#)
+
+?containerFullTextUrl
+?containerUrl
+?containerShortTitle #?articleLocNode
 ?articleLoc ?articleLocLabel ?articleCountryLabel ?authorLoc # ?authorLocLabel ?authorCountryLabel
 WHERE {
   ?uri rdf:type :BibItem
      ; dct:title ?title
     ; dct:date ?date
-    ; :collection ?coll
-
-     ; :zoteroItemUri ?zotItemUri .
+    ; :collection ?coll .
+    FILTER (str(?coll) = "1") # filter for single collections
+     ?uri :zoteroItemUri ?zotItemUri .
 
 
     OPTIONAL   {  ?uri :publicationLanguage ?publanguri .}
 
     ?uri :zoteroItemUri ?zotitemnode .
-    OPTIONAL{ ?uri :container ?container .}
+    OPTIONAL{ ?uri :container ?container .
+        OPTIONAL{ ?container :fullTextUrl ?containerFullTextUrl .}}
+
+
+
+
     OPTIONAL{ ?uri :fullTextUrl ?fullTextUrl.}
-    OPTIONAL {?zotitemnode zotexport:pdfFile ?pdffile .}
-    OPTIONAL {?zotitemnode zotexport:pdf2txt ?pdftxt .}
-    OPTIONAL {?zotitemnode zotexport:txtFile ?txtfile}
+    OPTIONAL {?zotitemnode zotexport:pdfFile ?pdffiles .}
+    OPTIONAL {?zotitemnode zotexport:pdf2txt ?pdftxts .}
+    OPTIONAL {?zotitemnode zotexport:txtFile ?txtfiles}
    # OPTIONAL{ ?uri :abstract ?abstractnode .
    #     OPTIONAL{		  ?abstractnode :abstractText ?abstracttext . }
     #   OPTIONAL{ ?abstractnode :abstractLanguage ?abstractlanguri .}
@@ -69,11 +85,10 @@ WHERE {
     SELECT DISTINCT ?uri ?seqnum ?authordata WHERE {
       ?uri bibo:authorList ?authorseq .
       ?authorseq ?seqprop ?authornode .
-            FILTER regex(str(?seqprop), "rdf-syntax-ns#_[0-9]+")
-            OPTIONAL    { ?authornode skosxl:prefLabel ?authorlabel.
+      ?authornode skosxl:prefLabel ?authorlabel.
 	  ?authorlabel foaf:firstName ?firstname
-                ; foaf:surname ?lastname .}
-
+                ; foaf:surname ?lastname .
+      FILTER regex(str(?seqprop), "rdf-syntax-ns#_[0-9]+")
       # remember to cast the seqnum to integer, otherwise the ordering will be 1, 10, 11, 2, 3...
       BIND ( STRDT(strafter(str(?seqprop),"_"), xsd:integer) as ?seqnum )
       # Build the JSON object for a single author
@@ -83,7 +98,10 @@ WHERE {
 
 } GROUP BY (str(?uri) as ?uri) ?coll ?title ?date (str(?zotItemUri) as ?zotItemUri)
 #(STRAFTER( str(?abstractlanguri), "iso639-3/" ) as ?abstractlang) ?abstracttext
-(STRAFTER( str(?publanguri), "iso639-3/" ) as ?publang) ?pdffile ?pdftxt ?txtfile ?fullTextUrl (str(?container) as ?container) ?containerShortTitle
+(STRAFTER( str(?publanguri), "iso639-3/" ) as ?publang) ?pdffiles ?pdftxts ?txtfiles ?fullTextUrl
+#str(COALESCE (?containerFullTextUrl, ?container))
+(str(?container) as ?containerUrl) ?containerFullTextUrl
+?containerShortTitle
 (str(?authorlocwppage) as ?authorLoc) # ?authorLocLabel ?authorCountryLabel
-?articleLocNode
+#?articleLocNode
 (str(?articlelocwppage) as ?articleLoc) ?articleLocLabel ?articleCountryLabel
