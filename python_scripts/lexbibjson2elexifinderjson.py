@@ -117,8 +117,12 @@ for item in bindings:
 			collection = int(item['collection']['value'])
 			target['details']['collection']=collection
 			target['images']=['http://lexbib.org/images/collection_'+str(collection)+'.jpg']
-		if 'container' in item:
-			target['sourceUri'] = item['container']['value']
+	#	if 'container' in item:
+	#		target['sourceUri'] = item['container']['value'] # replaced by containerFullTextUrl or containerUrl
+		if 'containerFullTextUrl' in item:
+			target['sourceUri'] = item['containerFullTextUrl']['value']
+		elif 'containerUrl' in item:
+			target['sourceUri'] = item['containerUrl']['value']
 		if 'containerShortTitle' in item:
 			target['sourceTitle'] = item['containerShortTitle']['value']
 		if 'publang' in item:
@@ -174,7 +178,7 @@ for item in bindings:
 				pdffoldname = "NO PDF ATTACHMENT FOLDER"
 				print('\n...could not find GROBID _body.txt in folder '+pdffoldname+' (Text '+txtfile)
 				print('Something is strange with this item: '+target['title']+'\n')
-				problemlog.append(itemuri+' - no PDF found')
+				problemlog.append('{"'+itemuri+'", "no PDF found"}')
 			pass
 		if txtfile== "" and 'pdftxt' in item:
 			txtfile = item['pdftxt']['value']
@@ -218,25 +222,29 @@ for item in bindings:
 				used = set()
 				keywordset = [x for x in keywordsfreqsort if x not in used and (used.add(x) or True)]
 
-			# result
-			#print(keywordset)
-			categoryset = []
-			count=1
-			for termuri in keywordset:
-				#print(termuri)
-				#print(subjdict[termuri])
-				category = {'uri':subjdict[termuri]['er_uri'],'label':subjdict[termuri]['er_label'],'wgt':count/len(keywordset)}
-				categoryset.append(category)
-				count=count+1
-			target['categories'] = categoryset
-			print('['+str(itemcount)+'] was English text; term discovery done.')
-			problemlog.append(itemuri+' - multiple attachments')
+				# result
+				#print(keywordset)
+				categoryset = []
+				count=1
+				for termuri in keywordset:
+					#print(termuri)
+					#print(subjdict[termuri])
+					category = {'uri':subjdict[termuri]['er_uri'],'label':subjdict[termuri]['er_label'],'wgt':count/len(keywordset)}
+					categoryset.append(category)
+					count=count+1
+				target['categories'] = categoryset
+				print('...['+str(itemcount)+'] was English text; term discovery done.')
+			else:
+				print('...['+str(itemcount)+'] was not English text; term discovery skipped.')
+
+
 	#write to JSON
 		elexifinder.append(target)
 
 	# if uri appears twice:
 	else:
 		print('\nItem '+itemuri+' is a duplicate, something is wrong with it.\n')
+		problemlog.append('{"'+itemuri+'", "multiple attachments"}')
 
 # end of item loop
 
