@@ -55,7 +55,7 @@ except:
 
 try:
     with open('D:/LexBib/exports/exported_PDF.json', 'r', encoding="utf-8") as pdflistfile:
-        pdflist = json.load(pdflistfile, encoding="urf-8")
+        pdflist = json.load(pdflistfile, encoding="utf-8")
 except:
     print('\npdflistfile not there, will save in a new one.')
     pdflist = {}
