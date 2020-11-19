@@ -54,6 +54,13 @@ except:
     sys.exit()
 
 try:
+    with open('D:/LexBib/journals/journals.json', 'r', encoding="utf-8") as infile:
+        issndict = json.load(infile, encoding="utf-8")
+except:
+    print('\njournalfile not there, will save in a new one.')
+    issndict = {}
+
+try:
     with open('D:/LexBib/exports/exported_PDF.json', 'r', encoding="utf-8") as pdflistfile:
         pdflist = json.load(pdflistfile, encoding="utf-8")
 except:
@@ -78,6 +85,7 @@ with open(interimfile, 'w', encoding="utf-8") as tmpfile:
         arlocmatch = re.search('([^<]*)<lexdo:event rdf:resource=\"(http[^\"]+)\"/>', line)
         pdfmatch = re.search('([^<]*<zotexport:pdfFile>)(D:/Zotero/storage)/([A-Z0-9]+)/([^<]+)(</zotexport:pdfFile>.*)', line) # Zotero storage folder path / attachment folder / filename.pdf
         pdf2textmatch = re.search('[^<]*<zotexport:txtFile>D:/Zotero/storage/[^\/]+/pdf2text.txt</zotexport:txtFile>.*', line)
+        issnmatch = re.search('[^<]*<bibo:issn>([^<]+)</bibo:issn>.*', line)
         if pdf2textmatch != None:
             line = "" # eliminates manually added pdf2text attachments (visible and syncable duplicates of .zotero-ft-cache file)
         if authormatch != None:
@@ -131,6 +139,30 @@ with open(interimfile, 'w', encoding="utf-8") as tmpfile:
                 print('Found and copied '+pdfnewfile)
                 pdflist[pdffolder+'/'+pdfnewfile] = infiletime+'_'+zotero_lexbib_rdf_export_file+'_v'+str(version)
                 #print(pdflist[pdfnewfile])
+        if issnmatch != None:
+            issn = issnmatch.group(1).split(',')[0]
+            if issn in issndict:
+                journal = issndict[issn]['qid']
+            #    print("found known issn")
+            else:
+                # get journal Qid from wikidata
+
+                sparql = SPARQLWrapper("https://query.wikidata.org/sparql", agent='LexBib-Bibliodata-enrichment-script (lexbib.org)')
+                sparql.setQuery('SELECT ?journal ?journalLabel WHERE {?journal wdt:P236 '+'"'+issn+'"'+'. SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }}')
+                sparql.setReturnFormat(JSON)
+
+                try:
+                    time.sleep(1.5)
+                    wddict = sparql.query().convert()
+                    datalist = wddict['results']['bindings']
+                    print('\nGot ISSN '+issn+' data from Wikidata:\n'+str(datalist[0]))
+                    journal = datalist[0]['journal']['value']
+                    issndict[issn]={'qid':journal, 'title':datalist[0]['journalLabel']['value']}
+
+                except Exception as ex:
+                    print("ISSN "+issn+" not found on wikidata, skipping. >> "+str(ex))
+                    pass
+            line=issnmatch.group(0)+'\n        <lexdo:journal rdf:resource="'+journal+'"/>\n'
 
         tmpfile.write(line)
 
@@ -399,3 +431,6 @@ for s, p, o in g:
 
 
 g.serialize(destination=interimfile.replace('.rdf', '_upload.ttl'), format="turtle")
+
+with open('D:/LexBib/journals/journals.json', 'w', encoding="utf-8") as outfile:
+    json.dump(issndict, outfile, indent=2)
