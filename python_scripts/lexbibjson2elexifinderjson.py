@@ -50,6 +50,10 @@ with open('D:/LexBib/rdf2json/erkeys.json', encoding="utf-8") as infile:
 		subjdict[term['subject_uri']] = {'er_uri':term['er_uri'], 'er_label':term['er_label']}
 	print(subjdict)
 
+# load abstract dictionary
+with open('D:/LexBib/abstracts/abstracts.json', 'r', encoding="utf-8") as infile:
+    absdict = json.load(infile, encoding="utf-8")
+
 
 
 Tk().withdraw()
@@ -193,9 +197,15 @@ for item in bindings:
 					#print("\nCaught full text from "+txtfile+" for "+target['uri'])
 			except:
 				print("File "+txtfile+" for "+target['uri']+" was supposed to be there but not found")
+				txtfile = ""
 				pass
-		else:
+		if txtfile = ""
 			bodytxt = ""
+			# last resort: an english abstract
+			if itemuri in absdict and absdict[itemuri]['lang'] == "eng":
+				bodytxt = absdict[itemuri]['text']
+				fulltextsource = "abstract"
+
 		if fulltextsource != "":
 			target['details']['bodytxtstatus'] = fulltextsource
 
