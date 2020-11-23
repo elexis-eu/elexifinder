@@ -590,7 +590,7 @@ Type.prototype.createNodes = function(item) {
 			doi = doi.substr(15);
 		}
 		nodes[ITEM] = "http://doi.org/"+encodeURI(doi);
-		if (usedURIs[nodes[ITEM]]) nodes[ITEM] = null;
+		if (usedURIs[nodes[ITEM]]) nodes[ITEM] = nodes[ITEM]+'#'; // add 'x' to avoid duplicate URI
 	}
 
 	// for chapters and conference papers without archiveLocation or DOI field value, try isbn plus first page as URI (lexbib namespace)
@@ -602,7 +602,7 @@ Type.prototype.createNodes = function(item) {
 	// try Zotero URL field content as URI
 	if (!nodes[ITEM] && item.url) {
 		nodes[ITEM] = encodeURI(item.url).replace(/\/+$/, ''); // use URL field content removing any slashes at the end
-		if (usedURIs[nodes[ITEM]]) nodes[ITEM] = null;
+		if (usedURIs[nodes[ITEM]]) nodes[ITEM] = nodes[ITEM]+'#'; // add 'x' to avoid duplicate URI
 	}
 
 
