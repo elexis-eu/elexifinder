@@ -27,6 +27,7 @@ with open('eventlist.csv', encoding="utf-8") as csvfile: # event mapping csv
     eventkeydict = {}
     for item in eventdict:
         eventkeydict[item['LexBibUri']] = item['place']
+    print(str(eventkeydict))
 
 
 Tk().withdraw()
@@ -69,8 +70,13 @@ except:
 
 errorlog = []
 
+# load list of deprecated author uri (result from manual disambiguation)
+replacedic = {}
+with open('D:/LexBib/persons/replacelist.csv', 'r', encoding="utf-8") as replacelistfile:
+    replaceread = csv.reader(replacelistfile, delimiter='\t')
+    for row in replaceread:
+        replacedic[row[0]] = row[1]
 
-#print(exportlines)
 
 try:
     with open('D:/LexBib/places/wppage-wdid-mappings.json', encoding="utf-8") as f:
@@ -90,9 +96,15 @@ with open(interimfile, 'w', encoding="utf-8") as tmpfile:
             line = "" # eliminates manually added pdf2text attachments (visible and syncable duplicates of .zotero-ft-cache file)
         if authormatch != None:
             author = authormatch.group(3)
+            author = author[0].upper() + author[1:]
             author = re.sub(r'[^A-Za-z:/]', '', unidecode(author))
             #print (author)
-            line = authormatch.group(1)+authormatch.group(2)+author+authormatch.group(4)
+            if authormatch.group(2)+author in replacedic:
+                author = replacedic[authormatch.group(2)+author]
+                print('Replaced author uri '+author)
+                line = authormatch.group(1)+author+authormatch.group(4)
+            else:
+                line = authormatch.group(1)+authormatch.group(2)+author+authormatch.group(4)
         if aulocmatch != None:
             wppage = (aulocmatch.group(2))
             if wppage not in wikipairs:
@@ -117,7 +129,7 @@ with open(interimfile, 'w', encoding="utf-8") as tmpfile:
                 print("WARNING: event "+eventurl+" NOT FOUND in event uri-place dictionary!")
                 time.sleep(10)
             line = arlocmatch.group(0)+'\n        <lexdo:articleLoc rdf:resource="http://www.wikidata.org/entity/'+wdid+'"/>\n'
-            print("used known wdid " +wdid+" for EVENT LOCATION of "+eventurl)
+            #print("used known wdid " +wdid+" for EVENT LOCATION of "+eventurl)
         if pdfmatch != None:
             pdffolder = pdfmatch.group(3)
             pdfoldfile = pdfmatch.group(4)
@@ -357,6 +369,23 @@ for authoruri in authorsdic:
             seen.append(literal)
     #for autlabel in seen:
         #print(autlabel)
+
+# look for deprecated author uri in author dict and replace
+
+badurilist = []
+for authoruri in authordic:
+    if authoruri in replacedic:
+        print('found bad uri: '+authoruri)
+        newauturi = replacedic[authoruri]
+        if newauturi in authordic:
+            authordic[newauturi].update(authordic[authoruri])
+        else:
+            authordic[newauturi]= authordic[authoruri]
+        badurilist.append(authoruri)
+        print('replaced with '+newauturi)
+print(str(badurilist))
+for item in badurilist:
+    del authordic[item]
 
 with open('D:/LexBib/persons/authordic.json', 'w', encoding="utf-8") as json_file: # path to result JSON file
 	json.dump(authordic, json_file, indent=2)
