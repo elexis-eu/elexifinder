@@ -590,7 +590,7 @@ Type.prototype.createNodes = function(item) {
 			doi = doi.substr(15);
 		}
 		nodes[ITEM] = "http://doi.org/"+encodeURI(doi);
-		if (usedURIs[nodes[ITEM]]) nodes[ITEM] = nodes[ITEM]+'#'; // add 'x' to avoid duplicate URI
+		// if (usedURIs[nodes[ITEM]]) nodes[ITEM] = nodes[ITEM]+'#'; // add 'x' to avoid duplicate URI
 	}
 
 	// for chapters and conference papers without archiveLocation or DOI field value, try isbn plus first page as URI (lexbib namespace)
@@ -794,7 +794,7 @@ CreatorProperty.prototype.mapFromCreator = function(item, creator, nodes) {
 		Zotero.RDF.addStatement(creatorNode, RDF_TYPE, n.lexdo+"Organization");
 		Zotero.RDF.addStatement(creatorNode, n.foaf+"name", creator.lastName, true);
 	} else {
-		// create camelcase version of name and output as lexbibperson uri, attached to creator node uwing owl:sameAs
+		// create camelcase version of name and output as lexbibperson uri, attached to creator node using owl:sameAs
 
 		var camelCreator = creator.lastName+creator.firstName; //.normalize("NFD").replace(/[\u0300-\u036f\-\. ]/g, "");
 
