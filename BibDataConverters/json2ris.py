@@ -1,8 +1,8 @@
 #converts json to ris (json key to ris key, json value to ris value), by dlindem
 import json
 
-risjson_input_file = 'D:/Lab_LexBib/BibMerge/videos_merged.json'
-ris_result_file = 'D:/Lab_LexBib/BibMerge/videos_merged.ris'
+risjson_input_file = 'D:/Lab_LexBib/Euralex2021/titles.json'
+ris_result_file = 'D:/Lab_LexBib/Euralex2021/titles.ris'
 
 with open(risjson_input_file, encoding="utf-8") as f:
 	jsonfile =  json.load(f, encoding="utf-8")
