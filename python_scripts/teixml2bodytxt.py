@@ -5,6 +5,7 @@ from xml.etree import ElementTree
 import re
 from bs4 import BeautifulSoup
 import os
+import time
 
 parent_dir = 'D:/LexBib/exports/export_filerepo'
 
@@ -17,7 +18,7 @@ for path, dirs, files in os.walk(parent_dir):
         textname = re.search('^[^\.]+', infile).group(0)
         if infile.endswith(".tei.xml"):
             if os.path.exists(os.path.join(path, textname+"_body.txt")):
-                print('Text '+textname+' in '+path+' is already processed, skipped.')
+                #print('Text '+textname+' in '+path+' is already processed, skipped.')
                 skipcount = skipcount + 1
             else:
                 tree = ElementTree.parse(os.path.join(path, infile))
@@ -29,7 +30,8 @@ for path, dirs, files in os.walk(parent_dir):
                     soup = BeautifulSoup(body, features="lxml")
                     bodytext = re.sub(r'\n ', '\n', ' '.join(soup.find_all(text=True)).replace('  ',' '))
                 else:
-                    print('File '+infile+' is strange, body not found.')
+                    print('\n\nFile '+infile+' is strange, body not found.\n\n')
+                    time.sleep(5)
                     errorcount = errorcount + 1
                 with open (os.path.join(path, infile.replace('.tei.xml','_body.txt')), 'w', encoding="utf-8") as cleanfile:
                     cleanfile.write(bodytext)
