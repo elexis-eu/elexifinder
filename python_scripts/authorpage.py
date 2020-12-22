@@ -147,7 +147,7 @@ for authoruri in authorlist:
                 if co not in seen:
                     coaut = co[0]
                     colabel = co[1]
-                    authorfile.write('<a href="'+coaut+'">'+colabel+'</a> ')
+                    authorfile.write('<a href="'+coaut+'">'+colabel+'</a>   ')
                     seen.append(co)
         authorfile.write('</p>\n')
 
@@ -186,3 +186,5 @@ with open('D:/LexBib/persons/lexpersons.csv', 'r', encoding="utf-8") as csvfile:
         indexfile.write('</table>\n')
         indexfile.write('<p>This table was created on '+str(datetime.now())[0:10]+' by team [ AT ] lexbib [ DOT] org</p>')
         indexfile.write(stubend)
+
+print('Done.')
