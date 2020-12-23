@@ -14,6 +14,28 @@ sp = spacy.load('en_core_web_sm') # SpaCy English NLP module
 from flashtext import KeywordProcessor
 keyword_processor = KeywordProcessor()
 
+# collection images links:
+
+images = {
+1 : "https://elex.is/wp-content/uploads/2020/12/collection_1_elex.jpg.",
+2 : "https://elex.is/wp-content/uploads/2020/12/collection_2_euralex.jpg",
+3 : "https://elex.is/wp-content/uploads/2020/12/collection_3_ijl.jpg",
+4 : "https://elex.is/wp-content/uploads/2020/12/collection_4_lexikos.jpg",
+5 : "https://elex.is/wp-content/uploads/2020/12/collection_5_lexiconordica.jpg",
+6 : "https://elex.is/wp-content/uploads/2020/12/collection_6_lexicographica.jpg",
+7 : "https://elex.is/wp-content/uploads/2020/12/collection_7_NSL.jpg",
+8 : "https://elex.is/wp-content/uploads/2020/12/collection_8_lexicon_tokyo.jpg",
+9 : "https://elex.is/wp-content/uploads/2020/12/collection_9_lexicography_asialex.jpg",
+10 : "https://elex.is/wp-content/uploads/2020/12/collection_10_globalex.jpg",
+11 : "https://elex.is/wp-content/uploads/2020/12/collection_11_videolectures.jpg",
+12 : "https://elex.is/wp-content/uploads/2020/12/collection_12_dsna.jpg",
+13 : "https://elex.is/wp-content/uploads/2020/12/collection_13_teubert.jpg",
+14 : "https://elex.is/wp-content/uploads/2020/12/collection_14_fuertesolivera.jpg",
+15 : "https://elex.is/wp-content/uploads/2020/12/collection_15_mullerspitzer.jpg",
+16 : "https://elex.is/wp-content/uploads/2020/12/collection_16_slovenscina.jpg",
+17 : "https://elex.is/wp-content/uploads/2020/12/collection_17_rdelexicografia.jpg"
+}
+
 # import stopword processor
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -120,7 +142,8 @@ for item in bindings:
 		if 'collection' in item:
 			collection = int(item['collection']['value'])
 			target['details']['collection']=collection
-			target['images']=['http://lexbib.org/images/collection_'+str(collection)+'.jpg']
+			if collection in images:
+				target['images']=images[collection]
 	#	if 'container' in item:
 	#		target['sourceUri'] = item['container']['value'] # replaced by containerFullTextUrl or containerUrl
 		if 'containerFullTextUrl' in item:
