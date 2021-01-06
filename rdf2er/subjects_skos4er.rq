@@ -1,4 +1,5 @@
 #sparql query for LexDo Subject Headings SKOS vocabulary, to be exported as JSON-LD
+#takes all hypernyms of a term and builds a chained term uri and label thereof
 
 PREFIX : <http://lexbib.org/lexdo/>
 PREFIX dc: <http://purl.org/dc/elements/1.1/>
