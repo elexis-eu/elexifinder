@@ -237,7 +237,7 @@ for mapping in wikipairs:
 
 print("\nTried to perform "+str(wdquerycount)+" wikidata queries. Actually retrieved "+str(wdsucc)+" answers from Wikidata.")
 #print(lpdict)
-with open('D:/LexBib//places/lexplaces.json', 'w', encoding="utf-8") as json_file:
+with open('D:/LexBib/places/lexplaces.json', 'w', encoding="utf-8") as json_file:
 	json.dump(lpdict, json_file, ensure_ascii=False, indent=2)
 print("\nlexplacefile json updated.")
 
