@@ -1,0 +1,49 @@
+#sparql query for LexDo Subject Headings SKOS vocabulary, to be exported as JSON-LD
+#takes three levels of hypernyms (plus the term itself and the root term: 5 levels), to be processed by 5levelterms4er.py
+
+PREFIX : <http://lexbib.org/lexdo/>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX grddl: <http://www.w3.org/2003/g/data-view#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT
+
+?subject ?subjectLabel
+#(group_concat(?broader; SEPARATOR="@") as ?broaders)
+?2nd_level_broader ?2nd_level_broaderLabel ?3rd_level_broader ?3rd_level_broaderLabel ?4th_level_broader ?4th_level_broaderLabel
+
+#(group_concat(BIND(REPLACE(str(?broader), "[/#]([^#/]+)$", "$1") AS ?cleanbroader)) as ?broaders)
+
+#(group_concat(?broaderLabel; SEPARATOR="@") as ?broaderLabels)
+
+
+
+
+WHERE {
+    ?subject rdf:type skos:Concept .
+    ?subject skos:prefLabel ?subjectLabel .
+    ?subject skos:broader* <http://lexbib.org/terms#Term_Lexicography> .
+OPTIONAL {
+    ?subject skos:broader* ?2nd_level_broader .
+    ?2nd_level_broader skos:prefLabel ?2nd_level_broaderLabel
+    		;		skos:broader <http://lexbib.org/terms#Term_Lexicography> .
+        FILTER (?2nd_level_broader != ?subject)
+OPTIONAL {
+    ?subject skos:broader* ?3rd_level_broader .
+    ?3rd_level_broader skos:prefLabel ?3rd_level_broaderLabel
+    		;		skos:broader ?2nd_level_broader .
+        FILTER (?3rd_level_broader != ?subject)
+OPTIONAL {
+    ?subject skos:broader* ?4th_level_broader .
+    ?4th_level_broader skos:prefLabel ?4th_level_broaderLabel
+    		;		skos:broader ?3rd_level_broader .
+        FILTER (?4th_level_broader != ?subject)
+            }}}
+}
+#GROUP BY ?subject ?subjectLabel ?2nd_level_broader ?3rd_level_broader ?4th_level_broader
+ORDER BY ?subject
