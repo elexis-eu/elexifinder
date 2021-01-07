@@ -12,7 +12,8 @@ for path, dirs, files in os.walk(parent_dir):
         xmlfile = os.path.join(path, dir, '*tei.xml')
         #print (xmlfile)
         if glob.glob(xmlfile):
-            print (dir+' has a xml file '+str(os.listdir(os.path.join(path, dir))))
+            #print (dir+' has a xml file '+str(os.listdir(os.path.join(path, dir))))
+            pass
         else:
             if glob.glob(os.path.join(path, dir, '*.pdf')):
                 copy_tree(os.path.join(path, dir), 'D:/LexBib/exports/PDF_grobidupload/'+dir)
