@@ -86,12 +86,16 @@ except:
 interimfile = os.path.splitext(zotero_lexbib_rdf_export_file)[0]+"_pp_v"+str(version)+".rdf"
 with open(interimfile, 'w', encoding="utf-8") as tmpfile:
     for line in exportlines:
+        headermatch = re.search('^<rdf:RDF', line)
         authormatch = re.search('(.*\")(http://lexbib.org/agents/person/)([^\"]+)(\".*)', line)
         aulocmatch = re.search('([^<]*)<lexdo:firstAuLoc>https?://en.wikipedia.org/wiki/([^<]+)</lexdo:firstAuLoc>', line)
         arlocmatch = re.search('([^<]*)<lexdo:event rdf:resource=\"(http[^\"]+)\"/>', line)
         pdfmatch = re.search('([^<]*<zotexport:pdfFile>)(D:/Zotero/storage)/([A-Z0-9]+)/([^<]+)(</zotexport:pdfFile>.*)', line) # Zotero storage folder path / attachment folder / filename.pdf
         pdf2textmatch = re.search('[^<]*<zotexport:txtFile>D:/Zotero/storage/[^\/]+/pdf2text.txt</zotexport:txtFile>.*', line)
         issnmatch = re.search('[^<]*<bibo:issn>([^<]+)</bibo:issn>.*', line)
+        titlematch = re.search('[^<]*<dcterms:title>([^<]+)</dcterms:title>.*', line)
+        if headermatch != None:
+            line = headermatch.group(0)+'\n xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"\n'
         if pdf2textmatch != None:
             line = "" # eliminates manually added pdf2text attachments (visible and syncable duplicates of .zotero-ft-cache file)
         if authormatch != None:
@@ -175,6 +179,9 @@ with open(interimfile, 'w', encoding="utf-8") as tmpfile:
                     print("ISSN "+issn+" not found on wikidata, skipping. >> "+str(ex))
                     pass
             line=issnmatch.group(0)+'\n        <lexdo:journal rdf:resource="'+journal+'"/>\n'
+        if titlematch != None:
+            title = titlematch.group(1)
+            line = titlematch.group(0)+'\n        <rdfs:label>'+title+'</rdfs:label>\n'
 
         tmpfile.write(line)
 
@@ -450,7 +457,7 @@ for authoruri in authordic:
 ag.serialize(destination='D:/LexBib/persons/lexpersons.ttl', format="turtle")
 
 
-print ('...now removing Person data from infile RDF, saving result as .TTL, ready for upload to Ontotext GraphDB')
+print ('...now removing Person data from infile RDF, saving result as .TTL')
 for s, p, o in g:
     if 'BNode' in str(type(s)):
         g.remove((s,None,None))
@@ -463,3 +470,5 @@ g.serialize(destination=interimfile.replace('.rdf', '_upload.ttl'), format="turt
 
 with open('D:/LexBib/journals/journals.json', 'w', encoding="utf-8") as outfile:
     json.dump(issndict, outfile, indent=2)
+
+print('Finished. Ready for upload to Ontotext GraphDB')
