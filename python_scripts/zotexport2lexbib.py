@@ -22,7 +22,7 @@ from unidecode import unidecode
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 
-with open('eventlist.csv', encoding="utf-8") as csvfile: # event mapping csv
+with open('D:/LexBib/events/eventlist.csv', encoding="utf-8") as csvfile: # event mapping csv
     eventdict = csv.DictReader(csvfile, delimiter="\t")
     eventkeydict = {}
     for item in eventdict:
@@ -409,6 +409,7 @@ print("lexperson csv updated, finished.")
 
 print("Will now update lexpersons.ttl...")
 
+#build skosxl authors ttl
 ag = Graph()
 
 gn = Namespace('http://www.geonames.org/ontology#')
@@ -454,8 +455,53 @@ for authoruri in authordic:
     ag.remove((author, skosxl.altLabel, max_label))
     ag.add((author, skosxl.prefLabel, max_label))
 
-ag.serialize(destination='D:/LexBib/persons/lexpersons.ttl', format="turtle")
+ag.serialize(destination='D:/LexBib/persons/lexpersons_skosxl.ttl', format="turtle")
 
+# build skos authors ttl
+
+ag = Graph()
+
+gn = Namespace('http://www.geonames.org/ontology#')
+rdf = Namespace('http://www.w3.org/1999/02/22-rdf-syntax-ns#')
+skos = Namespace('http://www.w3.org/2004/02/skos/core#')
+dcterms = Namespace ('http://purl.org/dc/terms/')
+wd = Namespace ('http://www.wikidata.org/entity/')
+foaf = Namespace ('http://xmlns.com/foaf/0.1/')
+skos = Namespace('http://www.w3.org/2004/02/skos/core#')
+lexdo = Namespace('http://lexbib.org/lexdo/')
+lexperson = Namespace('http://lexbib.org/agents/person/')
+
+ag.bind("gn", gn)
+ag.bind("skos", skos)
+ag.bind("rdf", rdf)
+ag.bind("dcterms", dcterms)
+ag.bind("wd", wd)
+ag.bind("foaf", foaf)
+ag.bind("skos", skos)
+ag.bind("lexdo", lexdo)
+ag.bind("lexperson", lexperson)
+
+
+for authoruri in authordic:
+    #print(authorsdic[authoruri])
+    author = URIRef(authoruri)
+    ag.add((author, rdf.type, lexdo.Person))
+    count = 0
+    #seenlabels = []
+    labelcount = {}
+    for label in authordic[authoruri]:
+        labelcount[label]=authordic[authoruri][label]['count']
+    max_label = max(labelcount, key=labelcount.get)
+    print(max_label)
+    for label in authordic[authoruri]:
+        if label == max_label:
+            ag.add((author, foaf.firstName, Literal(authordic[authoruri][label]['foaf_firstname'])))
+            ag.add((author, foaf.surname, Literal(authordic[authoruri][label]['foaf_surname'])))
+            ag.add((author, skos.prefLabel, Literal(label)))
+        else:
+            ag.add((author, skos.altLabel, Literal(label)))
+
+ag.serialize(destination='D:/LexBib/persons/lexpersons_skos.ttl', format="turtle")
 
 print ('...now removing Person data from infile RDF, saving result as .TTL')
 for s, p, o in g:
