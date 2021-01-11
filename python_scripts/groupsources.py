@@ -49,10 +49,10 @@ collnames = {
 10 : 'Globalex'
 }
 
-result['sourceGroupUriName'] = {}
+result['sourceGroupToName'] = {}
 for coll in result['sourceGroupToList']:
 
-    result['sourceGroupUriName'][coll] = 'General/'+collnames[int(re.search('/(\d+)', coll).group(1))]
+    result['sourceGroupToName'][coll] = 'General/'+collnames[int(re.search('/(\d+)', coll).group(1))]
 
 with open('D:/LexBib/groupsources/result.json', 'w', encoding="utf-8") as outfile:
     json.dump(result, outfile, ensure_ascii=False, indent=2)
