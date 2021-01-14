@@ -1,0 +1,7 @@
+PREFIX lexdo: <http://lexbib.org/lexdo/>
+select distinct ?coll ?containerUri ?containerFullTextUrl ?containerShortTitle where {
+	?item lexdo:container ?containerUri .
+    OPTIONAL {?item lexdo:containerShortTitle ?containerShortTitle .}
+    ?item lexdo:collection ?coll .
+        OPTIONAL{ ?containerUri lexdo:fullTextUrl ?containerFullTextUrl .}
+}
