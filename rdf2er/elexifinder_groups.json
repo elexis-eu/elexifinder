@@ -366,7 +366,7 @@
   "sourceGroupToName": {
     "general/1": "General/Proceedings",
     "general/2": "General/Journals",
-    "general/4": "General/Books",
-    "general/5": "General/Handbooks"
+    "general/4": "General/Book Chapters",
+    "general/5": "General/Handbook Chapters"
   }
 }
