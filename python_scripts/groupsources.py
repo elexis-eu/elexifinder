@@ -32,8 +32,8 @@ er_groupnames = {
 1 : "Proceedings",
 2 : "Journals",
 3 : "Videos",
-4 : "Books",
-5 : "Handbooks"
+4 : "Book Chapters",
+5 : "Handbook Chapters"
 }
 
 
