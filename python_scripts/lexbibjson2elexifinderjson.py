@@ -43,34 +43,38 @@ stopWords = set(stopwords.words('english')) #adds standard English stopwords
  #add extra stopwords here: disturbing terms
 stopWords.update({'example', 'context'})
  #add extra stopwords here: disturbing language names
-stopWords.update({'even', 'axi', 'e', 'car', 'day', 'duke', 'en', 'toto', 'male', 'boon', 'bali', 'yoke', 'hu', 'u', 'gen', 'label', 'are', 'as', 'are', 'doe', 'fore', 'to', 'bit', 'bete', 'dem', 'mono', 'sake', 'pal', 'au', 'na', 'notre', 'rien', 'lui', 'papi', 'ce', 'sur', 'dan', 'busa', 'ki', 'were', 'ir', 'idi', 'kol', 'fut', 'maria', 'mano', 'ata', 'fur', 'lengua', 'mon', 'para', 'haya', 'war', 'garo', 'tera', 'sonde', 'amis', 'fam', 'pe', 'mari', 'laura', 'duma', 'lame', 'crow', 'nage', 'ha', 'pero', 'piu', 'ese', 'carrier', 'alas', 'ali', 'kis', 'lou' })
-#print(stopWords)
+stopWords.update({'even', 'axi', 'e', 'car', 'day', 'duke', 'en', 'toto', 'male', 'boon', 'bali', 'yoke', 'hu', 'u', 'gen', 'label', 'are', 'as', 'are', 'doe', 'fore', 'to', 'bit', 'bete', 'dem', 'mono', 'sake', 'pal', 'au', 'na', 'notre', 'rien', 'lui', 'papi', 'ce', 'sur', 'dan', 'busa', 'ki', 'were', 'ir', 'idi', 'kol', 'fut', 'maria', 'mano', 'ata', 'fur', 'lengua', 'mon', 'para', 'haya', 'war', 'garo', 'tera', 'sonde', 'amis', 'fam', 'pe', 'mari', 'laura', 'duma', 'lame', 'crow', 'nage', 'ha', 'pero', 'piu', 'ese', 'carrier', 'alas', 'ali', 'kis', 'lou', '—' })
+print(stopWords)
 
 # load subject list
-with open('D:/LexBib/rdf2json/keyextractlist.json', encoding="utf-8") as infile:
+with open('D:/LexBib/terms/er_skos_3levelcats_dic.json', encoding="utf-8") as infile:
 	terms = json.load(infile, encoding="utf-8")
-	keydict = {}
-	print(terms)
-	for term in terms:
-		uri = term['uri']
-		label = term['label']
-		#print(label)
-		if label.lower() not in list(stopWords):
-			keydict[uri] = [label]
-		else:
-			print('Skipped term '+uri+' ('+label+')')
-	#print(keydict)
+
+for stop in list(stopWords):
+	if stop in terms:
+		del terms[stop]
+
+keydict = {}
+subjdict = {}
+for term in terms:
+	for lexi in terms[term]:
+		print(str(lexi))
+		keydict[lexi['subject_uri']] = [lexi['subjectLabel']]
+		subjdict[lexi['subject_uri']] = {'er_uri':lexi['er_uri'], 'er_label':lexi['er_label']}
+
+print(keydict)
+print(subjdict)
 # feed subject list to KeywordProcessor
-	keyword_processor.add_keywords_from_dict(keydict)
+keyword_processor.add_keywords_from_dict(keydict)
 
 
 # build subject dictionary with labels for Elexifinder
-with open('D:/LexBib/rdf2json/erkeys.json', encoding="utf-8") as infile:
-	terms = json.load(infile, encoding="utf-8")
-	subjdict = {}
-	for term in terms:
-		subjdict[term['subject_uri']] = {'er_uri':term['er_uri'], 'er_label':term['er_label']}
-	print(subjdict)
+
+# subjdict = {}
+# for term in terms:
+# 	for lexi in terms:
+# 	subjdict[terms[term]['subject_uri']] = {'er_uri':terms[term]['er_uri'], 'er_label':terms[term]['er_label']}
+# print(subjdict)
 
 # load abstract dictionary
 with open('D:/LexBib/abstracts/abstracts.json', 'r', encoding="utf-8") as infile:
@@ -222,7 +226,7 @@ for item in bindings:
 				print("File "+txtfile+" for "+target['uri']+" was supposed to be there but not found")
 				txtfile = ""
 				pass
-		if txtfile = ""
+		if txtfile == "":
 			bodytxt = ""
 			# last resort: an english abstract
 			if itemuri in absdict and absdict[itemuri]['lang'] == "eng":
@@ -251,21 +255,29 @@ for item in bindings:
 		if target['lang'] !="":
 			if target['lang'][-3:] == "eng":
 				keywords = keyword_processor.extract_keywords(cleantext)
-				keywordsfreqsort = sorted(keywords,key=keywords.count,reverse=False)
-				used = set()
-				keywordset = [x for x in keywordsfreqsort if x not in used and (used.add(x) or True)]
+				target['details']['keywords'] = keywords
+			#	keywordsfreqsort = sorted(keywords,key=keywords.count,reverse=False)
+			#	used = set()
+			#	keywordset = [x for x in keywordsfreqsort if x not in used and (used.add(x) or True)]
 
 				# result
-				#print(keywordset)
-				categoryset = []
+				categorylist = []
+				#print(keywords)
+				for keyword in keywords:
+					categorylist.append(subjdict[keyword]['er_uri']+'@'+subjdict[keyword]['er_label'])
+				#print(categorylist)
+				catsfreqsort = sorted(categorylist,key=categorylist.count,reverse=False)
+				used = set()
+				catset = [x for x in catsfreqsort if x not in used and (used.add(x) or True)]
+				#print (catset)
+				categoryexport = []
 				count=1
-				for termuri in keywordset:
-					#print(termuri)
-					#print(subjdict[termuri])
-					category = {'uri':subjdict[termuri]['er_uri'],'label':subjdict[termuri]['er_label'],'wgt':count/len(keywordset)}
-					categoryset.append(category)
+				for cat in catset:
+					caturilabel = cat.split('@')
+					category = {'uri':caturilabel[0],'label':caturilabel[1],'wgt':count/len(catset)}
+					categoryexport.append(category)
 					count=count+1
-				target['categories'] = categoryset
+				target['categories'] = categoryexport
 				print('...['+str(itemcount)+'] was English text; term discovery done.')
 			else:
 				print('...['+str(itemcount)+'] was not English text; term discovery skipped.')
