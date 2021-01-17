@@ -296,6 +296,12 @@ for item in bindings:
 with open(infile.replace('.json', '_problemlog.json'), 'w', encoding="utf-8") as problemfile:
 	problemfile.write(str(problemlog))
 
+with open(infile.replace('.json', '_EF.jsonl'), 'w', encoding="utf-8") as jsonl_file: # path to result JSONL file
+	for item in elexifinder:
+		jsonl_file.write(str(item)+'\n')
+	print("\n=============================================\nCreated processed JSONL file for "+infile+".")
+
+
 with open(infile.replace('.json', '_EF.json'), 'w', encoding="utf-8") as json_file: # path to result JSON file
 	json.dump(elexifinder, json_file, indent=2)
 	print("\n=============================================\nCreated processed JSON file for "+infile+". Finished.\n\n"+str(txtfilecount)+" files from manual attachments, "+str(grobidcount)+" files from GROBID output, "+str(pdftxtcount)+" files from Zotero pdf2txt")
