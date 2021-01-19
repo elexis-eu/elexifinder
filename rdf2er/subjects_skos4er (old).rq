@@ -11,7 +11,7 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-SELECT
+SELECT DISTINCT
 
 ?subject ?subjectLabel
 (group_concat(?broader; SEPARATOR="@") as ?broaders)
@@ -20,15 +20,31 @@ SELECT
 
 (group_concat(?broaderLabel; SEPARATOR="@") as ?broaderLabels)
 
+?synonym ?synonymLabel
+#(group_concat(?synbroader; SEPARATOR="@") as ?synbroaders)
+#(group_concat(?synbroaderLabel; SEPARATOR="@") as ?synbroaderLabels)
+
+
 
 
 
 WHERE {
     ?subject rdf:type skos:Concept .
     ?subject skos:prefLabel ?subjectLabel .
-    ?subject skos:broader* <http://lexbib.org/terms#Term_Lexicography> .
+    FILTER (lang(?subjectLabel) = "en")
+    OPTIONAL {   ?subject skos:broader* <http://lexbib.org/terms#Term_Lexicography> .
     ?subject skos:broader* ?broader .
-    ?broader skos:prefLabel ?broaderLabel .
+        ?broader skos:prefLabel ?broaderLabel .
+    FILTER (lang(?broaderLabel) = "en")}
+  ?subject skos:exactMatch ?synonym.
+        ?synonym skos:prefLabel ?synonymLabel .
+        FILTER (lang(?synonymLabel) = "en")
+    FILTER (?synonym != ?subject)
+#    OPTIONAL {   ?synonym skos:broader* <http://lexbib.org/terms#Term_Lexicography> .
+#    ?synonym skos:broader* ?synbroader .
+#        ?broader skos:prefLabel ?synbroaderLabel .}
+#
+
 
 }
-GROUP BY ?subjectLabel ?subject
+GROUP BY ?subjectLabel ?subject ?synonym ?synonymLabel
