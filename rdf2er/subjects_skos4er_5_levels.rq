@@ -1,5 +1,6 @@
-#sparql query for LexDo Subject Headings SKOS vocabulary, to be exported as JSON-LD
-#takes three levels of hypernyms (plus the term itself and the root term: 5 levels), to be processed by 5levelterms4er.py
+# sparql query for LexDo Subject Headings SKOS vocabulary,
+# result to be saved as JSON-LD to 'D:/LexBib/terms/terms_languages_4er.json'
+# takes upper levels of hypernyms and synonyms to be processed by 3levelcats4er.py
 
 PREFIX : <http://lexbib.org/lexdo/>
 PREFIX dc: <http://purl.org/dc/elements/1.1/>
@@ -13,7 +14,7 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 SELECT
 
-?subject ?subjectLabel
+?subject ?subjectLabel ?synonym
 #(group_concat(?broader; SEPARATOR="@") as ?broaders)
 ?2nd_level_broader ?2nd_level_broaderLabel ?3rd_level_broader ?3rd_level_broaderLabel ?4th_level_broader ?4th_level_broaderLabel
 
@@ -27,7 +28,10 @@ SELECT
 WHERE {
     ?subject rdf:type skos:Concept .
     ?subject skos:prefLabel ?subjectLabel .
-    ?subject skos:broader* <http://lexbib.org/terms#Term_Lexicography> .
+
+    OPTIONAL { ?subject skos:exactMatch ?synonym .
+        FILTER (?subject != ?synonym)
+     ?synonym skos:broader* <http://lexbib.org/terms#Term_Lexicography> .}
 OPTIONAL {
     ?subject skos:broader* ?2nd_level_broader .
     ?2nd_level_broader skos:prefLabel ?2nd_level_broaderLabel
