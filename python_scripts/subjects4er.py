@@ -4,12 +4,9 @@ import os
 import sys
 
 
-try:
-    with open('D:/LexBib/rdf2json/subjects_skos.json', encoding="utf-8") as f:
-        subjdict =  json.load(f, encoding="utf-8")
-except:
-    print ('Error: file "subjects_skos.json" does not exist.')
-    sys.exit()
+
+with open('D:/LexBib/terms/terms_languages_4er.json', encoding="utf-8") as f:
+    subjdict =  json.load(f, encoding="utf-8")
 
 results = subjdict['results']
 bindings = results['bindings']
