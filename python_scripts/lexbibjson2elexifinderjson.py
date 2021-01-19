@@ -136,28 +136,48 @@ for item in bindings:
 			target['authors'] = json.loads(authorsliteral)
 		if 'title' in item:
 			target['title'] = item['title']['value']
+		else:
+			print ('*** ERROR: mandatory key title not in '+itemuri+'!')
+			problemlog.append('*** ERROR: mandatory key title not in '+itemuri+'!\n')
 		if 'articleTM' in item:
 			target['articleTm'] = item['articleTM']['value'][0:22]
+		else:
+			print ('*** ERROR: mandatory key articleTM not in '+itemuri+'!')
+			problemlog.append('*** ERROR: mandatory key articleTM not in '+itemuri+'!\n')
 		if 'modTM' in item:
 			target['crawlTm'] = item['modTM']['value'][0:22]
 		if 'zotItemUri' in item:
 			zotItemUri = item['zotItemUri']['value']    #+'?usenewlibrary=0'
 			target['details']['zotItemUri']=zotItemUri
+			target['url'] = zotItemUri
+		else:
+			print ('*** ERROR: mandatory key zotItemUri not in '+itemuri+'!')
+			problemlog.append('*** ERROR: mandatory key zotItemUri not in '+itemuri+'!\n')
 		if 'collection' in item:
 			collection = int(item['collection']['value'])
 			target['details']['collection']=collection
 			if collection in images:
 				target['images']=images[collection]
 	#	if 'container' in item:
-	#		target['sourceUri'] = item['container']['value'] # replaced by containerFullTextUrl or containerUrl
+	#		target['sourceUri'] = item['container']['value'] # replaced by containerFullTextUrl or containerUri
 		if 'containerFullTextUrl' in item:
 			target['sourceUri'] = item['containerFullTextUrl']['value']
-		elif 'containerUrl' in item:
-			target['sourceUri'] = item['containerUrl']['value']
+			target['url'] = item['containerFullTextUrl']['value'] # this overwrites zotero item in target['url']
+		elif 'containerUri' in item:
+			target['sourceUri'] = item['containerUri']['value']
+			target['url'] = item['containerUri']['value'] # this overwrites zotero item in target['url']
+		if 'sourceUri' not in target:
+			print ('*** ERROR: nothing to use as sourceUri in '+itemuri+'!')
+			problemlog.append('*** ERROR: nothing to use as sourceUri in '+itemuri+'!\n')
 		if 'containerShortTitle' in item:
 			target['sourceTitle'] = item['containerShortTitle']['value']
+		else:
+			print ('*** ERROR: mandatory key containerShortTitle not in '+itemuri+'!')
+			problemlog.append('*** ERROR: mandatory key containerShortTitle not in '+itemuri+'!\n')
 		if 'publang' in item:
 			target['lang'] = item['publang']['value']#[-3:]
+		else:
+			target['lang'] = ""
 		if 'articleLoc' in item:
 			target['sourceLocUri'] = item['articleLoc']['value']
 			target['sourceLocP'] = True
@@ -169,7 +189,7 @@ for item in bindings:
 			target['sourceCountry'] = item['articleCountryLabel']['value']
 		if 'authorLoc' in item:
 			target['locationUri'] = item['authorLoc']['value']
-		if 'fullTextUrl' in item:
+		if 'fullTextUrl' in item: # this overwrites zotero item URL in target['url']
 			target['url'] = item['fullTextUrl']['value']
 
 		if 'ertype' in item:
@@ -220,7 +240,7 @@ for item in bindings:
 			try:
 				with open(txtfile, 'r', encoding="utf-8", errors="ignore") as file:
 					bodytxt = file.read().replace('\n', ' ')
-					target['body'] = bodytxt
+
 					#print("\nCaught full text from "+txtfile+" for "+target['uri'])
 			except:
 				print("File "+txtfile+" for "+target['uri']+" was supposed to be there but not found")
@@ -232,9 +252,17 @@ for item in bindings:
 			if itemuri in absdict and absdict[itemuri]['lang'] == "eng":
 				bodytxt = absdict[itemuri]['text']
 				fulltextsource = "abstract"
+			else:
+				if 'title' in item:
+					bodytxt = item['title']['value']
+					fulltextsource = "title"
 
 		if fulltextsource != "":
-			target['details']['bodytxtstatus'] = fulltextsource
+			target['details']['bodytxtsource'] = fulltextsource
+			target['body'] = bodytxt
+		else:
+			target['body'] = ""
+			problemlog.append("*** PROBLEM: Nothing to use for target_body for "+itemuri)
 
 	# lemmatize english text or abstract
 		bodylem = ""
@@ -296,12 +324,13 @@ for item in bindings:
 with open(infile.replace('.json', '_problemlog.json'), 'w', encoding="utf-8") as problemfile:
 	problemfile.write(str(problemlog))
 
+elexidict = {}
 with open(infile.replace('.json', '_EF.jsonl'), 'w', encoding="utf-8") as jsonl_file: # path to result JSONL file
 	for item in elexifinder:
-		jsonl_file.write(str(item)+'\n')
+		jsonl_file.write(json.dumps(item)+'\n')
+		elexidict[item['uri']] = item
 	print("\n=============================================\nCreated processed JSONL file for "+infile+".")
 
-
-with open(infile.replace('.json', '_EF.json'), 'w', encoding="utf-8") as json_file: # path to result JSON file
-	json.dump(elexifinder, json_file, indent=2)
+with open(infile.replace('.json', '_EFdict.json'), 'w', encoding="utf-8") as json_file: # path to result JSON file
+	json.dump(elexidict, json_file, indent=2)
 	print("\n=============================================\nCreated processed JSON file for "+infile+". Finished.\n\n"+str(txtfilecount)+" files from manual attachments, "+str(grobidcount)+" files from GROBID output, "+str(pdftxtcount)+" files from Zotero pdf2txt")
