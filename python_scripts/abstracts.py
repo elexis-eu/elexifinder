@@ -1,3 +1,19 @@
+# PREFIX : <http://lexbib.org/lexdo/>
+# PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+# PREFIX zotexport: <http://www.zotero.org/namespaces/export#>
+# SELECT ?uri ?pdffiles
+# ?abstractlang ?abstracttext
+#
+# where {
+# 	?uri  :abstract ?abstractnode .
+#     ?uri :zoteroItemUri ?zotitemnode .
+#     OPTIONAL {?zotitemnode zotexport:pdfFile ?pdffiles .}
+#     OPTIONAL{ ?abstractnode :abstractText ?abstracttext . }
+#     OPTIONAL{ ?abstractnode :abstractLanguage ?abstractlanguri .}
+#
+# }
+# GROUP BY ?uri ?pdffiles (STRAFTER( str(?abstractlanguri), "iso639-3/" ) as ?abstractlang) ?abstracttext
+
 import json, time, re
 
 
