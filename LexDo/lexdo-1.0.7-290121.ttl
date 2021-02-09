@@ -1,0 +1,1075 @@
+@prefix : <http://lexbib.org/lexdo/> .
+@prefix bibo: <http://purl.org/ontology/bibo/> .
+@prefix cc: <http://creativecommons.org/ns#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix dcam: <http://purl.org/dc/dcam/> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix decomp: <http://www.w3.org/ns/lemon/decomp#> .
+@prefix doco: <http://purl.org/spar/doco/> .
+@prefix event: <http://purl.org/NET/c4dm/event.owl#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix geo: <http://www.w3.org/2003/01/geo/wgs84_pos#> .
+@prefix gn: <http://geonames.org/ontology> .
+@prefix grddl: <http://www.w3.org/2003/g/data-view#> .
+@prefix lemon: <http://lemon-model.net/lemon#> .
+@prefix lexbibitem: <http://lexbib.org/lexbib/item#> .
+@prefix lexbibzotitem: <http://zotero.org/groups/2235072/items/> .
+@prefix lexdo-top: <http://lexbib.org/lexdo-top/> .
+@prefix lexevent: <http://lexbib.org/events/> .
+@prefix lexinfo: <http://www.lexinfo.net/ontology/2.0/lexinfo#> .
+@prefix lexorg: <http://lexbib.org/agents/organization/> .
+@prefix lexperson: <http://lexbib.org/agents/person/> .
+@prefix lexterm: <http://lexbib.org/terms/> .
+@prefix lime: <http://www.w3.org/ns/lemon/lime#> .
+@prefix lv: <http://purl.org/lobid/lv#> .
+@prefix ontolex: <http://www.w3.org/ns/lemon/ontolex#> .
+@prefix opus: <http://lsdis.cs.uga.edu/projects/semdis/opus#> .
+@prefix org: <http://www.w3.org/ns/org#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix res: <http://purl.org/vocab/resourcelist/schema#> .
+@prefix schema: <http://schema.org/> .
+@prefix semiotics: <http://www.ontologydesignpatterns.org/cp/owl/semiotics.owl#> .
+@prefix sesame: <http://www.openrdf.org/schema/sesame#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix skosxl: <http://www.w3.org/2008/05/skos-xl#> .
+@prefix status: <http://purl.org/ontology/bibo/status/> .
+@prefix umbel: <http://umbel.org/umbel#> .
+@prefix vann: <http://purl.org/vocab/vann/> .
+@prefix void: <http://rdfs.org/ns/void#> .
+@prefix wikidata: <http://www.wikidata.org/entity/> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix zotexport: <http://www.zotero.org/namespaces/export#> .
+
+<http://lexbib.org/lexdo/> a owl:Ontology;
+  dct:abstract "LexDo is a Domain Ontology of Lexicography and Dictionary Research."@en;
+  dct:creator lexperson:LindemannDavid;
+  dct:description "LexDo is a Domain Ontology of Lexicography and Dictionary Research. LexDo is a key element to be used in the ongoing projects LexBib (Lindemann, Kliche, and Heid 2018) and Elexifinder (Kosem and Krek 2019), and can be described as a controlled vocabulary of subject headings, extended to a knowledge graph of agents and places, and primary and secondary resources, and languages relevant in lexicography, represented as OWL/RDF ontology. Lacking a general ontology for the domain of lexicography suitable for that function, we aim to provide a resource that enables not only indexing and retrieval of metalexicographical publications, but that would also lead towards an ontological model of our discipline."@en;
+  dct:license <http://creativecommons.org/licenses/by/3.0/>;
+  dct:modified "2020-03-03T17:50:24.513+01:00"^^xsd:dateTime;
+  dct:publisher "Institut Jožef Stefan / Universität Hildesheim / UPV/EHU University of the Basque Country"^^:PlainLiteral;
+  dct:title "LexDo Domain Ontology of Lexicography and Dictionary Research"@en;
+  vann:preferredNamespacePrefix "lexdo"^^:PlainLiteral;
+  vann:preferredNamespaceUri "http://lexbib.org/lexdo/"^^:PlainLiteral;
+  schema:contributor lexperson:GiacominiLaura, lexperson:KlaesChristiane;
+  rdfs:isDefinedBy <http://lexbib.org/lexdo/>;
+  owl:incompatibleWith <http://lexbib.org/lexdo/1.0.0/>;
+  owl:versionIRI <http://lexbib.org/lexdo/1.0.1/>;
+  skos:prefLabel "LexDo, Domain Ontology of Lexicography and Dictionary Research"@en .
+
+dct:abstract a rdf:Property;
+  dct:issued "2000-07-11"^^xsd:date;
+  rdfs:comment "A summary of the resource."@en;
+  rdfs:isDefinedBy <http://purl.org/dc/terms/>;
+  rdfs:label "Abstract"@en .
+
+dct:description a rdf:Property;
+  dct:description "Description may include but is not limited to: an abstract, a table of contents, a graphical representation, or a free-text account of the resource."@en;
+  rdfs:comment "An account of the resource."@en;
+  rdfs:isDefinedBy <http://purl.org/dc/terms/>;
+  rdfs:label "Description"@en .
+
+dct:contributor a rdf:Property;
+  dcam:rangeIncludes dct:Agent;
+  dct:description "The guidelines for using names of persons or organizations as creators apply to contributors."@en;
+  rdfs:comment "An entity responsible for making contributions to the resource."@en;
+  rdfs:isDefinedBy <http://purl.org/dc/terms/>;
+  rdfs:label "Contributor"@en .
+
+dct:creator a rdf:Property;
+  dcam:rangeIncludes dct:Agent;
+  dct:description "Recommended practice is to identify the creator with a URI.  If this is not possible or feasible, a literal value that identifies the creator may be provided."@en;
+  rdfs:comment "An entity responsible for making the resource."@en;
+  rdfs:isDefinedBy <http://purl.org/dc/terms/>;
+  rdfs:label "Creator"@en .
+
+dct:license rdfs:isDefinedBy <http://purl.org/dc/terms/>;
+  rdfs:label "License"@en .
+
+dct:modified a owl:AnnotationProperty .
+
+dct:source a rdf:Property;
+  dct:description "This property is intended to be used with non-literal values. The described resource may be derived from the related resource in whole or in part. Best practice is to identify the related resource by means of a URI or a string conforming to a formal identification system."@en;
+  rdfs:comment "A related resource from which the described resource is derived."@en;
+  rdfs:isDefinedBy <http://purl.org/dc/terms/>;
+  rdfs:label "Source"@en .
+
+dct:subject a rdf:Property;
+  dct:description "Recommended practice is to refer to the subject with a URI. If this is not possible or feasible, a literal value that identifies the subject may be provided. Both should preferably refer to a subject in a controlled vocabulary."@en;
+  rdfs:comment "A topic of the resource."@en;
+  rdfs:isDefinedBy <http://purl.org/dc/terms/>;
+  rdfs:label "Subject"@en .
+
+dct:title a rdf:Property;
+  rdfs:comment "A name given to the resource."@en;
+  rdfs:isDefinedBy <http://purl.org/dc/terms/>;
+  rdfs:label "Title"@en;
+  rdfs:range rdfs:Literal .
+
+bibo:editor rdfs:subPropertyOf dct:contributor .
+
+vann:preferredNamespacePrefix a owl:AnnotationProperty .
+
+vann:preferredNamespaceUri a owl:AnnotationProperty .
+
+schema:contributor a owl:AnnotationProperty .
+
+skos:definition a owl:AnnotationProperty .
+
+skos:note a owl:AnnotationProperty .
+
+skos:prefLabel a owl:AnnotationProperty .
+
+skosxl:altLabel a owl:AnnotationProperty .
+
+skosxl:literalForm a owl:AnnotationProperty .
+
+skosxl:prefLabel a owl:AnnotationProperty .
+
+zotexport:accessDate a owl:DatatypeProperty;
+  dct:modified "2020-03-14T22:24:09.239+01:00"^^xsd:dateTime .
+
+zotexport:zoteroTag dct:created "2020-03-14T22:08:18.034+01:00"^^xsd:dateTime;
+  dct:modified "2020-03-14T22:12:48.384+01:00"^^xsd:dateTime;
+  skos:editorialNote "This property points to Zotero User Tag literal content (if the Zotero User Tag starts with a colon, LexBib RDF translator takes it as RDF statement)."@en .
+
+:creator a owl:ObjectProperty;
+  dct:modified "2020-03-11T15:35:33.570+01:00"^^xsd:dateTime;
+  rdfs:domain lexdo-top:Resource;
+  rdfs:range lexdo-top:Agent .
+
+:dictionaryType a owl:ObjectProperty;
+  rdfs:domain :Dictionary;
+  rdfs:range :DictionaryType .
+
+:objectLanguage a owl:ObjectProperty;
+  rdfs:domain lexdo-top:Resource;
+  rdfs:range lexdo-top:Language .
+
+:place a owl:ObjectProperty;
+  rdfs:domain lexdo-top:Event;
+  rdfs:range lexdo-top:Place;
+  owl:equivalentProperty event:place .
+
+:publicationLanguage a owl:ObjectProperty;
+  rdfs:domain :BibItem;
+  rdfs:range lexdo-top:Language;
+  rdfs:subPropertyOf dct:language .
+
+:publisher a owl:ObjectProperty;
+  rdfs:domain lexdo-top:Resource;
+  rdfs:range lexdo-top:Agent;
+  rdfs:subPropertyOf dct:publisher .
+
+:subject a owl:ObjectProperty;
+  rdfs:domain :BibItem;
+  rdfs:range lexdo-top:Subject;
+  rdfs:subPropertyOf dct:subject .
+
+event:place a owl:FunctionalProperty, owl:ObjectProperty;
+  rdfs:comment "Relates an event to a spatial object.";
+  rdfs:domain event:Event;
+  rdfs:label "place";
+  rdfs:range geo:SpatialThing .
+
+skos:inScheme a owl:ObjectProperty .
+
+ontolex:concept a owl:ObjectProperty;
+  rdfs:comment "Свойство 'понятие' связывает сущность в онтологии с лексическим понятием, которое представляет соответствующее значение."@ru;
+  rdfs:isDefinedBy <http://www.w3.org/ns/lemon/ontolex>;
+  rdfs:label "Konzept"@de .
+
+ontolex:isConceptOf a owl:ObjectProperty;
+  rdfs:comment "Это свойство формализует значение 'Лексического Понятия', связывая его с отдельным значением в онтологии."@ru;
+  rdfs:domain ontolex:LexicalConcept;
+  rdfs:isDefinedBy <http://www.w3.org/ns/lemon/ontolex>;
+  rdfs:label "es concepto de"@es, "est un concept pour "@fr, "é conceito de"@pt, "является понятием"@ru .
+
+:Class owl:subPropertyOf owl:Class .
+
+dct:created a owl:DatatypeProperty .
+
+dct:date a owl:DatatypeProperty .
+
+lexdo-top:Agent a owl:Class; a :Class;
+  rdfs:subClassOf :LexDoEntity, dct:Agent, owl:Thing, prov:Agent .
+
+:LexDoEntity a owl:Class; a :Class, owl:NamedIndividual;
+  dct:created "2020-02-17T23:43:56.435+01:00"^^xsd:dateTime;
+  dct:modified "2020-03-11T23:44:35.196+01:00"^^xsd:dateTime;
+  rdfs:subClassOf owl:Thing;
+  skos:editorialNote "Super-Class used for convenient shortcut display of lexdo top-level classes"@en .
+
+:isObjectLangOf dct:created "2020-03-11T15:40:28.545+01:00"^^xsd:dateTime;
+  owl:inverseOf :objectLanguage .
+
+lexdo-top:Event a owl:Class; a :Class;
+  rdfs:subClassOf event:Event, bibo:Event, owl:Thing .
+
+lexdo-top:Language a owl:Class; a :Class;
+  rdfs:subClassOf dct:LinguisticSystem, owl:Thing .
+
+lexdo-top:Place a owl:Class; a :Class;
+  rdfs:subClassOf owl:Thing .
+
+lexdo-top:Resource a owl:Class; a :Class;
+  rdfs:subClassOf owl:Thing .
+
+:bibItem rdfs:domain zotexport:Item .
+
+lexdo-top:Subject a owl:Class; a :Class;
+  rdfs:subClassOf owl:Thing .
+
+:abstract dct:created "2020-04-16T20:59:42.770+02:00"^^xsd:dateTime;
+  dct:modified "2020-04-16T21:08:34.317+02:00"^^xsd:dateTime;
+  rdfs:domain lexdo-top:Resource;
+  rdfs:range doco:Abstract;
+  rdfs:subPropertyOf dct:abstract;
+  owl:inverseOf :isAbstractOf;
+  skos:definition "Property that points a lexdo-top:Resource to its doco:Abstract"@en .
+
+:Proceedings a owl:Class; a :Class;
+  dct:created "2020-03-23T18:51:17.347+01:00"^^xsd:dateTime .
+
+:isAbstractOf rdfs:domain doco:Abstract;
+  rdfs:range lexdo-top:Resource .
+
+:BibCollection a owl:Class; a :Class;
+  rdfs:subClassOf :BibliographicalResource, bibo:Collection .
+
+:BibItem a owl:Class; a :Class;
+  rdfs:subClassOf :BibliographicalResource, bibo:document .
+
+:BibliographicalResource a owl:Class; a :Class;
+  rdfs:subClassOf lexdo-top:Resource .
+
+:Bibliography a owl:Class; a :Class;
+  rdfs:subClassOf :BibCollection, lv:Bibliography .
+
+schema:City dct:created "2020-08-13T22:12:11.246+02:00"^^xsd:dateTime .
+
+:PaperDictionary a owl:Class; a :Class;
+  dct:modified "2020-04-30T15:46:46.889+02:00"^^xsd:dateTime;
+  rdfs:subClassOf :Dictionary .
+
+:CollectiveVolume a owl:Class; a :Class;
+  rdfs:subClassOf :BibCollection, lv:EditedVolume .
+
+bibo:AudioVisualDocument rdfs:subClassOf bibo:Document .
+
+bibo:Article a owl:Class; a :Class .
+
+bibo:Book rdfs:label "Book"@en;
+  rdfs:subClassOf bibo:Document .
+
+:ConceptSet a owl:Class; a :Class;
+  rdfs:subClassOf :LexicalResource, ontolex:ConceptSet .
+
+:Conference a owl:Class; a :Class;
+  rdfs:subClassOf lexdo-top:Event, bibo:Conference .
+
+:isCreatorOf owl:inverseOf :creator .
+
+:Dictionary a owl:Class; a :Class;
+  rdfs:subClassOf :LexicalResource .
+
+:DictionaryApp a owl:Class; a :Class;
+  rdfs:subClassOf :ElectronicDictionary .
+
+foaf:surname rdfs:comment "The surname of some person.";
+  rdfs:domain foaf:Person;
+  rdfs:isDefinedBy <http://xmlns.com/foaf/0.1/> .
+
+:LearnersDictionary a owl:Class; a :Class .
+
+bibo:Workshop rdfs:label "Workshop"@en;
+  rdfs:subClassOf event:Event .
+
+:fullTextUrl skosxl:prefLabel :xl_en_be6ae072 .
+
+:abstractText a rdf:Property;
+  dct:created "2020-04-16T21:14:25.465+02:00"^^xsd:dateTime;
+  dct:modified "2020-04-16T21:14:44.294+02:00"^^xsd:dateTime;
+  rdfs:domain doco:Abstract .
+
+:DomainOntology a owl:Class; a :Class;
+  rdfs:subClassOf :BibliographicalResource .
+
+:ElectronicDictionary a owl:Class; a :Class;
+  dct:modified "2020-04-30T15:46:22.796+02:00"^^xsd:dateTime;
+  rdfs:subClassOf :Dictionary .
+
+:EncyclopaedicDictionary a owl:Class; a :Class;
+  rdfs:subClassOf :GeneralDictionary .
+
+ontolex:LexicalConcept a owl:Class; a :Class;
+  rdfs:comment "'Лексическое понятие' представляет элемент абстрактного мышления, понятие или единицу мысли, которая может быть лексикализована определенным набором смыслов."@ru;
+  rdfs:label "concept lexical"@ro, "concepto lexicalizado"@es, "concetto lessicale"@it,
+    "лексическое понятие"@ru;
+  rdfs:subClassOf semiotics:Meaning, skos:Concept .
+
+bibo:Event dct:modified "2020-03-14T21:31:12.353+01:00"^^xsd:dateTime .
+
+:Software rdfs:subClassOf prov:SoftwareAgent .
+
+:GeneralDictionary a owl:Class; a :Class .
+
+zotexport:accessDate rdfs:domain zotexport:Item;
+  skos:definition "Content of Zotero-field \"access date\", i.e. when the item URL was accessed online from Zotero"@en .
+
+ontolex:concept rdfs:label "begrepp"@sv, "begrip"@nl, "concept"@ro .
+
+bibo:isbn10 a owl:DatatypeProperty;
+  rdfs:range rdfs:Literal;
+  rdfs:subPropertyOf bibo:isbn .
+
+:HistoricalDictionary a owl:Class; a :Class;
+  rdfs:subClassOf :GeneralDictionary .
+
+foaf:firstName rdfs:range rdfs:Literal .
+
+ontolex:ConceptSet a owl:Class; a :Class;
+  rdfs:comment "'Набор понятий' представляет собой совокупность лексических понятий."@ru,
+    "A concept set represents a collection of lexical concepts."@en;
+  rdfs:label "набор понятий"@ru;
+  rdfs:subClassOf skos:ConceptScheme .
+
+bibo:BookSection a owl:Class; a :Class;
+  rdfs:comment "A section of a book."@en;
+  rdfs:isDefinedBy "http://purl.org/ontology/bibo/"^^xsd:anyURI .
+
+bibo:editor rdfs:isDefinedBy "http://purl.org/ontology/bibo/"^^xsd:anyURI;
+  rdfs:label "editor";
+  rdfs:range foaf:Agent .
+
+bibo:Proceedings rdfs:comment "A compilation of documents published from an event, such as a conference."@en;
+  rdfs:isDefinedBy "http://purl.org/ontology/bibo/"^^xsd:anyURI;
+  rdfs:label "Proceedings"@en;
+  rdfs:subClassOf bibo:Book .
+
+:InformationTypeOrientedDictionary a owl:Class; a :Class;
+  rdfs:subClassOf :SpecializedDictionary .
+
+:LemmaTypeOrientedDictionary a owl:Class; a :Class;
+  rdfs:subClassOf :SpecializedDictionary .
+
+:LexicalResource a owl:Class; a :Class;
+  rdfs:subClassOf lexdo-top:Resource .
+
+:creator owl:inverseOf :isCreatorOf .
+
+lexbibitem:ConfEuralex2018_535 dct:modified "2020-04-21T09:55:06.917+02:00"^^xsd:dateTime .
+
+:MonolingualDictionary a owl:Class; a :Class .
+
+:SpecializedDictionary a owl:Class; a :Class;
+  dct:modified "2020-04-30T15:45:44.374+02:00"^^xsd:dateTime;
+  rdfs:subClassOf :Dictionary .
+
+:MultilingualDictionary a owl:Class; a :Class;
+  rdfs:subClassOf :Dictionary .
+
+lexbibitem:ConfEuralex2018_789 dct:modified "2020-04-21T09:55:28.573+02:00"^^xsd:dateTime .
+
+:OfflineDictionary a owl:Class; a :Class;
+  rdfs:subClassOf :ElectronicDictionary .
+
+:OnlineDictionary a owl:Class; a :Class;
+  rdfs:subClassOf :ElectronicDictionary .
+
+:Organization a owl:Class; a :Class;
+  rdfs:subClassOf lexdo-top:Agent, owl:Thing .
+
+:Proceedings dct:modified "2020-03-23T18:52:32.354+01:00"^^xsd:dateTime;
+  rdfs:subClassOf :BibCollection .
+
+:Person a owl:Class; a :Class;
+  rdfs:subClassOf lexdo-top:Agent, owl:Thing, prov:Person, foaf:Person, <https://www.wikidata.org/wiki/Q215627> .
+
+zotexport:extra rdfs:range :PlainLiteral;
+  skos:definition "Content of Zotero-field \"Extra\""@en .
+
+rdf:PlainLiteral a rdfs:Datatype .
+
+bibo:Conference rdfs:isDefinedBy "http://purl.org/ontology/bibo/"^^xsd:anyURI;
+  rdfs:label "Conference"@en;
+  rdfs:subClassOf event:Event .
+
+bibo:Article rdfs:comment "A written composition in prose, usually nonfiction, on a specific topic, forming an independent part of a book or other publication, as a newspaper or magazine."@en;
+  rdfs:isDefinedBy "http://purl.org/ontology/bibo/"^^xsd:anyURI;
+  rdfs:label "Article"@en .
+
+event:Event a owl:Class; a :Class;
+  dct:created "2020-03-14T21:28:44.245+01:00"^^xsd:dateTime .
+
+bibo:AcademicArticle rdfs:comment "A scholarly academic article, typically published in a journal."@en;
+  rdfs:isDefinedBy "http://purl.org/ontology/bibo/"^^xsd:anyURI;
+  rdfs:label "Academic Article"@en .
+
+:StandardDictionary a owl:Class; a :Class;
+  rdfs:subClassOf :GeneralDictionary .
+
+zotexport:zoteroTag a owl:AnnotationProperty .
+
+foaf:lastName a rdf:Property, owl:DatatypeProperty .
+
+:TextCorpus a owl:Class; a :Class;
+  rdfs:subClassOf :LexicalResource .
+
+bibo:Document a owl:Class; a :Class .
+
+bibo:Thesis a owl:Class; a :Class .
+
+:UserGroupOrientedDictionary a owl:Class; a :Class;
+  rdfs:subClassOf :SpecializedDictionary .
+
+:place dct:modified "2020-04-29T16:20:29.536+02:00"^^xsd:dateTime .
+
+:VarietyOrientedDictionary a owl:Class; a :Class;
+  rdfs:subClassOf :SpecializedDictionary .
+
+:isDictTypeOf dct:modified "2020-03-11T15:46:21.088+01:00"^^xsd:dateTime .
+
+:isPubLangOf a owl:ObjectProperty .
+
+:Workshop a owl:Class; a :Class;
+  rdfs:subClassOf lexdo-top:Event .
+
+zotexport:Item a owl:Class; a :Class .
+
+lexdo-top:Event a owl:NamedIndividual;
+  dct:created "2019-11-30T16:15:22.488+01:00"^^xsd:dateTime;
+  rdfs:subClassOf :LexDoEntity .
+
+lexdo-top:Language a owl:NamedIndividual;
+  dct:created "2019-12-07T22:44:57.127+01:00"^^xsd:dateTime;
+  rdfs:subClassOf :LexDoEntity .
+
+lexdo-top:Place a owl:NamedIndividual;
+  dct:created "2019-11-30T16:13:52.815+01:00"^^xsd:dateTime;
+  rdfs:subClassOf :LexDoEntity;
+  owl:sameAs <https://www.w3.org/2003/01/geo/wgs84_pos#SpatialThing>, <https://www.wikidata.org/wiki/Q7930989> .
+
+lexdo-top:Resource a owl:NamedIndividual;
+  dct:created "2019-12-08T13:43:52.069+01:00"^^xsd:dateTime;
+  rdfs:subClassOf :LexDoEntity .
+
+lexdo-top:Subject a owl:NamedIndividual;
+  dct:created "2019-11-30T16:18:24.021+01:00"^^xsd:dateTime, "2019-11-30T18:39:08.963+01:00"^^xsd:dateTime;
+  rdfs:subClassOf :LexDoEntity .
+
+dct:Agent a rdfs:Class;
+  rdfs:comment "A resource that acts or has the power to act."@en;
+  rdfs:isDefinedBy <http://purl.org/dc/terms/>;
+  rdfs:label "Agent"@en .
+
+dct:LinguisticSystem a rdfs:Class;
+  dct:description "Written, spoken, sign, and computer languages are linguistic systems."@en;
+  rdfs:comment "A system of signs, symbols, sounds, gestures, or rules used in communication."@en;
+  rdfs:isDefinedBy <http://purl.org/dc/terms/>;
+  rdfs:label "Linguistic System"@en .
+
+lv:Bibliography a owl:Class; a :Class;
+  rdfs:comment "A collection of documents relevant to a particular subject or author."@en,
+    "Eine Sammlung von Literaturnachweisen."@de;
+  rdfs:isDefinedBy <http://purl.org/lobid/lv>;
+  rdfs:label "Bibliografie"@de, "Bibliography"@en;
+  rdfs:subClassOf bibo:Collection .
+
+lv:EditedVolume a owl:Class; a :Class;
+  rdfs:comment "Ein Sammelwerk mit mehreren Beiträgen."@de, "a collection of scholarly or scientific articles written by different authors"@en;
+  rdfs:isDefinedBy <http://purl.org/lobid/lv>;
+  rdfs:label "Aufsatzsammlung"@de, "Edited Volume"@en;
+  rdfs:subClassOf bibo:Collection .
+
+bibo:Event a owl:Class; a :Class .
+
+lexinfo:Register a owl:Class; a :Class .
+
+owl:Property a owl:Class; a :Class .
+
+skosxl:Label a owl:Class; a :Class .
+
+prov:Person a owl:Class; a :Class;
+  rdfs:isDefinedBy <http://www.w3.org/ns/prov-o#>;
+  rdfs:label "Person";
+  rdfs:subClassOf prov:Agent .
+
+foaf:Person a owl:Class; a :Class .
+
+prov:Agent a owl:Class; a :Class;
+  rdfs:isDefinedBy <http://www.w3.org/ns/prov-o#>;
+  rdfs:label "Agent" .
+
+prov:SoftwareAgent a owl:Class; a :Class;
+  rdfs:isDefinedBy <http://www.w3.org/ns/prov-o#>;
+  rdfs:label "SoftwareAgent";
+  rdfs:subClassOf prov:Agent .
+
+lexperson:GiacominiLaura a owl:NamedIndividual .
+
+lexperson:KlaesChristiane a owl:NamedIndividual .
+
+lexperson:MullerSpitzerCarolin a :Person, owl:NamedIndividual;
+  dct:created "2020-02-16T23:11:30.015+01:00"^^xsd:dateTime;
+  dct:modified "2020-03-03T17:49:49.481+01:00"^^xsd:dateTime;
+  owl:sameAs <https://orcid.org/0000-0002-5690-7774>, <https://www.wikidata.org/wiki/Q21256355>;
+  skosxl:prefLabel :xl_en_3687c0f6;
+  foaf:firstName "Carolin"^^:PlainLiteral;
+  foaf:lastName "Müller-Spitzer"^^:PlainLiteral .
+
+lexperson:WiegandHerbertErnst a :Person, owl:NamedIndividual;
+  dct:created "2020-02-14T00:42:44.113+01:00"^^xsd:dateTime;
+  dct:modified "2020-02-18T10:56:57.023+01:00"^^xsd:dateTime;
+  owl:sameAs <http://www.isni.org/isni/0000000109170135>, <https://viaf.org/viaf/76330278/>,
+    <https://www.wikidata.org/wiki/Q12019508>;
+  skosxl:altLabel :xl_en_88337ab3, :xl_en_b764ceed, :xl_en_b9d8b61f;
+  skosxl:prefLabel :xl_en_16b1bb1b;
+  foaf:firstName "Herbert Ernst"^^:PlainLiteral;
+  foaf:surname "Wiegand"^^:PlainLiteral .
+
+lexdo-top:Agent a owl:NamedIndividual;
+  dct:created "2019-11-30T17:08:38.368+01:00"^^xsd:dateTime .
+
+:bibItem rdfs:range lexdo-top:Resource .
+
+<http://lexbib.org/lexdo/> a owl:NamedIndividual .
+
+:Proceedings rdfs:subClassOf bibo:Proceedings .
+
+:event a owl:ObjectProperty;
+  dct:created "2020-03-23T19:17:30.726+01:00"^^xsd:dateTime .
+
+:abstractLanguage a owl:ObjectProperty;
+  dct:created "2020-04-16T21:15:24.033+02:00"^^xsd:dateTime;
+  dct:modified "2020-04-16T21:15:50.175+02:00"^^xsd:dateTime .
+
+:BibCollection a owl:NamedIndividual;
+  dct:created "2019-12-08T14:16:17.768+01:00"^^xsd:dateTime .
+
+:BibItem a owl:NamedIndividual;
+  dct:created "2019-11-30T16:17:18.286+01:00"^^xsd:dateTime .
+
+:BibliographicalResource a owl:NamedIndividual;
+  dct:created "2020-01-30T20:52:43.214+01:00"^^xsd:dateTime .
+
+:Bibliography a owl:NamedIndividual;
+  dct:created "2020-01-30T21:40:51.249+01:00"^^xsd:dateTime .
+
+:collection dct:created "2020-07-31T15:12:28.399+02:00"^^xsd:dateTime;
+  dct:modified "2020-07-31T15:13:03.180+02:00"^^xsd:dateTime;
+  rdfs:range xsd:integer .
+
+schema:City rdfs:subClassOf owl:Thing .
+
+schema:Country a owl:Class; a :Class;
+  dct:created "2020-08-13T22:12:33.780+02:00"^^xsd:dateTime .
+
+:CollectiveVolume a owl:NamedIndividual;
+  dct:created "2020-02-04T19:15:56.287+01:00"^^xsd:dateTime .
+
+bibo:AcademicArticle rdfs:subClassOf bibo:Article .
+
+bibo:Document rdfs:comment "A document (noun) is a bounded physical representation of body of information designed with the capacity (and usually intent) to communicate. A document may manifest symbolic, diagrammatic or sensory-representational information."@en;
+  rdfs:isDefinedBy "http://purl.org/ontology/bibo/"^^xsd:anyURI;
+  rdfs:label "Document"@en;
+  owl:equivalentClass foaf:Document .
+
+bibo:Article rdfs:subClassOf bibo:Document .
+
+bibo:Collection a owl:Class; a :Class;
+  rdfs:comment "A collection of Documents or Collections"@en .
+
+:ConceptSet a owl:NamedIndividual;
+  dct:created "2020-01-30T20:56:42.628+01:00"^^xsd:dateTime .
+
+:Conference a owl:NamedIndividual;
+  dct:created "2020-01-30T21:58:16.886+01:00"^^xsd:dateTime .
+
+:isSubjectOf a owl:ObjectProperty;
+  dct:created "2020-04-30T12:14:01.018+02:00"^^xsd:dateTime .
+
+:isReviewOf dct:modified "2020-04-30T12:11:39.446+02:00"^^xsd:dateTime;
+  rdfs:subPropertyOf :subject .
+
+:subject dct:modified "2020-04-30T12:15:55.479+02:00"^^xsd:dateTime;
+  owl:inverseOf :isSubjectOf;
+  skos:definition "Property that points a LexBib BibItem to an individual membe of lexdo-top:Subject,"@en;
+  skos:editorialNote "owl:ObjectProperty subProperty of dct:subject, which also allows literals."@en .
+
+:Dictionary a owl:NamedIndividual;
+  dct:created "2020-01-30T20:57:43.522+01:00"^^xsd:dateTime;
+  dct:modified "2020-04-30T15:20:37.920+02:00"^^xsd:dateTime .
+
+:isCreatorOf dct:modified "2020-03-11T15:35:45.102+01:00"^^xsd:dateTime;
+  rdfs:domain lexdo-top:Agent;
+  rdfs:range lexdo-top:Resource .
+
+:DictionaryApp a owl:NamedIndividual;
+  dct:created "2020-02-06T00:00:29.433+01:00"^^xsd:dateTime;
+  dct:modified "2020-04-30T15:20:51.154+02:00"^^xsd:dateTime .
+
+ontolex:isConceptOf rdfs:label "este concept a(l)"@ro, "is concept of"@en, "is concept van"@nl,
+    "is konsep van"@af .
+
+ontolex:concept rdfs:label "concepto"@es, "concetto"@it, "konsep"@af, "понятие"@ru .
+
+bibo:EditedBook a owl:Class; a :Class;
+  rdfs:comment "An edited book."@en;
+  rdfs:isDefinedBy "http://purl.org/ontology/bibo/"^^xsd:anyURI;
+  rdfs:label "Edited Book"@en .
+
+:DictionaryPublishingFormat a owl:NamedIndividual;
+  dct:created "2020-02-05T23:58:28.724+01:00"^^xsd:dateTime;
+  dct:modified "2020-06-18T10:24:38.198+02:00"^^xsd:dateTime .
+
+:DictionaryType a owl:NamedIndividual;
+  dct:created "2019-12-09T14:50:14.976+01:00"^^xsd:dateTime;
+  dct:modified "2020-06-18T10:25:17.886+02:00"^^xsd:dateTime .
+
+ontolex:ConceptSet rdfs:isDefinedBy <http://www.w3.org/ns/lemon/ontolex>;
+  rdfs:label "Konzeptsatz"@de, "banca concetti"@it .
+
+zotexport:Item rdfs:subClassOf :LexDoEntity;
+  skos:definition "A set of publication metadata exported from Zotero"@en .
+
+:isDictTypeOf rdfs:domain :DictionaryType;
+  rdfs:range :Dictionary;
+  owl:inverseOf :dictionaryType .
+
+:DomainOntology a owl:NamedIndividual;
+  dct:modified "2020-04-30T15:21:09.357+02:00"^^xsd:dateTime .
+
+:ElectronicDictionary a owl:NamedIndividual;
+  dct:created "2020-02-04T18:25:04.515+01:00"^^xsd:dateTime .
+
+:EncyclopaedicDictionary a owl:NamedIndividual;
+  dct:created "2019-12-09T14:54:15.760+01:00"^^xsd:dateTime;
+  dct:modified "2020-04-30T15:21:21.967+02:00"^^xsd:dateTime .
+
+foaf:surname rdfs:label "Surname";
+  rdfs:range rdfs:Literal .
+
+ontolex:LexicalConcept rdfs:comment "A lexical concept represents a mental abstraction, concept or unit of thought that embodies the meaning of one or more lexical entries."@en;
+  rdfs:isDefinedBy <http://www.w3.org/ns/lemon/ontolex>;
+  rdfs:label "conceito léxico"@pt, "concept lexical"@fr, "leksikale konsep"@af, "lexical concept"@en,
+    "lexikaal concept"@nl, "lexikalisches Konzept"@de, "lexikaliskt begrepp"@sv .
+
+:zoteroItemUri dct:modified "2020-03-11T23:50:46.044+01:00"^^xsd:dateTime .
+
+bibo:Thesis rdfs:comment "A document created to summarize research findings associated with the completion of an academic degree."@en;
+  rdfs:isDefinedBy "http://purl.org/ontology/bibo/"^^xsd:anyURI;
+  rdfs:label "Thesis"@en;
+  rdfs:subClassOf bibo:Document .
+
+:fullTextUrl a owl:ObjectProperty;
+  dct:created "2020-03-11T16:23:59.092+01:00"^^xsd:dateTime;
+  dct:modified "2020-03-11T16:26:23.080+01:00"^^xsd:dateTime .
+
+bibo:isbn13 a owl:DatatypeProperty .
+
+zotexport:zoteroTag rdfs:domain zotexport:Item;
+  skos:definition "Literal value of Zotero User Tag"@en .
+
+:GeneralDictionary a owl:NamedIndividual;
+  dct:created "2019-12-09T14:53:07.755+01:00"^^xsd:dateTime;
+  dct:modified "2020-04-30T15:44:30.827+02:00"^^xsd:dateTime;
+  rdfs:subClassOf :Dictionary .
+
+foaf:lastName rdfs:comment "The last name of a person.";
+  rdfs:domain foaf:Person;
+  rdfs:isDefinedBy <http://xmlns.com/foaf/0.1/>;
+  rdfs:label "lastName";
+  rdfs:range rdfs:Literal .
+
+foaf:firstName a rdf:Property, owl:DatatypeProperty;
+  rdfs:comment "The first name of a person.";
+  rdfs:domain foaf:Person;
+  rdfs:isDefinedBy <http://xmlns.com/foaf/0.1/>;
+  rdfs:label "firstName" .
+
+:HistoricalDictionary a owl:NamedIndividual;
+  dct:created "2019-12-09T14:54:25.558+01:00"^^xsd:dateTime;
+  dct:modified "2020-04-30T15:21:33.701+02:00"^^xsd:dateTime .
+
+:Software a owl:Class; a :Class, owl:NamedIndividual;
+  dct:created "2020-02-13T11:49:33.655+01:00"^^xsd:dateTime .
+
+bibo:AudioVisualDocument a owl:Class; a :Class;
+  rdfs:comment "An audio-visual document; film, video, and so forth."@en;
+  rdfs:isDefinedBy "http://purl.org/ontology/bibo/"^^xsd:anyURI;
+  rdfs:label "audio-visual document"@en .
+
+:InformationTypeOrientedDictionary a owl:NamedIndividual;
+  dct:created "2019-12-09T14:54:53.044+01:00"^^xsd:dateTime;
+  dct:modified "2020-04-30T15:21:39.967+02:00"^^xsd:dateTime .
+
+:review dct:modified "2020-04-30T12:16:35.939+02:00"^^xsd:dateTime;
+  rdfs:subPropertyOf :isSubjectOf .
+
+:LemmaTypeOrientedDictionary a owl:NamedIndividual;
+  dct:created "2019-12-09T14:54:39.402+01:00"^^xsd:dateTime;
+  dct:modified "2020-04-30T15:21:46.982+02:00"^^xsd:dateTime .
+
+res:resource a owl:ObjectProperty .
+
+:isPubLangOf dct:created "2020-03-11T15:42:29.583+01:00"^^xsd:dateTime;
+  dct:modified "2020-03-11T15:44:08.993+01:00"^^xsd:dateTime .
+
+:LexicalResource a owl:NamedIndividual;
+  dct:created "2020-01-30T20:52:33.433+01:00"^^xsd:dateTime .
+
+:CorpusManager rdfs:subClassOf :Software .
+
+lexdo-top:Subject dct:modified "2020-06-21T17:14:36.595+02:00"^^xsd:dateTime .
+
+zotexport:repository a owl:DatatypeProperty;
+  dct:modified "2020-03-14T22:25:32.814+01:00"^^xsd:dateTime;
+  rdfs:domain zotexport:Item;
+  rdfs:range :PlainLiteral;
+  skos:definition "Content of Zotero-field \"Repository\", i.e. the initial source of publication metadata when creating a Zotero item"@en .
+
+:isObjectLangOf dct:modified "2020-03-11T15:41:15.703+01:00"^^xsd:dateTime .
+
+lexbibitem:ConfEuralex2018_0 dct:modified "2020-04-21T09:54:36.586+02:00"^^xsd:dateTime .
+
+:MonolingualDictionary a owl:NamedIndividual;
+  dct:created "2019-12-09T14:50:59.621+01:00"^^xsd:dateTime;
+  rdfs:subClassOf :Dictionary .
+
+:MultilingualDictionary a owl:NamedIndividual;
+  dct:created "2019-12-09T14:51:18.419+01:00"^^xsd:dateTime;
+  dct:modified "2020-04-30T15:45:19.374+02:00"^^xsd:dateTime .
+
+:OfflineDictionary a owl:NamedIndividual;
+  dct:created "2020-02-06T00:00:59.889+01:00"^^xsd:dateTime .
+
+:OnlineDictionary a owl:NamedIndividual;
+  dct:created "2020-02-06T00:00:18.761+01:00"^^xsd:dateTime;
+  dct:modified "2020-04-30T15:22:32.654+02:00"^^xsd:dateTime .
+
+:Organization a owl:NamedIndividual;
+  dct:created "2019-11-30T16:17:44.239+01:00"^^xsd:dateTime;
+  owl:sameAs <https://www.wikidata.org/wiki/Q46857> .
+
+:event dct:modified "2020-03-23T19:19:05.176+01:00"^^xsd:dateTime;
+  rdfs:domain :BibItem;
+  rdfs:range lexdo-top:Event .
+
+doco:Abstract a owl:Class; a :Class .
+
+:PaperDictionary a owl:NamedIndividual;
+  dct:created "2020-02-04T18:25:13.083+01:00"^^xsd:dateTime .
+
+:Person a owl:NamedIndividual;
+  dct:created "2019-11-30T16:17:30.599+01:00"^^xsd:dateTime .
+
+:abstractLanguage rdfs:domain doco:Abstract;
+  rdfs:range lexdo-top:Language .
+
+:isAbstractOf a owl:ObjectProperty;
+  dct:created "2020-04-16T21:03:05.049+02:00"^^xsd:dateTime;
+  dct:modified "2020-04-16T21:07:49.252+02:00"^^xsd:dateTime .
+
+zotexport:Item a owl:NamedIndividual;
+  dct:created "2020-02-17T23:06:16.651+01:00"^^xsd:dateTime;
+  dct:modified "2020-03-14T21:59:43.413+01:00"^^xsd:dateTime .
+
+zotexport:extra a owl:DatatypeProperty;
+  dct:modified "2020-03-14T22:25:06.300+01:00"^^xsd:dateTime;
+  rdfs:domain zotexport:Item .
+
+event:Event rdfs:subClassOf owl:Thing .
+
+lexdo-top:Event dct:modified "2020-02-17T23:46:16.096+01:00"^^xsd:dateTime, "2020-03-14T21:30:37.551+01:00"^^xsd:dateTime,
+    "2020-03-14T21:31:02.159+01:00"^^xsd:dateTime .
+
+ontolex:ConceptSet rdfs:label "banque de conepts"@fr, "concept set"@en, "conjunto de conceptos"@es .
+
+bibo:Workshop a owl:Class; a :Class;
+  rdfs:comment "A seminar, discussion group, or the like, that emphasizes zxchange of ideas and the demonstration and application of techniques, skills, etc."@en;
+  rdfs:isDefinedBy "http://purl.org/ontology/bibo/"^^xsd:anyURI .
+
+bibo:EditedBook rdfs:subClassOf bibo:CollectedDocument .
+
+bibo:Journal a owl:Class; a :Class;
+  rdfs:comment "A periodical of scholarly journal Articles."@en;
+  rdfs:isDefinedBy "http://purl.org/ontology/bibo/"^^xsd:anyURI;
+  rdfs:label "Journal"@en .
+
+umbel:relatesToTime a rdf:Property;
+  dct:created "2020-08-01T00:21:03.829+02:00"^^xsd:dateTime .
+
+:SpecializedDictionary a owl:NamedIndividual;
+  dct:created "2019-12-09T14:53:19.600+01:00"^^xsd:dateTime .
+
+bibo:Collection rdfs:isDefinedBy "http://purl.org/ontology/bibo/"^^xsd:anyURI;
+  rdfs:label "Collection"@en .
+
+bibo:Conference a owl:Class; a :Class;
+  rdfs:comment "A meeting for consultation or discussion."@en .
+
+:StandardDictionary a owl:NamedIndividual;
+  dct:created "2019-12-09T14:54:00.227+01:00"^^xsd:dateTime;
+  dct:modified "2020-04-30T15:23:14.592+02:00"^^xsd:dateTime .
+
+bibo:BookSection rdfs:label "Book Section"@en;
+  rdfs:subClassOf bibo:DocumentPart .
+
+bibo:AcademicArticle a owl:Class; a :Class .
+
+bibo:Book a owl:Class; a :Class;
+  rdfs:comment "A written or printed work of fiction or nonfiction, usually on sheets of paper fastened or bound together within covers."@en;
+  rdfs:isDefinedBy "http://purl.org/ontology/bibo/"^^xsd:anyURI .
+
+foaf:surname a rdf:Property, owl:DatatypeProperty .
+
+ontolex:isConceptOf rdfs:comment "This property formalizes the meaning of a Lexical Concept by linking it to a particular ontological meaning."@en;
+  rdfs:label "ist Konzept von"@de, "är begrepp för"@sv, "è concetto di "@it .
+
+ontolex:concept rdfs:comment "The 'concept' property relates an ontological entity to a lexical concept that represents the corresponding meaning."@en;
+  rdfs:label "conceito"@pt, "concept"@en, "concept"@fr;
+  rdfs:range ontolex:LexicalConcept;
+  owl:inverseOf ontolex:isConceptOf .
+
+:TextCorpus a owl:NamedIndividual;
+  dct:created "2020-01-30T20:57:51.647+01:00"^^xsd:dateTime;
+  dct:modified "2020-04-30T15:23:21.389+02:00"^^xsd:dateTime .
+
+bibo:isbn13 rdfs:range rdfs:Literal;
+  rdfs:subPropertyOf bibo:isbn .
+
+:Software dct:modified "2020-03-12T00:07:17.798+01:00"^^xsd:dateTime;
+  rdfs:subClassOf lexdo-top:Agent, lexdo-top:Resource .
+
+:editor a owl:ObjectProperty;
+  dct:created "2020-03-12T00:03:25.209+01:00"^^xsd:dateTime;
+  dct:modified "2020-03-12T00:04:28.507+01:00"^^xsd:dateTime;
+  rdfs:domain lexdo-top:Resource;
+  rdfs:range lexdo-top:Agent;
+  rdfs:subPropertyOf bibo:editor .
+
+:fullTextUrl rdfs:domain :BibliographicalResource;
+  rdfs:subPropertyOf bibo:uri;
+  skos:definition "Points a lexdo:Bibliographical Resource to a full text download URL or item landing page at a publisher website"@en .
+
+:UserGroupOrientedDictionary a owl:NamedIndividual;
+  dct:created "2019-12-09T14:55:07.998+01:00"^^xsd:dateTime;
+  dct:modified "2020-04-30T15:23:31.654+02:00"^^xsd:dateTime .
+
+:subject skosxl:prefLabel :xl_en_5bea5698 .
+
+:VarietyOrientedDictionary a owl:NamedIndividual;
+  dct:created "2019-12-09T14:55:26.687+01:00"^^xsd:dateTime;
+  dct:modified "2020-04-30T15:23:38.592+02:00"^^xsd:dateTime .
+
+:CorpusManager a owl:Class; a :Class;
+  dct:created "2020-04-29T16:28:22.914+02:00"^^xsd:dateTime .
+
+:LearnersDictionary dct:created "2020-04-29T15:29:20.601+02:00"^^xsd:dateTime;
+  rdfs:subClassOf :UserGroupOrientedDictionary .
+
+res:resource dct:modified "2020-03-11T15:58:51.657+01:00"^^xsd:dateTime .
+
+bibo:editor a owl:ObjectProperty;
+  dct:created "2020-03-11T23:59:06.442+01:00"^^xsd:dateTime;
+  rdfs:comment "A person having managerial and sometimes policy-making responsibility for the editorial part of a publishing firm or of a newspaper, magazine, or other publication."@en .
+
+:isPubLangOf rdfs:domain lexdo-top:Language;
+  rdfs:range :BibItem .
+
+:isDictTypeOf a rdf:Property;
+  dct:created "2020-03-11T15:45:07.743+01:00"^^xsd:dateTime .
+
+:Workshop a owl:NamedIndividual;
+  dct:created "2020-01-30T21:57:06.479+01:00"^^xsd:dateTime;
+  owl:sameAs bibo:Workshop .
+
+:creator a owl:NamedIndividual;
+  dct:created "2019-11-30T17:21:46.635+01:00"^^xsd:dateTime .
+
+:dictionaryType a owl:NamedIndividual;
+  dct:created "2020-02-04T18:47:19.920+01:00"^^xsd:dateTime;
+  dct:modified "2020-02-04T18:47:51.389+01:00"^^xsd:dateTime .
+
+:objectLanguage a owl:NamedIndividual;
+  dct:created "2019-12-08T13:37:58.240+01:00"^^xsd:dateTime, "2020-02-04T18:29:32.274+01:00"^^xsd:dateTime;
+  dct:modified "2020-03-11T15:40:40.342+01:00"^^xsd:dateTime;
+  rdfs:label "objectLanguage"@en;
+  owl:inverseOf :isObjectLangOf;
+  skos:definition "A natural language a lexical, lexicographical or metalexicographical resource is about or deals with."@en .
+
+:bibItem a owl:ObjectProperty;
+  dct:created "2020-03-11T23:45:17.633+01:00"^^xsd:dateTime;
+  dct:modified "2020-03-11T23:50:11.748+01:00"^^xsd:dateTime;
+  owl:inverseOf :zoteroItemUri .
+
+:isObjectLangOf a owl:ObjectProperty;
+  rdfs:domain lexdo-top:Language;
+  rdfs:range lexdo-top:Resource .
+
+<http://lexvo.org/id/iso639-3/eng> a lexdo-top:Language, owl:NamedIndividual;
+  dct:created "2020-02-16T23:17:23.659+01:00"^^xsd:dateTime;
+  dct:modified "2020-02-16T23:19:20.200+01:00"^^xsd:dateTime;
+  rdfs:label "English"@en .
+
+lexdo-top:Language dct:modified "2020-02-17T23:44:45.855+01:00"^^xsd:dateTime .
+
+lexdo-top:Place dct:modified "2020-02-17T23:44:53.915+01:00"^^xsd:dateTime .
+
+lexdo-top:Resource dct:modified "2020-02-17T23:45:01.596+01:00"^^xsd:dateTime .
+
+:zoteroItemUri a owl:ObjectProperty;
+  dct:created "2020-03-11T23:48:54.041+01:00"^^xsd:dateTime;
+  rdfs:domain lexdo-top:Resource;
+  rdfs:range zotexport:Item .
+
+:BibCollection dct:modified "2020-01-30T21:48:02.884+01:00"^^xsd:dateTime .
+
+:BibItem dct:modified "2020-01-30T20:55:39.071+01:00"^^xsd:dateTime .
+
+:ConceptSet dct:modified "2020-03-03T16:04:42.729+01:00"^^xsd:dateTime .
+
+:MonolingualDictionary dct:modified "2020-04-30T15:44:50.811+02:00"^^xsd:dateTime .
+
+:OfflineDictionary dct:modified "2020-04-30T15:22:22.576+02:00"^^xsd:dateTime .
+
+lexdo-top:Agent dct:modified "2020-04-30T15:18:26.232+02:00"^^xsd:dateTime .
+
+:LexicalResource dct:modified "2020-04-30T15:22:00.107+02:00"^^xsd:dateTime .
+
+:Organization dct:modified "2020-04-30T15:22:49.701+02:00"^^xsd:dateTime .
+
+doco:Abstract dct:created "2020-04-16T20:57:33.539+02:00"^^xsd:dateTime;
+  rdfs:subClassOf owl:Thing .
+
+schema:Country rdfs:subClassOf owl:Thing .
+
+schema:containedInPlace a rdf:Property;
+  dct:created "2020-08-13T22:13:07.982+02:00"^^xsd:dateTime .
+
+<http://geonames.org/ontology#wikipediaArticle> a rdf:Property;
+  dct:created "2020-08-13T22:13:52.776+02:00"^^xsd:dateTime .
+
+:Person dct:modified "2019-11-30T17:27:03.661+01:00"^^xsd:dateTime .
+
+ontolex:ConceptSet rdfs:label "verzameling van begrippen"@nl .
+
+bibo:Proceedings a owl:Class; a :Class .
+
+:container a owl:ObjectProperty;
+  dct:created "2020-03-10T10:28:49.438+01:00"^^xsd:dateTime;
+  dct:modified "2020-03-11T15:37:57.589+01:00"^^xsd:dateTime;
+  rdfs:domain :BibItem;
+  rdfs:range :BibliographicalResource;
+  rdfs:subPropertyOf dct:isPartOf;
+  owl:inverseOf :contains .
+
+:hasPlace dct:modified "2020-03-03T14:30:23.338+01:00"^^xsd:dateTime;
+  rdfs:label "place"@en;
+  skos:definition "A property that points to a location where an event has taken place."@en .
+
+:isReviewOf a owl:ObjectProperty;
+  dct:created "2020-03-11T15:49:53.060+01:00"^^xsd:dateTime;
+  rdfs:domain :BibItem;
+  rdfs:range lexdo-top:Resource;
+  owl:inverseOf :review .
+
+:place rdfs:domain lexdo-top:Agent .
+
+:review a owl:ObjectProperty;
+  dct:created "2020-03-11T15:50:53.983+01:00"^^xsd:dateTime;
+  rdfs:domain lexdo-top:Resource;
+  rdfs:range :BibItem;
+  owl:inverseOf :isReviewOf .
+
+:abstract a owl:ObjectProperty .
+
+:publicationLanguage dct:modified "2020-03-11T15:43:15.162+01:00"^^xsd:dateTime;
+  rdfs:label "publicationLanguage"@en;
+  owl:inverseOf :isPubLangOf;
+  skos:definition "A natural language a published item is written in; publication language"@en .
+
+:publisher dct:modified "2020-02-17T22:40:34.204+01:00"^^xsd:dateTime .
+
+<http://lexbib.org/terms/MsTerms#Microstructure_Ms_058_label> dct:modified "2020-02-16T23:34:06.388+01:00"^^xsd:dateTime;
+  owl:deprecated true .
+
+:contains a owl:ObjectProperty;
+  dct:created "2020-03-11T15:36:27.853+01:00"^^xsd:dateTime;
+  dct:modified "2020-03-11T15:37:24.042+01:00"^^xsd:dateTime;
+  rdfs:domain :BibliographicalResource;
+  rdfs:range :BibItem;
+  rdfs:subPropertyOf dct:hasPart .
+
+:isCreatorOf a owl:ObjectProperty;
+  dct:created "2020-03-11T15:34:31.884+01:00"^^xsd:dateTime .
+
+:DictionaryWritingSystem a owl:Class; a :Class;
+  dct:created "2020-04-30T15:48:38.249+02:00"^^xsd:dateTime;
+  rdfs:subClassOf :Software .
+
+lexdo-top:Project a owl:Class; a :Class;
+  dct:created "2020-04-30T15:49:07.233+02:00"^^xsd:dateTime;
+  rdfs:subClassOf :LexDoEntity .
+
+schema:City a owl:Class; a :Class .
+
+zotexport:txtFile a owl:DatatypeProperty;
+  dct:created "2020-05-16T11:00:33.968+02:00"^^xsd:dateTime .
+
+zotexport:pdfFile a owl:DatatypeProperty;
+  dct:created "2020-05-10T16:25:21.297+02:00"^^xsd:dateTime .
+
+zotexport:pdf2txt a owl:DatatypeProperty;
+  dct:created "2020-05-10T16:25:03.404+02:00"^^xsd:dateTime .
+
+:firstAuLoc a owl:ObjectProperty;
+  dct:created "2020-05-10T20:17:23.867+02:00"^^xsd:dateTime;
+  dct:modified "2020-05-10T20:18:06.750+02:00"^^xsd:dateTime;
+  rdfs:domain lexdo-top:Resource;
+  rdfs:range lexdo-top:Place .
+
+org:basedAt a rdf:Property, owl:ObjectProperty;
+  rdfs:comment "Indica la sede in cui una è stabilita una persona. Non esclude la possibilità che una persona sia allocata su più sedi."@it,
+    "Indicates the site at which a person is based. We do not restrict the possibility that a person is based at multiple sites."@en,
+    "Indique le site sur lequel une personne est basée. Nous ne limitons pas le nombre de sites sur lesquels une personne peut être basée."@fr,
+    "人が基礎としているサイトを示します。人が複数のサイトを基礎としている可能性を制限しません。"@ja;
+  rdfs:domain foaf:Person;
+  rdfs:isDefinedBy <http://www.w3.org/ns/org>;
+  rdfs:label "basata a"@it, "based At"@en, "basé à"@fr;
+  rdfs:range org:Site .
+
+:articleLoc a owl:ObjectProperty;
+  dct:created "2020-07-28T21:00:41.020+02:00"^^xsd:dateTime;
+  dct:modified "2020-07-28T21:01:38.978+02:00"^^xsd:dateTime;
+  rdfs:domain lexdo-top:Resource;
+  rdfs:range lexdo-top:Place .
+
+:collection a owl:DatatypeProperty .
+
+:nameVarFreq a owl:DatatypeProperty;
+  dct:created "2020-08-13T22:38:29.362+02:00"^^xsd:dateTime;
+  dct:modified "2020-08-13T22:39:17.945+02:00"^^xsd:dateTime;
+  rdfs:domain skosxl:Label;
+  rdfs:range xsd:int .
+
+:lwbItem a owl:ObjectProperty;
+  dct:created "2021-01-08T17:52:39.629+01:00"^^xsd:dateTime .
+
+:wdItem a owl:ObjectProperty;
+  dct:created "2021-01-08T17:52:48.047+01:00"^^xsd:dateTime .
+
+opus:Article_in_Proceedings a owl:Class; a :Class;
+  dct:created "2021-01-08T17:54:40.201+01:00"^^xsd:dateTime;
+  dct:modified "2021-01-08T17:54:59.367+01:00"^^xsd:dateTime;
+  rdfs:subClassOf bibo:AcademicArticle;
+  skos:prefLabel "Article in Proceedings"@en .
+
+:wdQid a rdf:Property;
+  dct:created "2021-01-18T11:34:43.076+01:00"^^xsd:dateTime;
+  dct:modified "2021-01-18T11:35:22.406+01:00"^^xsd:dateTime;
+  rdfs:domain :LexDoEntity .
