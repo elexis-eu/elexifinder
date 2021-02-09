@@ -45,7 +45,7 @@ images = {
 9 : "https://elex.is/wp-content/uploads/2020/12/collection_9_lexicography_asialex.jpg",
 10 : "https://elex.is/wp-content/uploads/2020/12/collection_10_globalex.jpg",
 11 : "https://elex.is/wp-content/uploads/2020/12/collection_11_videolectures.jpg",
-12 : "https://elex.is/wp-content/uploads/2020/12/collection_12_dsna.jpg",
+# 12 : "https://elex.is/wp-content/uploads/2020/12/collection_12_dsna.jpg",
 13 : "https://elex.is/wp-content/uploads/2020/12/collection_13_teubert.jpg",
 14 : "https://elex.is/wp-content/uploads/2020/12/collection_14_fuertesolivera.jpg",
 15 : "https://elex.is/wp-content/uploads/2020/12/collection_15_mullerspitzer.jpg",
