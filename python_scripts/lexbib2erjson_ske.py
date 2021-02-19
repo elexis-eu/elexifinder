@@ -22,6 +22,7 @@ ske_url = 'https://api.sketchengine.eu/ca/api'
 
 with open('D:/LexBib/SkE/ske_dict.json', 'r', encoding='utf-8') as skelogfile:
 	ske_log = json.load(skelogfile)
+	print("ske_log:\n"+str(ske_log)+"\n")
 
 
 isodict = {}
@@ -101,7 +102,7 @@ for item in bindings:
 			itemcount += 1
 			target = {}
 			target['uri'] = itemuri
-			print('\n['+str(itemcount)+' of '+str(len(bindings)-itemcount)+'] '+itemuri)
+			print('\n['+str(itemcount)+', '+str(len(bindings)-itemcount)+' left]\n'+itemuri)
 			useduri.append(itemuri)
 
 			target['pubTm'] = pubTime
@@ -244,68 +245,85 @@ for item in bindings:
 				problemlog.append("*** PROBLEM: Nothing to use for target_body for "+itemuri)
 				fulltextsource = "Error_no_text"
 
-			# send to SkE if not sent there before (look that up in ske_log.json)
-			corpname = zotItemUri.replace('http://zotero.org/groups/1892855/items/','LexBib Zotero Item ')
-			if itemuri in ske_log:
-				print('Item ['+str(itemcount)+'] is already present at SkE (Corpus name '+corpname+'), skipped.')
-				time.sleep(1)
+			if target['lang'] !="":
+				iso6393 = target['lang']
 			else:
-				if target['lang'] !="":
-					iso6393 = target['lang']
+				iso6393 = "eng"
+				print('*** ERROR: Item has no pubLang. Set to English.')
+				problemlog.append("*** PROBLEM: No PubLang for "+itemuri)
+			iso6391 = isodict[iso6393]
+			print('Publication language is '+iso6391+' ('+iso6393+').')
+			corpname = "LexBib/Elexifinder v"+str(version)+" "+iso6391
+
+			print('Corpus for this item will be '+corpname+'.')
+
+			# send to SkE if not sent there before (look that up in ske_log.json)
+			ske_docname = zotItemUri.replace('http://zotero.org/groups/1892855/items/',fulltextsource+"_")
+
+			if corpname in ske_log and ske_docname in ske_log[corpname]['docs']:
+				print('Item ['+str(itemcount)+'] is already present at SkE (Corpus name '+corpname+'), skipped.')
+				#time.sleep(1)
+			else:
+				if corpname not in ske_log:
+
+					while True:
+						try:
+							r = requests.post(ske_url + '/corpora', auth=ske_auth, json={
+								'language_id': iso6391,
+								'name': corpname
+							})
+							if "201" in str(r):
+								print('Corpus '+corpname+' created.')
+								break
+							elif "400" in str(r): # this happens when language is unknown to SkE
+								print('Language unknown to SkE. Item skipped.')
+								problemlog.append('*** UNKNOWN LANGUAGE '+iso6391+'('+iso6393+') in item '+itemuri+' '+item['title']['value'])
+								break
+							else:
+								print(str(r))
+							time.sleep(1)
+						except Exception as ex:
+							print(str(ex))
+							problemlog.append('*** PROBLEM: Error at corpus creation for '+itemuri+', language: '+iso6393+' ('+iso6391+') '+str(ex))
+							pass
+
+					corpus_id = r.json()['data']['id']
+					corpus_url = ske_url + '/corpora/' + str(corpus_id)
+					ske_log[corpname] = {'created':str(datetime.now())[0:19],'corpname':corpname,'corpus_url':corpus_url,'corpus_id':corpus_id,'language':iso6393,'docs':[]}
+					print('Corpus ID: '+str(corpus_id)+'\nCorpus URL: '+corpus_url)
 				else:
-					iso6393 = "eng"
-					print('*** ERROR: Item has no pubLang. Set to English.')
-					problemlog.append("*** PROBLEM: No PubLang for "+itemuri)
-				iso6391 = isodict[iso6393]
-				print('Publication language is '+iso6391+' ('+iso6393+').')
-				print('Corpus name will be '+corpname+'.')
+					corpus_id = ske_log[corpname]["corpus_id"]
+					corpus_url = ske_log[corpname]["corpus_url"]
 
-				while True:
-					try:
-						r = requests.post(ske_url + '/corpora', auth=ske_auth, json={
-							'language_id': iso6391,
-							'name': corpname
-						})
-						if "201" in str(r):
-							print('Corpus '+corpname+' created.')
-							break
-						else:
-							print(str(r))
-						time.sleep(1)
-					except Exception as ex:
-						print(str(ex))
-						problemlog.append('*** PROBLEM: Error at corpus creation for '+itemuri+', language: '+iso6393+' ('+iso6391+') '+str(ex))
-						pass
-
-				corpus_id = r.json()['data']['id']
-				corpus_url = ske_url + '/corpora/' + str(corpus_id)
-				print('Corpus ID: '+str(corpus_id)+'\nCorpus URL: '+corpus_url)
-
-				ske_file = {'file': (fulltextsource, bodytxt, 'text/plain')}
+				ske_file = {'file': (ske_docname, bodytxt, 'text/plain')}
 				while True:
 					r = requests.post(corpus_url + '/documents', auth=ske_auth, files=ske_file, params={'feeling': 'lucky'})
 					if "201" in str(r):
-						print('File(s) uploaded to corpus.')
+						print('File uploaded to corpus with ID ['+str(corpus_id)+']: '+ske_docname)
 						break
-					time.sleep(1)
+					else:
+						print(str(r))
+						time.sleep(2)
 
-				while True:
-					print('Waiting for new corpus to be processed...')
+				# while True:
+				# 	print('Waiting for OK from SkE that new text is included...')
+				#
+				# 	r = requests.post(corpus_url + '/can_be_compiled', json={}, auth=ske_auth)
+				# 	if r.json()['result']['can_be_compiled']:
+				# 		break
+				# 	time.sleep(1)
 
-					r = requests.post(corpus_url + '/can_be_compiled', json={}, auth=ske_auth)
-					if r.json()['result']['can_be_compiled']:
-						break
-					time.sleep(1)
+				# while True:
+				# 	r = requests.post(corpus_url + '/compile', json={'structures': 'all'}, auth=ske_auth)
+				# 	if "200" in str(r):
+				# 		print('Corpus compilation successfully triggered.')
+				# 		break
+				# 	time.sleep(1)
 
-				while True:
-					r = requests.post(corpus_url + '/compile', json={'structures': 'all'}, auth=ske_auth)
-					if "200" in str(r):
-						print('Corpus compilation successfully triggered.')
-						break
-					time.sleep(1)
-
-				ske_log[itemuri] = {'created':str(datetime.now())[0:19],'corpname':corpname,'zotero_item':zotItemUri,'corpus_url':corpus_url,'corpus_id':corpus_id,'language':iso6393}
-				print ('Success for item ['+str(itemcount)+'].')
+				ske_log[corpname]["docs"].append(ske_docname)
+				with open('D:/LexBib/SkE/ske_dict.json', 'w', encoding="utf-8") as skelogfile:
+					json.dump(ske_log, skelogfile, indent=2)
+				print ('Total success for item ['+str(itemcount)+'].')
 
 
 		#write to JSON
@@ -319,14 +337,15 @@ for item in bindings:
 		#time.sleep(5)
 	except Exception as ex:
 		problemlog.append('*** PROBLEM: Error at corpus creation for '+itemuri+': '+str(ex))
+		print(str(ex))
+		time.sleep(5)
 		pass
+	#time.sleep(0.5)
 # end of item loop
 
 with open(infile.replace('.json', '_problemlog.json'), 'w', encoding="utf-8") as problemfile:
 	problemfile.write(str(problemlog))
-with open('D:/LexBib/SkE/ske_dict.json', 'w', encoding="utf-8") as skelogfile:
-	json.dump(ske_log, skelogfile, indent=2)
-print("\n=============================================\nUpdated SkE corpus creation log in ske_dict.json.")
+
 elexidict = {}
 with open(infile.replace('.json', '_EF.jsonl'), 'w', encoding="utf-8") as jsonl_file: # path to result JSONL file
 	for item in elexifinder:
