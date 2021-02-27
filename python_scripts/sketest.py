@@ -11,7 +11,7 @@ URL = 'https://api.sketchengine.eu/ca/api'
 while True:
     r = requests.post(URL + '/corpora', auth=auth, json={
         'language_id': 'en',
-        'name': 'http://lexbib.org/zotero/ABCDEFG'
+        'name': 'LexBib/Elexifinder v8 English'
     })
     if "201" in str(r):
         print('Corpus created.')
