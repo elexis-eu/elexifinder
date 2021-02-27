@@ -126,7 +126,7 @@ for item in bindings:
 			if 'modTM' in item:
 				target['crawlTm'] = item['modTM']['value'][0:22]
 			if 'zotItemUri' in item:
-				zotItemUri = item['zotItemUri']['value']	#+'?usenewlibrary=0'
+				zotItemUri = item['zotItemUri']['value'].replace("http://zotero.org/groups/1892855/items/","http://lexbib.org/zotero/")	#+'?usenewlibrary=0'
 				target['details']['zotItemUri']=zotItemUri
 				target['url'] = zotItemUri
 			else:
