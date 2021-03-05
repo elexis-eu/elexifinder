@@ -73,7 +73,6 @@ except:
 	except:
 		print ('Error: This has to be a number.')
 		sys.exit()
-	pass
 
 pubTime = str(datetime.fromtimestamp(os.path.getmtime(infile)))[0:22].replace(' ','T')
 print(pubTime)
@@ -264,7 +263,7 @@ for item in bindings:
 			print('Corpus for this item will be '+corpname+'.')
 
 			# send to SkE if not sent there before (look that up in ske_log.json)
-			ske_docname = zotItemUri.replace('http://zotero.org/groups/1892855/items/',"")+"_coll"+str(collection)+"_"+articleYear+"_"+fulltextsource
+			ske_docname = zotItemUri.replace('http://lexbib.org/zotero/',"")+"_coll"+str(collection)+"_"+articleYear+"_"+fulltextsource
 
 			if corpname in ske_log and ske_docname in ske_log[corpname]['docs']:
 				print('Item ['+str(itemcount)+'] is already present at SkE (Corpus name '+corpname+'), skipped.')
