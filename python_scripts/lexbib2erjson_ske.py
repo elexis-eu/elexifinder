@@ -120,6 +120,7 @@ for item in bindings:
 				problemlog.append('*** ERROR: mandatory key title not in '+itemuri+'!\n')
 			if 'articleTM' in item:
 				target['articleTm'] = item['articleTM']['value'][0:22]
+				articleYear = item['articleTM']['value'][0:4]
 			else:
 				print ('*** ERROR: mandatory key articleTM not in '+itemuri+'!')
 				problemlog.append('*** ERROR: mandatory key articleTM not in '+itemuri+'!\n')
@@ -138,6 +139,11 @@ for item in bindings:
 				target['details']['collection']=collection
 				if collection in images:
 					target['images']=images[collection]
+				else:
+					target['images']="https://elex.is/wp-content/uploads/2021/03/elexis_logo_default.png"
+			else:
+				collection = 0
+				target['images']="https://elex.is/wp-content/uploads/2021/03/elexis_logo_default.png"
 		#	if 'container' in item:
 		#		target['sourceUri'] = item['container']['value'] # replaced by containerFullTextUrl or containerUri
 			if 'containerFullTextUrl' in item:
@@ -253,12 +259,12 @@ for item in bindings:
 				problemlog.append("*** PROBLEM: No PubLang for "+itemuri)
 			iso6391 = isodict[iso6393]
 			print('Publication language is '+iso6391+' ('+iso6393+').')
-			corpname = "LexBib/Elexifinder v"+str(version)+" "+iso6391
+			corpname = "LexBib/Elexifinder v"+str(version)+" "+iso6393
 
 			print('Corpus for this item will be '+corpname+'.')
 
 			# send to SkE if not sent there before (look that up in ske_log.json)
-			ske_docname = zotItemUri.replace('http://zotero.org/groups/1892855/items/',fulltextsource+"_")
+			ske_docname = zotItemUri.replace('http://zotero.org/groups/1892855/items/',"")+"_coll"+str(collection)+"_"+articleYear+"_"+fulltextsource
 
 			if corpname in ske_log and ske_docname in ske_log[corpname]['docs']:
 				print('Item ['+str(itemcount)+'] is already present at SkE (Corpus name '+corpname+'), skipped.')
