@@ -33,14 +33,15 @@ SELECT DISTINCT ?uri (xsd:integer(?coll) as ?collection) ?title (xsd:dateTime(?d
 
 ?containerFullTextUrl
 ?containerUrl
-?containerShortTitle #?articleLocNode
-?articleLoc ?articleLocLabel ?articleCountryLabel ?authorLoc # ?authorLocLabel ?authorCountryLabel
+?containerShortTitle
+#?articleLocNode ?articleLoc ?articleLocLabel ?articleCountryLabel
+?authorLoc # ?authorLocLabel ?authorCountryLabel
 WHERE {
   ?uri rdf:type :BibItem
      ; dct:title ?title
     ; dct:date ?date
     ; :collection ?coll .
-    FILTER (str(?coll) = "1") # filter for single collections
+#    FILTER (str(?coll) = "1") # filter for single collections, remove if not needed
      ?uri :zoteroItemUri ?zotItemUri .
 
 
@@ -72,16 +73,17 @@ WHERE {
       #  ?authorCountry skos:prefLabel ?authorCountryLabel .
     }
 
-  OPTIONAL {
-        ?uri :articleLoc ?articleLocNode .
-        ?articleLocNode gn:wikipediaArticle ?articlelocwppage .
-        ?articleLocNode skos:prefLabel ?articleLocLabel .
-        ?articleLocNode schema:containedInPlace ?articleCountry .
-        ?articleCountry skos:prefLabel ?articleCountryLabel .
-   }
+#  OPTIONAL {
+#        ?uri :articleLoc ?articleLocNode .
+#        ?articleLocNode gn:wikipediaArticle ?articlelocwppage .
+#        ?articleLocNode skos:prefLabel ?articleLocLabel .
+#        ?articleLocNode schema:containedInPlace ?articleCountry .
+#        ?articleCountry skos:prefLabel ?articleCountryLabel .
+#   }
   {
-    # Use a nested query because that's the one that will give you
+    # Nested query because that's the one that will give us
     # the authors sorted properly for each publication
+		# and list them in one single column of the main query result
     SELECT DISTINCT ?uri ?seqnum ?authordata WHERE {
       ?uri bibo:authorList ?authorseq .
       ?authorseq ?seqprop ?authornode .
