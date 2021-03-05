@@ -43,7 +43,7 @@ for corpus in ske_log:
 			kjson = json.loads(k.content.decode('utf8'))
 			print(str(kjson))
 			print('Now request for terms for subc '+subcname)
-			t = requests.get("https://api.sketchengine.eu/bonito/run.cgi/extract_terms?attr=lemma&corpname"+subcname+"&format=json&ref_corpname="+refcorpname, auth=ske_auth)
+			t = requests.get("https://api.sketchengine.eu/bonito/run.cgi/extract_terms?attr=lemma&corpname"+subcname+"&ref_corpname="+refcorpname, auth=ske_auth)
 			tjson = json.loads(t.content.decode('utf8'))
 			print(str(tjson))
 			# for item in kjson['keywords']:
