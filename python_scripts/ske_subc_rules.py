@@ -38,11 +38,12 @@ for corpus in ske_log:
 		for doc in range(len(ske_log[corpus]['docs'])):
 			docname = ske_log[corpus]['docs'][doc]
 			rules += '='+docname+'\nelexifinder_doc\nfilename="'+docname+'"\n\n'
+		rulesjson = '{"'+rules+'"}'
 
-		# write rules to ske
+		# write rules to SkE
 		while True:
 			try:
-				r = requests.put(corpus_url + '/subcdef', auth=ske_auth, headers={'content-type': 'text/plain'}, data=rules)
+				r = requests.put(corpus_url + '/subcdef', auth=ske_auth, headers={'content-type': 'text/plain'}, json=rules)
 				if "200" in str(r):
 					print('Corpus '+corpname+': rules written to SkE.')
 					break
