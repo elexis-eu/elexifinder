@@ -46,9 +46,11 @@ def getbabeltrans(bnid):
 				translations[languages[language]] = respdict['senses'][0]['properties']['lemma']['lemma']
 		else:
 			print('Something went wrong with BabelNet API request...')
-			time.sleep(2)
+			return False
 	return translations
 
+with open('D:/LexBib/terms/babeltranslations.json', 'r', encoding="utf-8") as targetfile:
+	target = json.load(infile)
 
 with open('D:/LexBib/terms/term_bnid_conf.csv') as csvfile: # source file
 	termdict = csv.DictReader(csvfile)
@@ -56,18 +58,22 @@ with open('D:/LexBib/terms/term_bnid_conf.csv') as csvfile: # source file
 	print(str(termlist))
 	totalrows = len(termlist)
 	#print(str(termdict))
-	target = {}
 	count = 0
 	for row in termlist:
 		count +=1
 		print ('Now processing term '+str(count)+' of '+str(totalrows)+': '+row["term_uri"])
-		if count > 20:
-			break
-		#print(str(row))
-		target[row["term_uri"]] = {"bn_id":row["bn_id"],"conf":row["conf"]}
-		if row["bn_id"].startswith("bn:"):
-			translations = getbabeltrans(row["bn_id"])
-			target[row["term_uri"]]["translations"] = translations
+		if row["term_uri"] in target:
+			print("This term has already got translations from BabelNet, skipped.")
+		else:
+			#print(str(row))
+			target[row["term_uri"]] = {"bn_id":row["bnid"],"conf":row["conf"]}
+			if row["bnid"].startswith("bn:"):
+				translations = getbabeltrans(row["bnid"])
+				if translations = False
+					print("BabelNet does not respond as it should, probably because we have run out of babelcoins")
+					break
+				else:
+					target[row["term_uri"]]["translations"] = translations
 
 with open('D:/LexBib/terms/babeltranslations.json', 'w', encoding="utf-8") as targetfile:
 	json.dump(target, targetfile, indent=2)
