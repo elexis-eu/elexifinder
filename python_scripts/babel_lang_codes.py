@@ -1,4 +1,5 @@
-# This maps iso-639-3 to BabelNet language codes (Elexis languages)
+# ELEXIS languages
+# This maps iso-639-3 (keys) to BabelNet language codes (values)
 
 langcodemapping = {
 "sqi":"SQ", # Albanian
@@ -17,7 +18,7 @@ langcodemapping = {
 "glg":"GL", # Galician
 "deu":"DE", # German
 "ell":"EL", # Greek
-"heb":"he", # Hebrew
+"heb":"HE", # Hebrew
 "hun":"HU", # Hungarian
 "isl":"IS", # Icelandic
 "gle":"GA", # Irish
