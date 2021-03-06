@@ -17,6 +17,7 @@ langcodemapping = {
 "glg":"GL", # Galician
 "deu":"DE", # German
 "ell":"EL", # Greek
+"heb":"he", # Hebrew
 "hun":"HU", # Hungarian
 "isl":"IS", # Icelandic
 "gle":"GA", # Irish
