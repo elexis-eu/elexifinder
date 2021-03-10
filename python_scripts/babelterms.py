@@ -24,10 +24,12 @@ def getbabeltrans(bnid):
 			return False
 	return translations
 
+# get translations from previous runs of the script
 with open('D:/LexBib/terms/babeltranslations.json', 'r', encoding="utf-8") as targetfile:
 	target = json.load(targetfile)
 
-with open('D:/LexBib/terms/term_bnid_status_labels.csv') as csvfile: # source file
+# get csv (part of google spreadsheet used for manual BabelID annotation)
+with open('D:/LexBib/terms/term_bnid_status_labels.csv') as csvfile:
 	termdict = csv.DictReader(csvfile)
 	termlist = list(termdict)
 	print(str(termlist))

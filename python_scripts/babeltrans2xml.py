@@ -3,6 +3,7 @@ from xml.dom import minidom
 import json
 import babel_lang_codes
 
+# get SPARQL query result (SKOS4Lexonomy) > LexBib subjects SKOS vocab
 with open('D:/LexBib/terms/SKOS4Lexonomy.json', encoding="utf-8") as f:
 	skos =  json.load(f, encoding="utf-8")
 	subjdict = {}
@@ -15,7 +16,7 @@ with open('D:/LexBib/terms/SKOS4Lexonomy.json', encoding="utf-8") as f:
 		"definitions" : item['definitions']['value'].split("@"),
 		}
 #print(str(subjdict))
-
+# get output generated with babelterms.py
 with open('D:/LexBib/terms/babeltranslations.json', encoding="utf-8") as f:
 	babeldict =  json.load(f, encoding="utf-8")
 
