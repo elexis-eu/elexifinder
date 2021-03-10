@@ -68,36 +68,37 @@ for subj in babeldict:
 
 		translations = xml.SubElement(entry, 'translations')
 		for lang in babel_lang_codes.langcodemapping.keys():
-			langelementname = "term_"+lang
-			langelement = xml.SubElement(entry, langelementname)
+			if lang != "eng": # English translations are excluded here
+				langelementname = "term_"+lang
+				langelement = xml.SubElement(entry, langelementname)
 
-			if 'translations' in babeldict[subj] and babeldict[subj]['translations'][lang] != False:
-				#get HIGH_QUALITY lemmata from Babel synset
-				babelSenses = json.loads(babeldict[subj]['translations'][lang]['response'])['senses']
-				equivs = []
-				for babelSense in babelSenses:
-					if babelSense['properties']['lemma']['type'] == "HIGH_QUALITY":
-						equivs.append(babelSense['properties']['lemma']['lemma'])
-				equivs_uniq = []
-				for equiv in equivs:
-					if equiv not in equivs_uniq:
-						equivs_uniq.append(equiv)
-				equivs_iter = iter(equivs_uniq)
-				langelement.set('status',"AUTOMATIC")
-				label = xml.SubElement(langelement, 'label')
-				try:
-					label.text = next(equivs_iter)
-				except: # if no HIGH_QUALITY lemma is there, take the first listed
-					label.text = babeldict[subj]['translations'][lang]['lemma']
-				while True:
+				if 'translations' in babeldict[subj] and lang in babeldict[subj]['translations'] and babeldict[subj]['translations'][lang] != False:
+					#get HIGH_QUALITY lemmata from Babel synset
+					babelSenses = json.loads(babeldict[subj]['translations'][lang]['response'])['senses']
+					equivs = []
+					for babelSense in babelSenses:
+						if babelSense['properties']['lemma']['type'] == "HIGH_QUALITY":
+							equivs.append(babelSense['properties']['lemma']['lemma'].replace("_"," "))
+					equivs_uniq = []
+					for equiv in equivs:
+						if equiv not in equivs_uniq:
+							equivs_uniq.append(equiv)
+					equivs_iter = iter(equivs_uniq)
+					langelement.set('status',"AUTOMATIC")
+					label = xml.SubElement(langelement, 'label')
 					try:
-						altEquiv = next(equivs_iter)
-					except:
-						break
-					altlabel = xml.SubElement(langelement, 'altlabel')
-					altlabel.text = altEquiv
-			else:
-				langelement.set('status',"MISSING")
+						label.text = next(equivs_iter)
+					except: # if no HIGH_QUALITY lemma is there, take the first listed
+						label.text = babeldict[subj]['translations'][lang]['lemma'].replace("_"," ")
+					while True:
+						try:
+							altEquiv = next(equivs_iter)
+						except:
+							break
+						altlabel = xml.SubElement(langelement, 'altlabel')
+						altlabel.text = altEquiv
+				else:
+					langelement.set('status',"MISSING")
 
 tree_obj = xml.ElementTree(root)
 with open('D:/LexBib/terms/lexonomy_upload.xml', "w", encoding='utf-8') as file:

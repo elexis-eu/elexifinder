@@ -28,6 +28,7 @@ langcodemapping = {
 "ltz":"LB", # Luxembourgish
 "mkd":"MK", # Macedonian
 "mlt":"MT", # Maltese
+"cnr": None, # Montenegrin
 "nob":"NO", # Norwegian Bokmal
 "nno":"NN", # Nynorsk
 "pol":"PL", # Polish
