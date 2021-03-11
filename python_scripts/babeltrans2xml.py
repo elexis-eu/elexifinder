@@ -79,6 +79,10 @@ for subj in babeldict:
 					for babelSense in babelSenses:
 						if babelSense['properties']['lemma']['type'] == "HIGH_QUALITY":
 							equivs.append(babelSense['properties']['lemma']['lemma'].replace("_"," "))
+					if len(equivs) == 0: # if there is none, try to get AUTOMATIC_TRANSLATION lemmata instead
+						for babelSense in babelSenses:
+							if babelSense['properties']['lemma']['type'] == "AUTOMATIC_TRANSLATION":
+								equivs.append(babelSense['properties']['lemma']['lemma'].replace("_"," "))
 					equivs_uniq = []
 					for equiv in equivs:
 						if equiv not in equivs_uniq:
