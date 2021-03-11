@@ -9,19 +9,20 @@ def getbabeltrans(bnid):
 	translations = {}
 	for language in babel_lang_codes.langcodemapping.keys():
 		babellang = babel_lang_codes.langcodemapping[language]
-		response = requests.get("https://babelnet.io/v6/getSynset?id="+bnid+"&targetLang="+babellang+"&key=2ced12ea-bd40-4ee4-9ad4-4d054c9d48e2", headers={'Accept-Encoding': 'gzip'})
-		respdict_str = response.content.decode("UTF-8")
-		#print(respdict_str)
-		respdict = json.loads(respdict_str)
-		#print(str(respdict))
-		if 'senses' in respdict:
-			if len(respdict['senses']) > 0:
-				translations[language] = {"response":respdict_str,"lemma":respdict['senses'][0]['properties']['lemma']['lemma']}
+		if babellang:
+			response = requests.get("https://babelnet.io/v6/getSynset?id="+bnid+"&targetLang="+babellang+"&key=2ced12ea-bd40-4ee4-9ad4-4d054c9d48e2", headers={'Accept-Encoding': 'gzip'})
+			respdict_str = response.content.decode("UTF-8")
+			#print(respdict_str)
+			respdict = json.loads(respdict_str)
+			#print(str(respdict))
+			if 'senses' in respdict:
+				if len(respdict['senses']) > 0:
+					translations[language] = {"response":respdict_str,"lemma":respdict['senses'][0]['properties']['lemma']['lemma']}
+				else:
+					translations[language] = False
 			else:
-				translations[language] = False
-		else:
-			print('Something went wrong with BabelNet API request...')
-			return False
+				print('Something went wrong with BabelNet API request...')
+				return False
 	return translations
 
 # get translations from previous runs of the script
