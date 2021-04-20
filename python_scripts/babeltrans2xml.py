@@ -70,7 +70,7 @@ for subj in babeldict:
 		for lang in babel_lang_codes.langcodemapping.keys():
 			if lang != "eng": # English translations are excluded here
 				langelementname = "term_"+lang
-				langelement = xml.SubElement(entry, langelementname)
+				langelement = xml.SubElement(translations, langelementname)
 
 				if 'translations' in babeldict[subj] and lang in babeldict[subj]['translations'] and babeldict[subj]['translations'][lang] != False:
 					#get HIGH_QUALITY lemmata from Babel synset
