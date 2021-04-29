@@ -20,10 +20,9 @@ with open('D:/LexBib/SkE/ske_languages.json', 'r', encoding='utf-8') as skelangf
 count = 0
 for corpus in ske_log:
 	if 'docs' in ske_log[corpus]:
+		corpname = corpus
+		#corpname = corpus.replace(" ","_").replace("/","_").lower()
 
-		corpname = corpus.replace(" ","_").replace("/","_")
-		if "cat" not in corpname:
-			continue
 		corpus_url = ske_log[corpus]['corpus_url']
 		corplang = ske_log[corpus]['language']
 		babellang = babel_lang_codes.langcodemapping[corplang].lower()
@@ -36,14 +35,26 @@ for corpus in ske_log:
 		# get keywords and terms
 		for doc in range(len(ske_log[corpus]['docs'])):
 			docname = ske_log[corpus]['docs'][doc]
-			corpus_id_str = ske_log[corpus]
-			subcname = corpname.replace(" ", "_").replace("/","_").lower()
-			print('Now request for keywords for subc '+subcname)
-			k = requests.get("https://api.sketchengine.eu/bonito/run.cgi/extract_keywords?attr=lemma&corpname"+subcname+"&format=json&max_keywords=100&minfreq=3&ref_corpname="+refcorpname, auth=ske_auth)
-			kjson = json.loads(k.content.decode('utf8'))
-			print(str(kjson))
-			print('Now request for terms for subc '+subcname)
-			t = requests.get("https://api.sketchengine.eu/bonito/run.cgi/extract_terms?attr=lemma&corpname"+subcname+"&ref_corpname="+refcorpname, auth=ske_auth)
+			print('Going to perform request for keywords from document (subcorpus) '+docname+', refcorpus '+refcorpname)
+			k = requests.get("https://api.sketchengine.eu/bonito/run.cgi/extract_keywords", auth=ske_auth, params={
+			"attr":"lemma",
+			"corpname":corpname, # example 'LexBib/Elexifinder v8 cat'
+			"usesubcorp":docname, # example 'QS3CQ3UR_coll17_2017_manual_txt'
+			"format":"json",
+			"max_keywords":100,
+			"minfreq":3,
+			"ref_corpname":refcorpname # example 'preloaded/catenten14_2'
+			})
+			print(str(k.content))
+			#kjson = json.loads(k.content.decode('utf8'))
+			#print(str(kjson))
+			print('Now request for terms for subc '+docname)
+			t = requests.get("https://api.sketchengine.eu/bonito/run.cgi/extract_keywords", auth=ske_auth, params={
+			"attr":"TERM",
+			"corpname":corpus,
+			"ref_corpname":refcorpname
+			})
+			print(str(t.content))
 			tjson = json.loads(t.content.decode('utf8'))
 			print(str(tjson))
 			# for item in kjson['keywords']:
@@ -55,4 +66,4 @@ for corpus in ske_log:
 			count += 1
 
 
-print ('Finished getting keywords & terms from '+str(count)+' subcorpora.')
+print ('Finished getting keywords & terms from '+str(count)+' documents.')
