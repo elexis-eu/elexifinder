@@ -15,7 +15,7 @@ import config
 max1props = config.max1props
 
 # Logging config
-logging.basicConfig(filename='logs/lwb.log', filemode='a', format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%m-%y %H:%M:%S')
+logging.basicConfig(filename=config.datafolder+'logs/lwb.log', filemode='a', format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%m-%y %H:%M:%S')
 
 # WDI setup
 
@@ -27,7 +27,7 @@ wdilogin = wdi_login.WDLogin(config.lwbuser, lwbbotpass, mediawiki_api_url=media
 lwbEngine = wdi_core.WDItemEngine.wikibase_item_engine_factory(mediawiki_api_url, sparql_endpoint_url)
 
 # LexBib wikibase OAuth for mwclient
-with open(config.datafolder+'wikibase/'+config.lwbuser+'_pwd.txt'', 'r', encoding='utf-8') as pwdfile:
+with open(config.datafolder+'wikibase/'+config.lwbuser+'_pwd.txt', 'r', encoding='utf-8') as pwdfile:
 	lwbbotpass = pwdfile.read()
 site = mwclient.Site('lexbib.elex.is')
 def get_token():
@@ -49,34 +49,35 @@ def get_token():
 token = get_token()
 
 # Loads known lwbqid-lexbibUri mappings and lwbqid-Wikidataqid mappins from jsonl-files
-def load_knownqid():
-	knownqid = {}
+def load_legacyID():
+	legacyID = {}
 	try:
-		with open(config.datafolder+'wikibase/mappings/lexbibmappings.csv', encoding="utf-8") as csvfile:
-			rows = csv.reader(csvfile, delimiter=",")
+		with open(config.datafolder+'mappings/legacymappings.jsonl', encoding="utf-8") as jsonl_file:
+			mappings = jsonl_file.read().split('\n')
 			count = 0
-			header = next(rows)
-			for row in rows:
+			for mapping in mappings:
 				count += 1
-				if len(row) > 0:
+				if mapping != "":
 					try:
-						knownqid[row[0]] = row[1]
+						mappingjson = json.loads(mapping)
+						#print(mapping)
+						legacyID[mappingjson['legacyID']] = mappingjson['lwbid']
 					except Exception as ex:
-						print('Found unparsable mapping json in lexbibmappings.csv line ['+str(count)+']: ')
+						print('Found unparsable mapping json in legacymappings.jsonl line ['+str(count)+']: '+mapping)
 						print(str(ex))
 						pass
 	except Exception as ex:
-		print ('Error: knownqid file does not exist. Will start a new one.')
+		print ('Error: legacyID file does not exist. Will start a new one.')
 		print (str(ex))
-	#print(str(knownqid))
+	#print(str(legacyID))
 	print('Known LWB Qid loaded.')
-	return knownqid
-knownqid = load_knownqid()
+	return legacyID
+legacyID = load_legacyID()
 
 def load_wdmappings():
-	wdqids = {}
+	wdids = {}
 	try:
-		with open(config.datafolder+'wikibase/mappings/wdmappings.jsonl', encoding="utf-8") as f:
+		with open(config.datafolder+'mappings/lwb_wd.jsonl', encoding="utf-8") as f:
 			mappings = f.read().split('\n')
 			count = 0
 			for mapping in mappings:
@@ -85,9 +86,9 @@ def load_wdmappings():
 					try:
 						mappingjson = json.loads(mapping)
 						#print(mapping)
-						wdqids[mappingjson['lwbqid']] = mappingjson['wdqid']
+						wdids[mappingjson['lwbid']] = mappingjson['wdid']
 					except Exception as ex:
-						print('Found unparsable mapping json in wdmappings.jsonl line ['+str(count)+']: '+mapping)
+						print('Found unparsable mapping json in lwb_wd.jsonl line ['+str(count)+']: '+mapping)
 						print(str(ex))
 						pass
 	except Exception as ex:
@@ -95,55 +96,82 @@ def load_wdmappings():
 		print (str(ex))
 
 	print('Known LWB-WD item mappings loaded.')
-	return wdqids
-wdqids = load_wdmappings()
+	return wdids
+wdids = load_wdmappings()
 
-# Adds a new lexbibUri-qid mapping to knownqid.jsonl mapping file
-def save_knownqid(lexbibItem,qid):
-	with open(config.datafolder+'wikibase/mappings/lexbibmappings.csv', 'a', encoding="utf-8") as csvfile:
-		csvfile.write(lexbibItem+','+qid+'\n')
+def load_wppageplaces():
+	wpplaces = {}
+	try:
+		with open(config.datafolder+'mappings/wppage_lwbplace.jsonl', encoding="utf-8") as f:
+			mappings = f.read().split('\n')
+			count = 0
+			for mapping in mappings:
+				count += 1
+				if mapping != "":
+					try:
+						mappingjson = json.loads(mapping)
+						#print(mapping)
+						wpplaces[mappingjson['wppage']] = mappingjson['lwbid']
+					except Exception as ex:
+						print('Found unparsable mapping json in wppage_lwbplace.jsonl line ['+str(count)+']: '+mapping)
+						print(str(ex))
+						pass
+	except Exception as ex:
+		print ('Error in load_wppageplaces function.')
+		print (str(ex))
+
+	print('Known wikipedia places loaded.')
+	return wpplaces
+
+# Adds a new lexbibUri-qid mapping to legacyID.jsonl mapping file
+def save_legacyID(legacyID,lwbid):
+	with open(config.datafolder+'mappings/legacymappings.jsonl', 'a', encoding="utf-8") as jsonl_file:
+		jsonline = {"legacyID":legacyID,"lwbid":lwbid}
+		jsonl_file.write(json.dumps(jsonline)+'\n')
 
 # Adds a new lwbqid-wdqid mapping to wdmappings.jsonl mapping file
 def save_wdmapping(mapping):
-	with open(config.datafolder+'wikibase/mappings/wdmappings.jsonl', 'a', encoding="utf-8") as jsonl_file:
+	with open(config.datafolder+'wikibase/mappings/lwb_wd.jsonl', 'a', encoding="utf-8") as jsonl_file:
 		jsonl_file.write(json.dumps(mapping)+'\n')
 
 # Get equivalent lwb item qidnum from wikidata Qid
-def wdqid2lwbqid(wdqid):
-	print('Will try to find lwbqid for '+wdqid+'...')
-	global wdqids
+def wdid2lwbid(wdid):
+	print('Will try to find lwbqid for '+wdid+'...')
+	global wdids
 	# Try to find lwbqid from known mappings
-	for key, value in wdqids.items():
-		if wdqid == value:
-			print('Found lwbqid in wdqids known mappings.')
+	for key, value in wdids.items():
+		if wdid == value:
+			print('Found lwbqid in wdids known mappings.')
 			return key
-	# Try to find lwbqid via SPARQL
-	url = "https://lexbib.elex.is/query/sparql?format=json&query=PREFIX%20lwb%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fentity%2F%3E%0APREFIX%20ldp%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fdirect%2F%3E%0A%0Aselect%20%3FlwbItem%20where%0A%7B%20%3FlwbItem%20ldp%3AP4%20wd%3A"+wdqid+"%20.%20%7D"
-
-	while True:
-		try:
-			r = requests.get(url)
-			lwbqid = r.json()['results']['bindings'][0]['lwbItem']['value'].replace("http://lexbib.elex.is/entity/","")
-		except Exception as ex:
-			print('Error: SPARQL request failed.')
-			time.sleep(2)
-			return False
-		break
-	print('Found lwbqid '+lwbqid+' not in mappingfile, but via SPARQL, will add it to mappingfile.')
-	save_wdmapping({'lwbqid':lwbqid, 'wdqid':wdqid})
-	return lwbqid
+	# # Try to find lwbqid via SPARQL
+	# url = "https://lexbib.elex.is/query/sparql?format=json&query=PREFIX%20lwb%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fentity%2F%3E%0APREFIX%20ldp%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fdirect%2F%3E%0A%0Aselect%20%3FlwbItem%20where%0A%7B%20%3FlwbItem%20ldp%3AP4%20wd%3A"+wdid+"%20.%20%7D"
+	#
+	# while True:
+	# 	try:
+	# 		r = requests.get(url)
+	# 		lwbqid = r.json()['results']['bindings'][0]['lwbItem']['value'].replace("http://lexbib.elex.is/entity/","")
+	# 	except Exception as ex:
+	# 		print('Error: SPARQL request failed.')
+	# 		time.sleep(2)
+	# 		return False
+	# 	break
+	# print('Found lwbqid '+lwbqid+' not in mappingfile, but via SPARQL, will add it to mappingfile.')
+	# save_wdmapping({'lwbid':lwbqid, 'wdid':wdqid})
+	# return lwbqid
+	print('*** Found no lwbid for '+wdid)
+	return None
 
 # creates a new item
-def newitemwithlabel(lwbclasses, labellang, label): # lwbclass: object of 'instance of' (P5), lexbibItem = lexbibUri (P3) of the (known or new) q-item
+def newitemwithlabel(lwbclasses, labellang, label): # lwbclass: object of 'instance of' (P5)
 	global token
-	global knownqid
+	global legacyID
 	if isinstance(lwbclasses, str) == True: # if a single value is passed as string, not as list
 		lwbclasses = [lwbclasses]
-	data = {"labels":{"en":{"language":labellang,"value":label}}}
+	data = {"labels":{labellang:{"language":labellang,"value":label}}}
 	done = False
 	while (not done):
 		try:
-			itemcreation = site.post('wbeditentity', token=token, new="item", bot=1, data=json.dumps(data))
+			itemcreation = site.post('wbeditentity', token=token, new="item", bot=True, data=json.dumps(data))
 		except Exception as ex:
 			if 'Invalid CSRF token.' in str(ex):
 				print('Wait a sec. Must get a new CSRF token...')
@@ -180,83 +208,58 @@ def newitemwithlabel(lwbclasses, labellang, label): # lwbclass: object of 'insta
 
 # function for wikibase item creation (after check if it is known)
 #token = get_token()
-def getqid(lwbclasses, lexbibItem, onlyknown=False): # lwbclass: object of 'instance of' (P5), lexbibItem = lexbibUri (P3) of the (known or new) q-item
+def getidfromlegid(lwbclasses, legid, onlyknown=False): # lwbclass: object of 'instance of' (P5), legid = value of (P1), pointing to data.lexbib.org legacy item id
 	global token
-	global knownqid
+	global legacyID
 	if isinstance(lwbclasses, str) == True: # if a single value is passed as string, not as list
 		lwbclasses = [lwbclasses]
-	if lexbibItem in knownqid:
-		print(lexbibItem+' is a known wikibase item: Qid '+knownqid[lexbibItem]+', no need to create it.')
-		return knownqid[lexbibItem]
+	if legid in legacyID:
+		print(legid+' is a known item: Qid '+legacyID[legid]+', no need to create it.')
+		return legacyID[legid]
 	if onlyknown:
 		return False
-	lexbibItemSafe = urllib.parse.quote(lexbibItem, safe='~', encoding="utf-8")
-	url = "https://lexbib.elex.is/query/sparql?format=json&query=SELECT%20%3FlwbItem%20%0AWHERE%20%0A%7B%20%20%3FlwbItem%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fdirect%2FP3%3E%20%3C"+lexbibItemSafe+"%3E%20.%0A%7D"
+
+	print('Found no Qid for LexBib URI '+legid+', will create it.')
+	claim = {"claims":[{"mainsnak":{"snaktype":"value","property":"P1","datavalue":{"value":legid,"type":"string"}},"type":"statement","rank":"normal"}]}
 	done = False
 	while (not done):
 		try:
-			r = requests.get(url)
-			results = r.json()['results']['bindings']
+			itemcreation = site.post('wbeditentity', token=token, new="item", bot=1, data=json.dumps(claim))
 		except Exception as ex:
-			print('Error: SPARQL request failed.')
-			time.sleep(2)
+			if 'Invalid CSRF token.' in str(ex):
+				print('Wait a sec. Must get a new CSRF token...')
+				token = get_token()
+			else:
+				print(str(ex))
+				time.sleep(4)
 			continue
+		#print(str(itemcreation))
+		if itemcreation['success'] == 1:
+			done = True
+			qid = itemcreation['entity']['id']
+			print('Item creation for '+legid+': success. QID = '+qid)
+		else:
+			print('Item creation failed, will try again...')
+			time.sleep(2)
 
-		done = True
-	if len(results) == 0:
-		print('Found no Qid for LexBib URI '+lexbibItem+', will create it.')
-		claim = {"claims":[{"mainsnak":{"snaktype":"value","property":"P3","datavalue":{"value":lexbibItem,"type":"string"}},"type":"statement","rank":"normal"}]}
+
+
+	for lwbclass in lwbclasses:
 		done = False
 		while (not done):
+			claim = {"entity-type":"item","numeric-id":int(lwbclass.replace("Q",""))}
+			classclaim = site.post('wbcreateclaim', token=token, entity=qid, property="P5", snaktype="value", value=json.dumps(claim))
 			try:
-				itemcreation = site.post('wbeditentity', token=token, new="item", bot=1, data=json.dumps(claim))
-			except Exception as ex:
-				if 'Invalid CSRF token.' in str(ex):
-					print('Wait a sec. Must get a new CSRF token...')
-					token = get_token()
-				else:
-					print(str(ex))
-					time.sleep(4)
-				continue
-			#print(str(itemcreation))
-			if itemcreation['success'] == 1:
-				done = True
-				qid = itemcreation['entity']['id']
-				print('Item creation for '+lexbibItem+': success. QID = '+qid)
-			else:
-				print('Item creation failed, will try again...')
+				if classclaim['success'] == 1:
+					done = True
+					print('Instance-of-claim creation for '+legid+': success. Class is '+lwbclass)
+					#time.sleep(1)
+			except:
+				print('Claim creation failed, will try again...')
 				time.sleep(2)
-
-
-
-		for lwbclass in lwbclasses:
-			done = False
-			while (not done):
-				claim = {"entity-type":"item","numeric-id":int(lwbclass.replace("Q",""))}
-				classclaim = site.post('wbcreateclaim', token=token, entity=qid, property="P5", snaktype="value", value=json.dumps(claim))
-				try:
-					if classclaim['success'] == 1:
-						done = True
-						print('Instance-of-claim creation for '+lexbibItem+': success. Class is '+lwbclass)
-						#time.sleep(1)
-				except:
-					print('Claim creation failed, will try again...')
-					time.sleep(2)
-		knownqid[lexbibItem] = qid
-		save_knownqid(lexbibItem,qid)
-		return qid
-	elif len(results) > 1:
-		print('*** Error: Found more than one Wikibase item for one LexBib URI that should be unique... will take the first result.')
-		qid = results[0]['lwbItem']['value'].replace("http://lexbib.elex.is/entity/","")
-		knownqid[lexbibItem] = qid
-		save_knownqid(lexbibItem,qid)
-		return qid
-	elif len(results) == 1:
-		qid = results[0]['lwbItem']['value'].replace("http://lexbib.elex.is/entity/","")
-		print('Found '+lexbibItem+' not in knownqid file but on data.lexbib: Qid '+qid+'; no need to create it, will add to knownqid file.')
-		knownqid[lexbibItem] = qid
-		save_knownqid(lexbibItem,qid)
-		return qid
+	legacyID[legid] = qid
+	save_legacyID(legid,qid)
+	return qid
 
 #get label
 def getlabel(qid, lang):
