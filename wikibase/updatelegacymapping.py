@@ -8,9 +8,8 @@ select (strafter(str(?lwburl),"http://lexbib.elex.is/entity/") as ?lwbid) ?legac
 where {
 
   ?lwburl ldp:P1 ?legacyID.
-  BIND(strafter(str(?lwburl),"http://lexbib.elex.is/entity/") as ?order)
 
-  } ORDER BY ?order"""
+  } """
 
 print(query)
 

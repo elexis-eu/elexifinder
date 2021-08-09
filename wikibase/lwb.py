@@ -7,6 +7,7 @@ import csv
 import requests
 import sys
 import unidecode
+import sparql
 import logging
 from wikidataintegrator import wdi_core, wdi_login
 import config
@@ -17,7 +18,7 @@ max1props = config.max1props
 # Logging config
 logging.basicConfig(filename=config.datafolder+'logs/lwb.log', filemode='a', format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%m-%y %H:%M:%S')
 
-# WDI setup
+#WDI setup
 
 with open(config.datafolder+'wikibase/'+config.lwbuser+'_pwd.txt', 'r', encoding='utf-8') as pwdfile:
 	lwbbotpass = pwdfile.read()
@@ -25,6 +26,7 @@ mediawiki_api_url = "https://lexbib.elex.is/w/api.php" # <- change to applicable
 sparql_endpoint_url = "https://lexbib.elex.is/query/sparql"  # <- change to applicable wikibase
 wdilogin = wdi_login.WDLogin(config.lwbuser, lwbbotpass, mediawiki_api_url=mediawiki_api_url)
 lwbEngine = wdi_core.WDItemEngine.wikibase_item_engine_factory(mediawiki_api_url, sparql_endpoint_url)
+print('Logged into WDI.')
 
 # LexBib wikibase OAuth for mwclient
 with open(config.datafolder+'wikibase/'+config.lwbuser+'_pwd.txt', 'r', encoding='utf-8') as pwdfile:
@@ -32,7 +34,7 @@ with open(config.datafolder+'wikibase/'+config.lwbuser+'_pwd.txt', 'r', encoding
 site = mwclient.Site('lexbib.elex.is')
 def get_token():
 	global site
-	global lwbpass
+	global lwbbotpass
 	# lwb login via mwclient
 	while True:
 		try:
@@ -40,7 +42,7 @@ def get_token():
 			break
 		except Exception as ex:
 			print('lwb login via mwclient raised error: '+str(ex))
-			time.sleep(5)
+			time.sleep(60)
 	# get token
 	csrfquery = site.api('query', meta='tokens')
 	token = csrfquery['query']['tokens']['csrftoken']
@@ -124,15 +126,20 @@ def load_wppageplaces():
 	return wpplaces
 
 # Adds a new lexbibUri-qid mapping to legacyID.jsonl mapping file
-def save_legacyID(legacyID,lwbid):
+def save_legacyID(legid,lwbid):
 	with open(config.datafolder+'mappings/legacymappings.jsonl', 'a', encoding="utf-8") as jsonl_file:
-		jsonline = {"legacyID":legacyID,"lwbid":lwbid}
+		jsonline = {"legacyID":legid,"lwbid":lwbid}
 		jsonl_file.write(json.dumps(jsonline)+'\n')
+		global legacyID
+		legacyID[legid] = lwbid
 
 # Adds a new lwbqid-wdqid mapping to wdmappings.jsonl mapping file
-def save_wdmapping(mapping):
-	with open(config.datafolder+'wikibase/mappings/lwb_wd.jsonl', 'a', encoding="utf-8") as jsonl_file:
+def save_wdmapping(mapping): # example {"lwbid": "P32", "wdid": "P220"}
+	with open(config.datafolder+'mappings/lwb_wd.jsonl', 'a', encoding="utf-8") as jsonl_file:
 		jsonl_file.write(json.dumps(mapping)+'\n')
+	global wdids
+	wdids[mapping['lwbid']] = mapping['wdid']
+
 
 # Get equivalent lwb item qidnum from wikidata Qid
 def wdid2lwbid(wdid):
@@ -141,7 +148,7 @@ def wdid2lwbid(wdid):
 	# Try to find lwbqid from known mappings
 	for key, value in wdids.items():
 		if wdid == value:
-			print('Found lwbqid in wdids known mappings.')
+			print('Found lwbqid in wdids known mappings: '+key)
 			return key
 	# # Try to find lwbqid via SPARQL
 	# url = "https://lexbib.elex.is/query/sparql?format=json&query=PREFIX%20lwb%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fentity%2F%3E%0APREFIX%20ldp%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fdirect%2F%3E%0A%0Aselect%20%3FlwbItem%20where%0A%7B%20%3FlwbItem%20ldp%3AP4%20wd%3A"+wdid+"%20.%20%7D"
@@ -184,7 +191,7 @@ def newitemwithlabel(lwbclasses, labellang, label): # lwbclass: object of 'insta
 		if itemcreation['success'] == 1:
 			done = True
 			qid = itemcreation['entity']['id']
-			print('Item creation for '+qid+': success.')
+			print('Item creation for '+qid+': success. Label: '+label)
 		else:
 			print('Item creation failed, will try again...')
 			time.sleep(2)
@@ -193,14 +200,18 @@ def newitemwithlabel(lwbclasses, labellang, label): # lwbclass: object of 'insta
 			done = False
 			while (not done):
 				claim = {"entity-type":"item","numeric-id":int(lwbclass.replace("Q",""))}
-				classclaim = site.post('wbcreateclaim', token=token, entity=qid, property="P5", snaktype="value", value=json.dumps(claim))
+
 				try:
+					classclaim = site.post('wbcreateclaim', token=token, entity=qid, property="P5", snaktype="value", value=json.dumps(claim))
 					if classclaim['success'] == 1:
 						done = True
 						print('Instance-of-claim creation for '+qid+': success. Class is '+lwbclass)
 						#time.sleep(1)
 				except:
 					print('Claim creation failed, will try again...')
+					if "Invalid CSRF token" in str(ex):
+						print('Wait a sec. Must get a new CSRF token...')
+						token = get_token()
 					time.sleep(2)
 		return qid
 
@@ -214,10 +225,36 @@ def getidfromlegid(lwbclasses, legid, onlyknown=False): # lwbclass: object of 'i
 	if isinstance(lwbclasses, str) == True: # if a single value is passed as string, not as list
 		lwbclasses = [lwbclasses]
 	if legid in legacyID:
-		print(legid+' is a known item: Qid '+legacyID[legid]+', no need to create it.')
+		print(legid+'(v2) is a known v3 item: Qid '+legacyID[legid]+'.')
 		return legacyID[legid]
+
+	# check if this is a redirect
+	query = """PREFIX lwb: <http://data.lexbib.org/entity/>
+	PREFIX owl: <http://www.w3.org/2002/07/owl#>
+	select (REPLACE(STR(?redirect),".*Q","Q") AS ?redirect_qid) where {
+	lwb:"""+legid+""" owl:sameAs ?redirect.}"""
+	print("Waiting for LexBib v2 SPARQL (check redirect for "+legid+")...")
+	sparqlresults = sparql.query('https://data.lexbib.org/query/sparql',query)
+	print('Got data for this from LexBib v2 SPARQL.')
+
+	#go through sparqlresults
+
+	try:
+		for row in sparqlresults:
+			sparqlitem = sparql.unpack_row(row, convert=None, convert_type={})
+			print(str(sparqlitem))
+			v2redir = str(sparqlitem[0])
+			print("Found v2 redirect: "+v2redir)
+			if sparqlitem[0].startswith("Q") and v2redir in legacyID:
+				redir = legacyID[v2redir]
+				print("Found redirect: "+redir)
+				return redir
+	except Exception as ex:
+		print(str(ex))
+		pass
+
 	if onlyknown:
-		return False
+		return None
 
 	print('Found no Qid for LexBib URI '+legid+', will create it.')
 	claim = {"claims":[{"mainsnak":{"snaktype":"value","property":"P1","datavalue":{"value":legid,"type":"string"}},"type":"statement","rank":"normal"}]}
@@ -237,7 +274,7 @@ def getidfromlegid(lwbclasses, legid, onlyknown=False): # lwbclass: object of 'i
 		if itemcreation['success'] == 1:
 			done = True
 			qid = itemcreation['entity']['id']
-			print('Item creation for '+legid+': success. QID = '+qid)
+			print('Item creation for v2 '+legid+': success. QID = '+qid)
 		else:
 			print('Item creation failed, will try again...')
 			time.sleep(2)
@@ -464,6 +501,7 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 	global max1props
 	global token
 	returnvalue = None
+	language = None
 	if dtype == "time":
 		data=[(wdi_core.WDTime(o['time'], prop_nr=p, precision=o['precision']))]
 		item = lwbEngine(wd_item_id=s, data=data)
@@ -472,8 +510,10 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 		claims = getclaims(s,p)
 		#print(str(claims))
 		return claims[1][p][0]['id']
-	elif dtype == "string" or dtype == "url" or dtype == "monolingualtext":
+	elif dtype == "string" or dtype == "url":
 		value = '"'+o.replace('"', '\\"')+'"'
+	elif dtype == "monolingualtext":
+		value = json.dumps({"text":o['text'],"language":o['language']})
 	elif dtype == "item" or dtype =="wikibase-entityid":
 		value = json.dumps({"entity-type":"item","numeric-id":int(o.replace("Q",""))})
 	elif dtype == "novalue":
@@ -493,20 +533,20 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 				foundo = claim['mainsnak']['datavalue']['value']
 			elif claim['mainsnak']['snaktype'] == "novalue":
 				foundo = "novalue"
-			if isinstance(foundo, dict): # foundo is a dict in case of datatype wikibaseItem
+			if isinstance(foundo, dict) and 'id' in foundo: # foundo is a dict with "id" as key in case of datatype wikibaseItem
 				#print(str(foundo))
 				foundo = foundo['id']
 			if foundo in foundobjs:
 				print('Will remove a duplicate claim: '+guid)
 				results = site.post('wbremoveclaims', claim=guid, token=token)
 				if results['success'] == 1:
-					print('Wb remove duplicate claim for '+s+' ('+p+') '+o+': success.')
+					print('Wb remove duplicate claim for '+s+' ('+p+') '+str(o)+': success.')
 			else:
 				foundobjs.append(foundo)
 				#print("A statement #"+str(statementcount)+" for prop "+p+" is already there: "+foundo)
 
 				if foundo == o or foundo == value:
-					print('Found redundant triple ('+p+') '+o+' >> Claim update skipped.')
+					print('Found redundant triple ('+p+') '+str(o)+' >> Claim update skipped.')
 					returnvalue = guid
 
 
@@ -516,7 +556,7 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 						print('There is a second statement for a max1prop. Will delete that.')
 						results = site.post('wbremoveclaims', claim=guid, token=token)
 						if results['success'] == 1:
-							print('Wb remove duplicate claim for '+s+' ('+p+') '+o+': success.')
+							print('Wb remove duplicate claim for '+s+' ('+p+') '+str(o)+': success.')
 							foundobjs.remove(foundo)
 					elif not returnvalue:
 						print('('+p+') is a max 1 prop. Will replace statement.')
@@ -526,7 +566,7 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 								results = site.post('wbsetclaimvalue', token=token, claim=guid, snaktype="value", value=value)
 
 								if results['success'] == 1:
-									print('Claim update for '+s+' ('+p+') '+o+': success.')
+									print('Claim update for '+s+' ('+p+') '+str(o)+': success.')
 									foundobjs.append(o)
 									returnvalue = guid
 									break
@@ -554,7 +594,7 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 				if request['success'] == 1:
 
 					claimId = request['claim']['id']
-					print('Claim creation done: '+s+' ('+p+') '+o+'.')
+					print('Claim creation done: '+s+' ('+p+') '+str(o)+'.')
 					return claimId
 
 			except Exception as ex:
@@ -563,11 +603,11 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 					token = get_token()
 				else:
 					print('Claim creation failed, will try again...\n'+str(ex))
-					logging.error('Claim creation '+s+' ('+p+') '+o+' failed, will try again...\n', exc_info=True)
+					logging.error('Claim creation '+s+' ('+p+') '+str(o)+' failed, will try again...\n', exc_info=True)
 					time.sleep(4)
 
-		print ('*** Claim creation operation '+s+' ('+p+') '+o+' failed 5 times... skipped.')
-		logging.warning('Label set operation '+s+' ('+p+') '+o+' failed 5 times... skipped.')
+		print ('*** Claim creation operation '+s+' ('+p+') '+str(o)+' failed 5 times... skipped.')
+		logging.warning('Label set operation '+s+' ('+p+') '+str(o)+' failed 5 times... skipped.')
 		return False
 	else:
 		print('*** Unknown error in lwb.updateclaim function.')
@@ -719,3 +759,43 @@ def removequali(guid, hash):
 				print('The qualifier to remove was not found.')
 				done = True
 			time.sleep(4)
+
+# load property mapping and datatype list
+def load_propmapping():
+	query = """
+	PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+	PREFIX wdno: <http://www.wikidata.org/prop/novalue/>
+	PREFIX lno: <http://lexbib.elex.is/prop/novalue/>
+	PREFIX lwb: <http://lexbib.elex.is/entity/>
+	PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
+	PREFIX lp: <http://lexbib.elex.is/prop/>
+	PREFIX lps: <http://lexbib.elex.is/prop/statement/>
+	PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
+	PREFIX lpr: <http://lexbib.elex.is/prop/reference/>
+
+	select ?order (REPLACE(str(?lwb_p), "http://lexbib.elex.is/entity/", "") as ?pid) ?datatype ?wdEquivProp (REPLACE(str(?range), "http://lexbib.elex.is/entity/", "") as ?p_range)
+	where {
+	  ?lwb_p rdf:type <http://wikiba.se/ontology#Property> ;
+	     <http://wikiba.se/ontology#propertyType> ?datatype .
+	  ?lwb_p ldp:P2 ?wdEquivProp.
+	  OPTIONAL {?lwb_p ldp:P48 ?range}
+	BIND (xsd:integer(REPLACE(str(?lwb_p), "http://lexbib.elex.is/entity/P", "")) as ?order )
+	} group by ?order ?lwb_p ?datatype ?wdEquivProp ?range order by ?order
+	"""
+	print("Waiting for LexBib v3 SPARQL (load property mapping)...")
+	sparqlresults = sparql.query('https://lexbib.elex.is/query/sparql',query)
+	print('Got properties from LexBib v3 SPARQL.')
+	#go through sparqlresults
+	propmapping = {}
+	for row in sparqlresults:
+		sparqlitem = sparql.unpack_row(row, convert=None, convert_type={})
+		pid = sparqlitem[1]
+		propmapping[pid] = {}
+		if sparqlitem[2]:
+			propmapping[pid]['datatype'] = sparqlitem[2]
+		if sparqlitem[3]:
+			propmapping[pid]['wdid'] = sparqlitem[3]
+		if sparqlitem[3]:
+			propmapping[pid]['range'] = sparqlitem[4]
+		print(str(propmapping))
+	return propmapping

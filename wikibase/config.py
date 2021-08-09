@@ -11,6 +11,7 @@ PREFIX lp: <http://lexbib.elex.is/prop/>
 PREFIX lps: <http://lexbib.elex.is/prop/statement/>
 PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
 PREFIX lpr: <http://lexbib.elex.is/prop/reference/>
+PREFIX lno: <http://lexbib.elex.is/prop/novalue/>
 
 """
 

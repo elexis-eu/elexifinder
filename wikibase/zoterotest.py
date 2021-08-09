@@ -10,7 +10,7 @@ attachment = [
 "title": "LexBib Linked Data",
 "accessDate": "2021-08-08T00:00:00Z",
 "url": "http://lexbib.elex.is/entity/Q1",
-"note": '<p>See this item as linked data at</p><p><a href="http://lexbib.elex.is/entity/Q1">http://lexbib.elex.is/entity/Q1</a>',
+"note": '<p>See this item as linked data at <a href="http://lexbib.elex.is/entity/Q1">http://lexbib.elex.is/entity/Q1</a>',
 "tags": [],
 "collections": [],
 "relations": {},
