@@ -24,7 +24,9 @@ infile = askopenfilename()
 print('This file will be processed: '+infile)
 
 #load done items from previous runs
-done_items = []
+with open(config.datafolder+"logs/bibimport_doneitems.txt", "r", encoding="utf-8") as donelist:
+	done_items = donelist.read().split('\n')
+
 outfilename = infile.replace('.json', '_lwb_import_data.jsonl')
 if os.path.exists(outfilename):
 	with open(outfilename, encoding="utf-8") as outfile:
@@ -104,19 +106,18 @@ def define_uri(item):
 	# get LWB v2 legacy Qid, if any
 	global linked_done
 	global legacy_qid
-	if re.match(r'^Q\d+', item['archive_location']):
-		legacy_qid = re.match('^Q\d+',item['archive_location']).group(0)
-		bibItemQid = lwb.getidfromlegid("Q3", legacy_qid)
-	elif re.match(r'http://lexbib.elex.is/entity/(Q\d+)', item['archive_location']):
-		bibItemQid = re.match(r'http://lexbib.elex.is/entity/(Q\d+)', item['archive_location']).group(1)
-		legacy_qid = None
-	else:
-		print('*** Error: v2 '+legacy_qid+' has no v3 pendant. Will create new.')
-		# with open(config.datafolder+"mappings/v2qid_no_v2qid.txt", "a", encoding="utf-8") as noqidlist:
-		# 	noqidlist.write(bibItemQid+'\n')
-		# 	return False
-		bibItemQid = lwb.newitemwithlabel("Q3", "en", item['title']['text'])
-		legacy_qid = None
+	bibItemQid = None
+	if 'archive_location' in item:
+		if re.match(r'^Q\d+', item['archive_location']):
+			legacy_qid = re.match('^Q\d+',item['archive_location']).group(0)
+			bibItemQid = lwb.getidfromlegid("Q3", legacy_qid)
+		elif re.match(r'http://lexbib.elex.is/entity/(Q\d+)', item['archive_location']):
+			bibItemQid = re.match(r'http://lexbib.elex.is/entity/(Q\d+)', item['archive_location']).group(1)
+			legacy_qid = None
+
+	if not bibItemQid:
+		return False
+
 
 	# set up new item
 
@@ -166,6 +167,15 @@ def define_uri(item):
 
 		if attempts < 5:
 			version = zotitem['version']
+			zot_qid = zotitem['data']['archiveLocation']
+			if re.match(r'http://lexbib.elex.is/entity/(Q\d+)', zot_qid):
+				bibItemQid = re.match(r'http://lexbib.elex.is/entity/(Q\d+)', zot_qid).group(1)
+				legacy_qid = None
+				return bibItemQid
+			elif re.match(r'^Q\d+', zot_qid):
+				legacy_qid = re.match('^Q\d+',zot_qid).group(0)
+				bibItemQid = lwb.getidfromlegid("Q3", legacy_qid)
+
 		else:
 			print('Abort after 5 failed attempts to get data from Zotero API.')
 			sys.exit()
@@ -257,6 +267,7 @@ for item in data:
 	bibItemQid = define_uri(item)
 
 	if bibItemQid in done_items:
+		print('Item done before.')
 		itemcount += 1
 		continue
 
@@ -270,7 +281,7 @@ for item in data:
 	else:
 		used_uri.append(bibItemQid)
 
-
+	legacy_qid = lwb.v3id2v2id(bibItemQid)
 	# get lexbib v2 legacy item data
 	if legacy_qid:
 		query = """
@@ -332,8 +343,12 @@ for item in data:
 				leg_zotitemid = sparqlitem[4]
 				done = True
 			if not done:
-				print('SPARQL returned no result for v2 ID '+legacy_qid)
+				print('SPARQL returned no P12|P13 creator statement for v2 ID '+legacy_qid)
 				time.sleep(2)
+				leg_authors = {}
+				leg_editors = {}
+				leg_container = None
+				break
 
 		print('SPARQL data successfully parsed.')
 	else:
@@ -361,9 +376,9 @@ for item in data:
 					eventqid = eventmapping.mapping[eventcode]
 					propvals.append({"property":"P36","datatype":"item","value":eventqid})
 				if tag["tag"].startswith(':container '):
-					# container = tag["tag"].replace(":container ","")
-					# if re.match(r'^Q\d+', container):
-					# 	contqid = container
+					container = tag["tag"].replace(":container ","")
+					if re.match(r'^Q\d+', container):
+						leg_container = re.search(r'^Q\d+', container).group(0)
 					# else:
 					# 	if container.startswith('isbn:') or container.startswith('oclc:'):
 					# 		container = container.replace("-","")
@@ -381,7 +396,7 @@ for item in data:
 					# 		lwb.updateclaim(contqid,"P5","Q12","item") # BibCollection Q12
 					# 		seen_containers.append(contqid)
 					if leg_container:
-						v3container = lwb.legacyID[leg_container]
+						v3container = lwb.getidfromlegid("Q12", leg_container)
 						propvals.append({"property":"P9","datatype":"item","value":v3container}) # container relation
 
 
@@ -543,40 +558,40 @@ for item in data:
 					# for v3 definitive, this has to go one level to the left
 					listpos += 1
 
-		# Attachments
-		elif zp == "attachments":
-			txtfolder = None
-			txttype = None
-			pdffolder = None
-			for attachment in val:
-				if attachment['contentType'] == "application/pdf" and not pdffolder: # takes only the first PDF
-					pdfloc = re.search(r'(D:\\Zotero\\storage)\\([A-Z0-9]+)\\(.*)', attachment['localPath'])
-					pdfpath = pdfloc.group(1)
-					pdffolder = pdfloc.group(2)
-					pdfoldfile = pdfloc.group(3)
-					pdfnewfile = pdffolder+".pdf" # rename file to <folder>.pdf
-					if pdffolder not in attachment_folder_list or attachment_folder_list[pdffolder] < attachment['version']:
-						copypath = 'D:\\LexBib\\zot2wb\\grobid_upload\\'+pdffolder
-						if not os.path.isdir(copypath):
-							os.makedirs(copypath)
-						shutil.copy(pdfpath+'\\'+pdffolder+'\\'+pdfoldfile, copypath+'\\'+pdfnewfile)
-						print('Found and copied to GROBID upload folder '+pdfnewfile)
-						attachment_folder_list[pdffolder] = attachment['version']
-						# save new PDF location to listfile
-						with open('D:/LexBib/zot2wb/attachment_folders.csv', 'a', encoding="utf-8") as attachment_folder_listfile:
-							attachment_folder_listfile.write(pdffolder+"\t"+str(attachment['version'])+"\n")
-					propvals.append({"property":"P70","datatype":"string","value":pdffolder})
-				elif attachment['contentType'] == "text/plain": # prefers cleantext or any other over grobidtext
-					txtloc = re.search(r'(D:\\Zotero\\storage)\\([A-Z0-9]+)\\(.*)', attachment['localPath']).group(2)
-					filetype = None
-					if "GROBID" not in attachment['title'] and "pdf2txt" not in attachment['title'] and "pdf2text" not in attachment['title']:
-						txtfolder = txtloc
-						txttype = "clean"
-					elif txttype != "clean" and "pdf2txt" not in attachment['title'] and "pdf2text" not in attachment['title']:
-						txtfolder = txtloc
-						txttype = "GROBID or other"
-			if txtfolder:
-				propvals.append({"property":"P71","datatype":"string","value":txtfolder})
+		# # Attachments
+		# elif zp == "attachments":
+		# 	txtfolder = None
+		# 	txttype = None
+		# 	pdffolder = None
+		# 	for attachment in val:
+		# 		if attachment['contentType'] == "application/pdf" and not pdffolder: # takes only the first PDF
+		# 			pdfloc = re.search(r'(D:\\Zotero\\storage)\\([A-Z0-9]+)\\(.*)', attachment['localPath'])
+		# 			pdfpath = pdfloc.group(1)
+		# 			pdffolder = pdfloc.group(2)
+		# 			pdfoldfile = pdfloc.group(3)
+		# 			pdfnewfile = pdffolder+".pdf" # rename file to <folder>.pdf
+		# 			if pdffolder not in attachment_folder_list or attachment_folder_list[pdffolder] < attachment['version']:
+		# 				copypath = 'D:\\LexBib\\zot2wb\\grobid_upload\\'+pdffolder
+		# 				if not os.path.isdir(copypath):
+		# 					os.makedirs(copypath)
+		# 				shutil.copy(pdfpath+'\\'+pdffolder+'\\'+pdfoldfile, copypath+'\\'+pdfnewfile)
+		# 				print('Found and copied to GROBID upload folder '+pdfnewfile)
+		# 				attachment_folder_list[pdffolder] = attachment['version']
+		# 				# save new PDF location to listfile
+		# 				with open('D:/LexBib/zot2wb/attachment_folders.csv', 'a', encoding="utf-8") as attachment_folder_listfile:
+		# 					attachment_folder_listfile.write(pdffolder+"\t"+str(attachment['version'])+"\n")
+		# 			propvals.append({"property":"P70","datatype":"string","value":pdffolder})
+		# 		elif attachment['contentType'] == "text/plain": # prefers cleantext or any other over grobidtext
+		# 			txtloc = re.search(r'(D:\\Zotero\\storage)\\([A-Z0-9]+)\\(.*)', attachment['localPath']).group(2)
+		# 			filetype = None
+		# 			if "GROBID" not in attachment['title'] and "pdf2txt" not in attachment['title'] and "pdf2text" not in attachment['title']:
+		# 				txtfolder = txtloc
+		# 				txttype = "clean"
+		# 			elif txttype != "clean" and "pdf2txt" not in attachment['title'] and "pdf2text" not in attachment['title']:
+		# 				txtfolder = txtloc
+		# 				txttype = "GROBID or other"
+		# 	if txtfolder:
+		# 		propvals.append({"property":"P71","datatype":"string","value":txtfolder})
 
 		# Extra field, can contain a wikipedia page title, used in Elexifinder project as first-author-location-URI
 		elif zp == "extra":

@@ -1,0 +1,78 @@
+# sparql query for LexDo Subject Headings SKOS vocabulary,
+# version for Lexonomy export
+
+PREFIX lwb: <http://lexbib.elex.is/entity/>
+PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
+PREFIX lp: <http://lexbib.elex.is/prop/>
+PREFIX lps: <http://lexbib.elex.is/prop/statement/>
+PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
+PREFIX lpr: <http://lexbib.elex.is/prop/reference/>
+PREFIX lno: <http://lexbib.elex.is/prop/novalue/>
+
+SELECT
+?subject
+(strafter(str(?subject),"http://lexbib.elex.is/entity/") as ?term_id)
+?babelnet_synset
+?match_quality
+
+?subjectLabel
+(group_concat(distinct ?subjectAltLabel; SEPARATOR="@") as ?subjectAltLabels)
+(group_concat(distinct ?broaderLabel; SEPARATOR="@") as ?broaderLabels)
+(group_concat(distinct ?narrowerLabel; SEPARATOR="@") as ?narrowerLabels)
+(group_concat(distinct ?closeMatchLabel; SEPARATOR="@") as ?closeMatchLabels)
+(group_concat(distinct ?relatedLabel; SEPARATOR="@") as ?relatedLabels)
+(group_concat(distinct ?definition; SEPARATOR="@") as ?definitions)
+
+#(group_concat(BIND(REPLACE(str(?broader), "[/#]([^#/]+)$", "$1") AS ?cleanbroader)) as ?broaders)
+
+#(group_concat(?broaderLabel; SEPARATOR="@") as ?broaderLabels)
+
+
+
+
+WHERE {
+    ?subject ldp:P5 lwb:Q7 .
+    ?subject rdfs:label ?subjectLabel .
+        FILTER (lang(?subjectLabel)="en")
+  #  MINUS {?subject ldp:P72 <http://lexbib.org/terms#Term_Language>.}
+OPTIONAL { ?subject skos:altLabel ?subjectAltLabel .}
+OPTIONAL { 
+           ?subject lp:P86 ?babelnet_synset_statement .
+           ?babelnet_synset_statement lps:P86 ?babelnet_synset .
+           ?babelnet_synset_statement lpq:P87 ?match_quality .
+    }
+       
+OPTIONAL {
+    ?subject ldp:P72 ?broader .
+    ?broader rdfs:label ?broaderLabel.
+        FILTER (lang(?broaderLabel)="en")
+    }
+OPTIONAL {
+    ?narrower ldp:P72 ?subject .
+    ?narrower rdfs:label ?narrowerLabel.
+        FILTER (lang(?narrowerLabel)="en")
+    }
+OPTIONAL { {
+    ?subject ldp:P77 ?closeMatch .
+    ?closeMatch rdfs:label ?closeMatchLabel.
+        FILTER (lang(?closeMatchLabel)="en")
+   } UNION {
+    ?closeMatch ldp:P77 ?subject .
+    ?closeMatch rdfs:label ?closeMatchLabel.
+        FILTER (lang(?closeMatchLabel)="en")
+   } }
+OPTIONAL { {
+    ?subject ldp:P76 ?related .
+    ?related rdfs:label ?relatedLabel.
+        FILTER (lang(?relatedLabel)="en")
+    } UNION {
+    ?related ldp:P76 ?subject .
+    ?related rdfs:label ?relatedLabel.
+        FILTER (lang(?relatedLabel)="en")
+    } }
+OPTIONAL {
+    ?subject ldp:P80 ?definition .
+    }
+}
+GROUP BY ?subjectLabel ?term_id ?babelnet_synset ?match_quality ?subject ?subjectAltLabels ?broaderLabels ?narrowerLabels ?closeMatchLabels ?relatedLabels ?definitions
+#limit 10

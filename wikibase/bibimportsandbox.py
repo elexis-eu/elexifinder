@@ -10,10 +10,14 @@ import re
 import lwb
 import config
 
-# walk input dir
+# walk input dir and load donelist
 
 path = config.datafolder+"bibimport/"
 dir_list = os.listdir(path)
+
+with open(config.datafolder+"logs/bibimport_doneitems.txt", "r", encoding="utf-8") as donelist:
+	done_items = donelist.read().split('\n')
+
 # open and load input file
 
 for infilename in dir_list:
@@ -41,11 +45,12 @@ for infilename in dir_list:
 		index = 0
 		edits = 0
 		rep = 0
-
+		notdone = False
 		while index < totalrows:
 			if index >= 0: #start item in infile
 				if rep > 4: # break 'while' loop after 5 failed attempts to process item
 					print ('\nbibimport.py has entered in an endless loop... abort.')
+					notdone = True
 					break
 				else:
 					print('\n'+str(index)+' items processed. '+str(totalrows-index)+' list items left.\n')
@@ -56,6 +61,11 @@ for infilename in dir_list:
 						item = data[index]
 						lexBibID = item['lexBibID']
 						print('LexBibID is '+lexBibID)
+						if lexBibID in done_items:
+							print('This item has been done in a previous run, skipped.')
+							index += 1
+							rep = 0
+							continue
 						# if re.match(r'^Q\d+', item['lexbibLegacyID']):
 						# 	legacyidstatement = lwb.updateclaim(lexBibID,"P1",item['lexbibLegacyID'],"string")
 						# else:
@@ -91,7 +101,12 @@ for infilename in dir_list:
 							### if creator item claim for this creator listpos is not found, update literal
 							if triple['property'] == "P13" and skipeditors == True:
 								continue
-							statement = lwb.updateclaim(lexBibID,triple['property'],triple['value'],triple['datatype'])
+							if triple['datatype'] == "novalue" and "Qualifiers" in triple:
+								for qualitriple in triple['Qualifiers']:
+									if qualitriple['property'] == "P38":
+										statement = lwb.updateclaim(lexBibID,triple['property'],qualitriple['value'],triple['datatype'])
+							else:
+								statement = lwb.updateclaim(lexBibID,triple['property'],triple['value'],triple['datatype'])
 							if "Qualifiers" in triple:
 								for qualitriple in triple['Qualifiers']:
 									lwb.setqualifier(lexBibID,triple['property'],statement, qualitriple['property'], qualitriple['value'], qualitriple['datatype'])
@@ -100,18 +115,29 @@ for infilename in dir_list:
 							if triple['property'] == "P8":
 								continue
 							if triple['property'] == "P16":
-								zotitemid = triple['value']
-								zotitemstatement = lwb.updateclaim(lexBibID,triple['property'],triple['value'],triple['datatype'])
+								continue
+								# zotitemid = triple['value']
+								# zotitemstatement = lwb.updateclaim(lexBibID,triple['property'],triple['value'],triple['datatype'])
 							elif triple['property'] == "P70" or triple['property'] == "P71":
-								if not zotitemstatement:
-									zotitemstatement = lwb.getclaims(lexBibID,"P16")['P16'][0]['id']
-								lwb.setqualifier(lexBibID,"P16",zotitemstatement,triple['property'],triple['value'],triple['datatype'])
+								continue
+								# if not zotitemstatement:
+								# 	zotitemstatement = lwb.getclaims(lexBibID,"P16")['P16'][0]['id']
+								# lwb.setqualifier(lexBibID,"P16",zotitemstatement,triple['property'],triple['value'],triple['datatype'])
+							elif triple['property'] == "P11":
+								continue
 							else:
-								statement = lwb.updateclaim(lexBibID,triple['property'],triple['value'],triple['datatype'])
+								if triple['datatype'] == "novalue" and "Qualifiers" in triple:
+									for qualitriple in triple['Qualifiers']:
+										if qualitriple['property'] == "P38":
+											statement = lwb.updateclaim(lexBibID,triple['property'],qualitriple['value'],triple['datatype'])
+								else:
+									statement = lwb.updateclaim(lexBibID,triple['property'],triple['value'],triple['datatype'])
 							if "Qualifiers" in triple:
 								for qualitriple in triple['Qualifiers']:
 									lwb.setqualifier(lexBibID,triple['property'],statement, qualitriple['property'], qualitriple['value'], qualitriple['datatype'])
-
+						# write to donelist
+						with open(config.datafolder+"logs/bibimport_doneitems.txt", "a", encoding="utf-8") as donelist:
+							donelist.write(lexBibID+"\n")
 					except Exception as ex:
 						traceback.print_exc()
 						lwb.logging.error('bibimport.py: Error at input line ['+str(index+1)+'] '+item['lexBibID']+':'+str(ex))
@@ -121,4 +147,5 @@ for infilename in dir_list:
 			index += 1
 
 	print('\nFinished this infile: '+infilename+'. Check error log.')
-	os.rename(infile,infile.replace(".jsonl","_done.jsonl"))
+	if notdone == False:
+		os.rename(infile,infile.replace(".jsonl","_done.jsonl"))

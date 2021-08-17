@@ -17,7 +17,7 @@ PREFIX lno: <http://lexbib.elex.is/prop/novalue/>
 
 # Properties with constraint: max. 1 value
 max1props = [
-"P1",
+#"P1",
 "P2",
 "P3",
 "P6",
