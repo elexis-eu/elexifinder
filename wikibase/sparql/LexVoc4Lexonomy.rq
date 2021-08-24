@@ -1,4 +1,4 @@
-# sparql query for LexDo Subject Headings SKOS vocabulary,
+# sparql query for LexVoc Subject Headings SKOS vocabulary,
 # version for Lexonomy export
 
 PREFIX lwb: <http://lexbib.elex.is/entity/>
@@ -14,9 +14,9 @@ SELECT
 (strafter(str(?subject),"http://lexbib.elex.is/entity/") as ?term_id)
 ?babelnet_synset
 ?match_quality
-
-?subjectLabel
-(group_concat(distinct ?subjectAltLabel; SEPARATOR="@") as ?subjectAltLabels)
+?enPrefLabel
+(group_concat(distinct ?enAltLabel; SEPARATOR="@") as ?enAltLabels)
+(group_concat(distinct concat('{"lang":"',lang(?subjectLabel),'","text":"',str(?subjectLabel),'"}'); SEPARATOR=",") as ?subjectLabels)
 (group_concat(distinct ?broaderLabel; SEPARATOR="@") as ?broaderLabels)
 (group_concat(distinct ?narrowerLabel; SEPARATOR="@") as ?narrowerLabels)
 (group_concat(distinct ?closeMatchLabel; SEPARATOR="@") as ?closeMatchLabels)
@@ -32,16 +32,16 @@ SELECT
 
 WHERE {
     ?subject ldp:P5 lwb:Q7 .
-    ?subject rdfs:label ?subjectLabel .
-        FILTER (lang(?subjectLabel)="en")
-  #  MINUS {?subject ldp:P72 <http://lexbib.org/terms#Term_Language>.}
-OPTIONAL { ?subject skos:altLabel ?subjectAltLabel .}
-OPTIONAL { 
+    ?subject rdfs:label|skos:altLabel ?subjectLabel .
+    ?subject rdfs:label ?enPrefLabel . filter(lang(?enPrefLabel)="en")
+
+OPTIONAL { ?subject skos:altLabel ?enAltLabel . filter(lang(?enAltLabel)="en")}
+OPTIONAL {
            ?subject lp:P86 ?babelnet_synset_statement .
            ?babelnet_synset_statement lps:P86 ?babelnet_synset .
            ?babelnet_synset_statement lpq:P87 ?match_quality .
     }
-       
+
 OPTIONAL {
     ?subject ldp:P72 ?broader .
     ?broader rdfs:label ?broaderLabel.
@@ -74,5 +74,4 @@ OPTIONAL {
     ?subject ldp:P80 ?definition .
     }
 }
-GROUP BY ?subjectLabel ?term_id ?babelnet_synset ?match_quality ?subject ?subjectAltLabels ?broaderLabels ?narrowerLabels ?closeMatchLabels ?relatedLabels ?definitions
-#limit 10
+GROUP BY ?subjectLabels ?term_id ?babelnet_synset ?match_quality ?enPrefLabel ?enAltLabels ?subject ?broaderLabels ?narrowerLabels ?closeMatchLabels ?relatedLabels ?definitions

@@ -12,7 +12,7 @@ import requests
 import sparql
 import urllib.parse
 import collections
-import eventmapping
+# import eventmapping
 import langmapping
 import lwb
 import config
@@ -23,10 +23,10 @@ Tk().withdraw()
 infile = askopenfilename()
 print('This file will be processed: '+infile)
 
-#load done items from previous runs
-with open(config.datafolder+"logs/bibimport_doneitems.txt", "r", encoding="utf-8") as donelist:
-	done_items = donelist.read().split('\n')
-
+# #load done items from previous runs
+# with open(config.datafolder+"logs/bibimport_doneitems.txt", "r", encoding="utf-8") as donelist:
+# 	done_items = donelist.read().split('\n')
+done_items = []
 outfilename = infile.replace('.json', '_lwb_import_data.jsonl')
 if os.path.exists(outfilename):
 	with open(outfilename, encoding="utf-8") as outfile:
@@ -47,6 +47,7 @@ if os.path.exists(outfilename):
 try:
 	with open(infile, encoding="utf-8") as f:
 		data =  json.load(f)
+		data_length = len(data)
 except Exception as ex:
 	print ('Error: file does not exist.')
 	print (str(ex))
@@ -115,11 +116,9 @@ def define_uri(item):
 			bibItemQid = re.match(r'http://lexbib.elex.is/entity/(Q\d+)', item['archive_location']).group(1)
 			legacy_qid = None
 
-	if not bibItemQid:
-		return False
-
-
-	# set up new item
+	if not bibItemQid:	# set up new item
+		print('No Qid found for "'+item['title']+'", will create new item.')
+		bibItemQid = lwb.newitemwithlabel("Q3", "en", item['title'])
 
 	# # check if this zotId exists on LWB
 	# url = "https://data.lexbib.org/query/sparql?format=json&query=PREFIX%20ldp%3A%20%3Chttp%3A%2F%2Fdata.lexbib.org%2Fprop%2Fdirect%2F%3E%0Aselect%20%3Fqid%20where%0A%7B%3Fqid%20ldp%3AP16%20%3Chttp%3A%2F%2Flexbib.org%2Fzotero%2F"+zotitemid+"%3E.%20%7D"
@@ -139,15 +138,13 @@ def define_uri(item):
 	#
 	# 	lwb.logging.warning('Item mapping has disappeared from zotero data: ',zotitemid,qid)
 	# else:
-	# 	print('No Qid found for '+zotitemid+', neither in zotexport nor in LWB.')
-	# 	qid = lwb.newitemwithlabel("Q3", "en", item['title'])
+
 
 	# communicate with Zotero, write Qid to "archive location" and link to attachment (if not done before)
 
 	zotapid = item['id'].replace("http://zotero.org/", "https://api.zotero.org/")
 	zotitemid = re.search(r'items/(.*)',item['id']).group(1)
-	# if zotitemid != leg_zotitemid:
-	# 	print('\n*** ERROR: zotitemid v2 and v3 do not match for v3 '+bibItemQid+' and v2 '+legacy_qid+'!\n')
+
 	if bibItemQid and bibItemQid not in linked_done:
 		print('This item needs updated archive_loc and link attachment on Zotero.')
 		attempts = 0
@@ -231,10 +228,38 @@ def define_uri(item):
 			print('Zotero item link attachment successfully written and bibitem-attkey mapping stored; attachment key is '+attkey+'.')
 		else:
 			print('Failed writing link attachment to Zotero item '+zotitemid+'.')
-
-
-
+	print('BibItemQid successfully defined: '+bibItemQid)
 	return bibItemQid
+
+# write creator triples
+def write_creatortriples(prop, val):
+	global creatorvals
+	listpos = 0
+	for creator in val:
+		listpos += 1
+		if "literal" in creator: # this means there is no firstname-lastname but a single string (for Orgs):
+			pass # TBD
+		else:
+			if "non-dropping-particle" in creator:
+				creator["family"] = creator["non-dropping-particle"]+" "+creator["family"]
+			if creator["family"] == "Various":
+				creator["given"] = "Various"
+
+			creatorvals.append({
+			"property": prop,
+			# "datatype": "string",
+			# "value": creator["given"]+" "+creator["family"],
+			# "datatype": "novalue",
+			# "value": "novalue",
+			"datatype": "novalue",
+			"value": "novalue",
+			"Qualifiers": [
+			{"property":"P33","datatype":"string","value":str(listpos)},
+			{"property":"P38","datatype":"string","value":creator["given"]+" "+creator["family"]},
+			{"property":"P40","datatype":"string","value":creator["given"]},
+			{"property":"P41","datatype":"string","value":creator["family"]}
+			]
+			})
 
 
 
@@ -248,21 +273,8 @@ seen_containers = []
 legacy_qid = None
 itemcount = 0
 for item in data:
-	print("\nItem ["+str(itemcount+1)+"]: "+item['title'])
-	# get language codes and assign to item, title
-	if 'language' not in item:
-		print('This item has no language, fatal error: '+item['id'])
-		item['language'] = "en"
-	else:
-		if item['language'] == "nor":
-			item['language'] = "nbo" # "Norwegian (mixed) to Norwegian (Bokmal)"
-	itemlangiso3 = langmapping.getiso3(item['language'])
-	labellang = langmapping.getWikiLangCode(itemlangiso3)
-	itemlangqid = langmapping.getqidfromiso(itemlangiso3)
-	if 'title' in item:
-		item['title'] = {"text":item['title'], "language":labellang}
-	# else:
-	# 	item['title'] =
+	print("\nItem ["+str(itemcount+1)+"] of "+str(data_length)+": "+item['title'])
+
 	lexbibClass = ""
 	bibItemQid = define_uri(item)
 
@@ -281,351 +293,254 @@ for item in data:
 	else:
 		used_uri.append(bibItemQid)
 
-	legacy_qid = lwb.v3id2v2id(bibItemQid)
-	# get lexbib v2 legacy item data
-	if legacy_qid:
-		query = """
-		PREFIX lwb: <http://data.lexbib.org/entity/>
-		PREFIX ldp: <http://data.lexbib.org/prop/direct/>
-		PREFIX lp: <http://data.lexbib.org/prop/>
-		PREFIX lps: <http://data.lexbib.org/prop/statement/>
-		PREFIX lpq: <http://data.lexbib.org/prop/qualifier/>
-		PREFIX lpr: <http://data.lexbib.org/prop/reference/>
-		PREFIX owl: <http://www.w3.org/2002/07/owl#>
-
-		select ?bibItem
-		(group_concat(distinct concat('"',str(?aulistpos),'":"',strafter(str(?author),"http://data.lexbib.org/entity/"),'"');SEPARATOR=", ") as ?leg_authors)
-		(group_concat(distinct concat('"',str(?edlistpos),'":"',strafter(str(?editor),"http://data.lexbib.org/entity/"),'"');SEPARATOR=", ") as ?leg_editors)
-		(strafter(str(?container),"http://data.lexbib.org/entity/") as ?leg_container)
-		(strafter(str(?zotero),"http://lexbib.org/zotero/") as ?zotid)
-		where {
-		  BIND(lwb:"""+legacy_qid+""" as ?bibItem)
-		  ?bibItem ldp:P5 lwb:Q3.
-		  OPTIONAL{ ?bibItem lp:P12 ?authorstatement.
-				   ?authorstatement lps:P12 ?author.
-		  ?authorstatement lpq:P33 ?aulistpos .}
-		   OPTIONAL {?bibItem lp:P13 ?editorstatement.
-		  ?editorstatement lps:P13 ?editor.
-		  ?editorstatement lpq:P33 ?edlistpos .}
-		   OPTIONAL {?bibItem  ldp:P9 ?container. }
-			  ?bibItem	 ldp:P16 ?zotero.
-
-
-		} group by ?bibItem ?leg_authors ?leg_editors ?container ?zotero"""
-
-		v2url = "https://data.lexbib.org/query/sparql"
-		print("Waiting for LexBib v2 SPARQL ("+legacy_qid+")...")
-		sparqlresults = sparql.query(v2url,query)
-		print('Got data for this item from LexBib v2 SPARQL.')
-
-		#go through sparqlresults
-		done = False
-		while not done:
-			leg_zotitemid = None
-			for row in sparqlresults:
-				sparqlitem = sparql.unpack_row(row, convert=None, convert_type={})
-				#print('\nv2 bibItem content is '+str(sparqlitem))
-				leg_authors = {}
-				if sparqlitem[1]:
-					aujson = json.loads("{"+sparqlitem[1]+"}")
-					#print(str(aujson))
-					for lp in range(len(aujson)):
-						leg_authors[lp+1] = aujson[str(lp+1)]
-					#print(str(leg_authors))
-				leg_editors = {}
-				if sparqlitem[2]:
-					edjson = json.loads("{"+sparqlitem[2]+"}")
-					for lp in range(len(edjson)):
-						leg_editors[lp+1] = edjson[str(lp+1)]
-				leg_container = None
-				if sparqlitem[3]:
-					leg_container = sparqlitem[3]
-				leg_zotitemid = sparqlitem[4]
-				done = True
-			if not done:
-				print('SPARQL returned no P12|P13 creator statement for v2 ID '+legacy_qid)
-				time.sleep(2)
-				leg_authors = {}
-				leg_editors = {}
-				leg_container = None
-				break
-
-		print('SPARQL data successfully parsed.')
-	else:
-		leg_authors = {}
-		leg_editors = {}
-
-
-	# iterate through zotero properties and write RDF triples
 	creatorvals = []
 	propvals = []
+	zotitemid = re.search(r'items/(.*)', item['id']).group(1)
 
-	for zp in item: # zp: zotero property
-		val = item[zp] # val: value of zotero property
+	# get language codes and assign to item, title
+	if 'language' not in item:
+		print('This item has no language, fatal error: '+item['id'])
+		item['language'] = "en"
+	else:
+		if item['language'] == "nor":
+			item['language'] = "nbo" # "Norwegian (mixed) to Norwegian (Bokmal)"
+	itemlangiso3 = langmapping.getiso3(item['language'])
+	labellang = langmapping.getWikiLangCode(itemlangiso3)
+	itemlangqid = langmapping.getqidfromiso(itemlangiso3)
+	abslangqid = itemlangqid
+	propvals.append({"property":"P11","datatype":"item","value":itemlangqid})
+	if 'title' in item:
+		item['title'] = {"text":item['title'], "language":labellang}
+	else:
+		item['title'] = ''
+	propvals.append({"property":"P6","datatype":"monolingualtext","value":item['title']})
 
+	# look at other zotero properties and write RDF triples
 
-		# lexbib zotero tags can contain statements (shortcode for property, and value).
-		# If item as value, and that item does not exist, it is created.
-		if zp == "tags":
-			for tag in val:
-				if tag["tag"].startswith(':event '):
-					eventcode = tag["tag"].replace(":event ","")
-					if eventcode not in eventmapping.mapping:
-						print('***ERROR: event not existing in lwb: '+eventcode)
-						sys.exit()
-					eventqid = eventmapping.mapping[eventcode]
+	# lexbib zotero tags can contain statements (shortcode for property, and value).
+	# If item as value, and that item does not exist, it is created.
+	if "tags" in item:
+		for tag in item['tags']:
+			if tag["tag"].startswith(':event '):
+				eventcode = tag["tag"].replace(":event ","")
+				# if eventcode not in eventmapping.mapping:
+				# 	print('***ERROR: event not existing in lwb: '+eventcode)
+				# 	sys.exit()
+				# eventqid = eventmapping.mapping[eventcode]
+				if re.match(r'^Q\d+', eventcode):
+					eventqid = re.search(r'^Q\d+', eventcode).group(0)
 					propvals.append({"property":"P36","datatype":"item","value":eventqid})
-				if tag["tag"].startswith(':container '):
-					container = tag["tag"].replace(":container ","")
-					if re.match(r'^Q\d+', container):
-						leg_container = re.search(r'^Q\d+', container).group(0)
-					# else:
-					# 	if container.startswith('isbn:') or container.startswith('oclc:'):
-					# 		container = container.replace("-","")
-					# 		container = container.replace("isbn:","http://worldcat.org/isbn/")
-					# 		container = container.replace("oclc:","http://worldcat.org/oclc/")
-					# 	elif container.startswith('doi:'):
-					# 		container = container.replace("doi:", "http://doi.org/")
-					# 	# check container type
-					# 	if item['type'] == "article-journal":
-					# 		contqid = lwb.getqid("Q1907", container) # Serials Publication volume Q1907. These are not member of Q3 (=have no ZotItems)
-					# 	else:
-					# 		contqid = lwb.getqid("Q3", container)
-					# 	#lwb.itemclaim(contqid,"P5","Q12") # BibCollection Q12
-					# 	if contqid not in seen_containers:
-					# 		lwb.updateclaim(contqid,"P5","Q12","item") # BibCollection Q12
-					# 		seen_containers.append(contqid)
-					if leg_container:
-						v3container = lwb.getidfromlegid("Q12", leg_container)
-						propvals.append({"property":"P9","datatype":"item","value":v3container}) # container relation
+			if tag["tag"].startswith(':container '):
+				container = tag["tag"].replace(":container ","")
+				if re.match(r'^Q\d+', container):
+					v3container = re.search(r'^Q\d+', container).group(0)
+					propvals.append({"property":"P9","datatype":"item","value":v3container}) # container relation
+				# else:
+				# 	if container.startswith('isbn:') or container.startswith('oclc:'):
+				# 		container = container.replace("-","")
+				# 		container = container.replace("isbn:","http://worldcat.org/isbn/")
+				# 		container = container.replace("oclc:","http://worldcat.org/oclc/")
+				# 	elif container.startswith('doi:'):
+				# 		container = container.replace("doi:", "http://doi.org/")
+				# 	# check container type
+				# 	if item['type'] == "article-journal":
+				# 		contqid = lwb.getqid("Q1907", container) # Serials Publication volume Q1907. These are not member of Q3 (=have no ZotItems)
+				# 	else:
+				# 		contqid = lwb.getqid("Q3", container)
+				# 	#lwb.itemclaim(contqid,"P5","Q12") # BibCollection Q12
+				# 	if contqid not in seen_containers:
+				# 		lwb.updateclaim(contqid,"P5","Q12","item") # BibCollection Q12
+				# 		seen_containers.append(contqid)
 
+				# # get container short title from contained item and write to container
+				# if item['type'] != "chapter" and "title-short" in item and item['title-short'] not in seen_titles:
+				# 	lwb.updateclaim(v3container, "P97", item['title-short'], "string")
+				# 	seen_titles.append(item['title-short'])
 
-					# get container short title from contained item and write to container
-					if item['type'] != "chapter" and "title-short" in item and item['title-short'] not in seen_titles:
-						lwb.updateclaim(v3container, "P97", item['title-short'], "string")
-						seen_titles.append(item['title-short'])
+			if tag["tag"].startswith(':type '):
+				type = tag["tag"].replace(":type ","")
+				if type == "Review":
+					propvals.append({"property":"P5","datatype":"item","value":"Q15"})
+				elif type == "Report":
+					propvals.append({"property":"P5","datatype":"item","value":"Q25"})
+				elif type == "Proceedings":
+					propvals.append({"property":"P5","datatype":"item","value":"Q18"})
+				elif type == "Dictionary":
+					propvals.append({"property":"P5","datatype":"item","value":"Q24"}) # LCR distribution
+				elif type == "Software":
+					lexbibClass = "Q13" # this will override item type "book"
+					#propvals.append({"property":"P5","datatype":"item","value":"Q13"})
+				elif type == "Community":
+					propvals.append({"property":"P5","datatype":"item","value":"Q26"})
 
-				if tag["tag"].startswith(':type '):
-					type = tag["tag"].replace(":type ","")
-					if type == "Review":
-						propvals.append({"property":"P5","datatype":"item","value":"Q15"})
-					elif type == "Report":
-						propvals.append({"property":"P5","datatype":"item","value":"Q25"})
-					elif type == "Proceedings":
-						propvals.append({"property":"P5","datatype":"item","value":"Q18"})
-					elif type == "Dictionary":
-						propvals.append({"property":"P5","datatype":"item","value":"Q24"}) # LCR distribution
-					elif type == "Software":
-						lexbibClass = "Q13" # this will override item type "book"
-						#propvals.append({"property":"P5","datatype":"item","value":"Q13"})
-					elif type == "Community":
-						propvals.append({"property":"P5","datatype":"item","value":"Q26"})
+			if tag["tag"].startswith(':collection '):
+				coll = tag["tag"].replace(":collection ","")
+				propvals.append({"property":"P85","datatype":"string","value":coll})
 
-				if tag["tag"].startswith(':collection '):
-					coll = tag["tag"].replace(":collection ","")
-					propvals.append({"property":"P85","datatype":"string","value":coll})
+			if tag["tag"].startswith(':abstractLanguage '):
+				abslangcode = tag["tag"].replace(":abstractLanguage ","")
+				abslangiso3 = langmapping.getiso3(abslangcode)
+				abslangqid = langmapping.getqidfromiso(abslangiso3)
 
-		# Publication language
-		elif zp == "language":
-			propvals.append({"property":"P11","datatype":"item","value":itemlangqid})
+	### bibitem type mapping
+	if "type" in item and lexbibClass == "": # setting lexbibClass before overrides this bibItem type P100 setting
+		if item['type'] == "paper-conference":
+			propvals.append({"property":"P100","datatype":"item","value":"Q27"})
+		elif item['type'] == "article-journal":
+			propvals.append({"property":"P100","datatype":"item","value":"Q19"})
+		elif item['type'] == "book":
+			propvals.append({"property":"P100","datatype":"item","value":"Q28"})
+		elif item['type'] == "chapter":
+			propvals.append({"property":"P100","datatype":"item","value":"Q29"})
+		elif item['type'] == "motion_picture": # videos
+			propvals.append({"property":"P100","datatype":"item","value":"Q30"})
+		elif item['type'] == "speech":
+			propvals.append({"property":"P100","datatype":"item","value":"Q31"})
+		elif item['type'] == "thesis":
+			propvals.append({"property":"P100","datatype":"item","value":"Q32"})
 
-		### bibitem type mapping
-		elif zp == "type" and lexbibClass == "": # setting lexbibClass before overrides this bibItem type P100 setting
+	# Zotero ID, and, as qualifiers: abstract info, PDF ant TXT file attachments
+	att_quali = []
+	if "abstract" in item:
+		if len(item['abstract']) > 20: # accept literal longer than 20 chars as abstract text
+			att_quali.append({"property":"P105","datatype":"item","value":abslangqid})
+	if "attachments" in item:
+		txtfolder = None
+		txttype = None
+		pdffolder = None
+		for attachment in item['attachments']:
+			if attachment['contentType'] == "application/pdf" and not pdffolder: # takes only the first PDF
+				pdfloc = re.search(r'(D:\\Zotero\\storage)\\([A-Z0-9]+)\\(.*)', attachment['localPath'])
+				pdfpath = pdfloc.group(1)
+				pdffolder = pdfloc.group(2)
+				pdfoldfile = pdfloc.group(3)
+				pdfnewfile = pdffolder+".pdf" # rename file to <folder>.pdf
+				if pdffolder not in attachment_folder_list or attachment_folder_list[pdffolder] < attachment['version']:
+					copypath = 'D:\\LexBib\\zot2wb\\grobid_upload\\'+pdffolder
+					if not os.path.isdir(copypath):
+						os.makedirs(copypath)
+					shutil.copy(pdfpath+'\\'+pdffolder+'\\'+pdfoldfile, copypath+'\\'+pdfnewfile)
+					print('Found and copied to GROBID upload folder '+pdfnewfile)
+					attachment_folder_list[pdffolder] = attachment['version']
+					# save new PDF location to listfile
+					with open('D:/LexBib/zot2wb/attachment_folders.csv', 'a', encoding="utf-8") as attachment_folder_listfile:
+						attachment_folder_listfile.write(pdffolder+"\t"+str(attachment['version'])+"\n")
+				att_quali.append({"property":"P70","datatype":"string","value":pdffolder})
+			elif attachment['contentType'] == "text/plain": # prefers cleantext or any other over grobidtext
+				txtloc = re.search(r'(D:\\Zotero\\storage)\\([A-Z0-9]+)\\(.*)', attachment['localPath']).group(2)
+				filetype = None
+				if ("GROBID" not in attachment['title']) and ("pdf2txt" not in attachment['title']) and ("pdf2text" not in attachment['title']):
+					txtfolder = txtloc
+					txttype = "clean"
+				elif txttype != "clean" and ("pdf2txt" not in attachment['title']) and ("pdf2text" not in attachment['title']):
+					txtfolder = txtloc
+					txttype = "GROBID or other"
+		if txtfolder:
+			att_quali.append({"property":"P71","datatype":"string","value":txtfolder})
 
-			if val == "paper-conference":
-				propvals.append({"property":"P100","datatype":"item","value":"Q27"})
-			elif val == "article-journal":
-				propvals.append({"property":"P100","datatype":"item","value":"Q19"})
-			elif val == "book":
-				propvals.append({"property":"P100","datatype":"item","value":"Q28"})
-			elif val == "chapter":
-				propvals.append({"property":"P100","datatype":"item","value":"Q29"})
-			elif val == "motion_picture": # videos
-				propvals.append({"property":"P100","datatype":"item","value":"Q30"})
-			elif val == "speech":
-				propvals.append({"property":"P100","datatype":"item","value":"Q31"})
-			elif val == "thesis":
-				propvals.append({"property":"P100","datatype":"item","value":"Q32"})
+	propvals.append({"property":"P16","datatype":"string","value":zotitemid, "Qualifiers":att_quali})
 
+	### props with literal value
 
-		### props with literal value
-		elif zp == "id":
-			zotitemid = re.search(r'items/(.*)', val).group(1)
-			propvals.append({"property":"P16","datatype":"string","value":zotitemid})
-		elif zp == "title":
-			propvals.append({"property":"P6","datatype":"monolingualtext","value":val})
-		# elif zp == "container-title":
-		#	propvals.append({"property":"P8","datatype":"string","value":val})
-		# elif zp == "event":
-		# 	propvals.append({"property":"P37","datatype":"string","value":val})
-		elif zp == "page":
-			propvals.append({"property":"P24","datatype":"string","value":val})
-		elif zp == "publisher":
-			vallist = val.split(";")
-			for val in vallist:
-				propvals.append({"property":"P35","datatype":"novalue","value":"novalue","Qualifiers": [
-				{"property":"P38","datatype":"string","value":val.strip()}]})
-		elif zp == "DOI":
-			if "http://" in val or "https://" in val:
-				val = re.search(r'/(10\..+)$', val).group(1)
-			propvals.append({"property":"P17","datatype":"string","value":val})
-		elif zp == "ISSN":
-			if "-" not in val: # normalize ISSN, remove any secondary ISSN
-				val = val[0:4]+"-"+val[4:9]
-			propvals.append({"property":"P20","datatype":"string","value":val[:9]})
-		elif zp == "ISBN":
-			val = val.replace("-","")
-			val = re.search(r'^\d+',val).group(0)
-			if len(val) == 10:
-				propvals.append({"property":"P19","datatype":"string","value":val})
-			elif len(val) == 13:
-				propvals.append({"property":"P18","datatype":"string","value":val})
-		elif zp == "volume" and item['type'] == "article-journal": # volume only for journals (book series also have "volume")
-			propvals.append({"property":"P22","datatype":"string","value":val})
-		elif zp == "issue" and item['type'] == "article-journal": # issue only for journals
-			propvals.append({"property":"P23","datatype":"string","value":val})
-		# elif zp == "journalAbbreviation":
-		# 	propvals.append({"property":"P54","datatype":"string","value":val})
-		elif zp == "URL":
-			propvals.append({"property":"P21","datatype":"string","value":val})
-		elif zp == "issued":
-			year = val["date-parts"][0][0]
-			precision = 9
-			#propvals.append({"property":"P14","datatype":"string","value":year})
-			if len(val["date-parts"][0]) > 1:
-				month = str(val["date-parts"][0][1])
-				if len(month) == 1:
-					month = "0"+month
-				precision = 10
-			else:
-				month = "01"
-			if len(val["date-parts"][0]) > 2:
-				day = str(val["date-parts"][0][2])
-				if len(day) == 1:
-					day = "0"+day
-				precision = 11
-			else:
-				day = "01"
-			timestr = "+"+year+"-"+month+"-"+day+"T00:00:00Z"
-			propvals.append({"property":"P15","datatype":"time","value":{"time":timestr,"precision":precision}})
-		elif zp == "edition":
-			propvals.append({"property":"P64","datatype":"string","value":val})
-		elif zp == "author" or zp == "editor":
-			if zp == "author":
-				prop = "P12"
-			elif zp == "editor":
-				prop = "P13"
-			listpos = 1
-			for creator in val:
-				if "literal" in creator: # this means there is no firstname-lastname but a single string (for Orgs):
-					pass # TBD
-				else:
-					if "non-dropping-particle" in creator:
-						creator["family"] = creator["non-dropping-particle"]+" "+creator["family"]
-					if creator["family"] == "Various":
-						creator["given"] = "Various"
-					# get v2 legacy creator items
-					if zp == "author":
-						if listpos in leg_authors:
-							creatordatatype = "item"
-							creatorv3qid = lwb.getidfromlegid("Q5", leg_authors[listpos])
-						else:
-							creatordatatype = "novalue"
-							creatorv3qid = "novalue"
-					elif zp == "editor":
-						if listpos in leg_editors:
-							creatordatatype = "item"
-							creatorv3qid = lwb.legacyID[leg_editors[listpos]]
-						else:
-							creatordatatype = "novalue"
-							creatorv3qid = "novalue"
+	# "container-title":
+	#	propvals.append({"property":"P8","datatype":"string","value":val})
+	# "event":
+	# 	propvals.append({"property":"P37","datatype":"string","value":val})
 
-					creatorvals.append({
-					"property": prop,
-					# "datatype": "string",
-					# "value": creator["given"]+" "+creator["family"],
-					# "datatype": "novalue",
-					# "value": "novalue",
-					"datatype": creatordatatype,
-					"value": creatorv3qid,
-					"Qualifiers": [
-					{"property":"P33","datatype":"string","value":str(listpos)},
-					{"property":"P38","datatype":"string","value":creator["given"]+" "+creator["family"]},
-					{"property":"P40","datatype":"string","value":creator["given"]},
-					{"property":"P41","datatype":"string","value":creator["family"]}
-					]
-					})
-					# for v3 definitive, this has to go one level to the left
-					listpos += 1
+	if "publisher" in item:
+		vallist = item['publisher'].split(";")
+		for val in vallist:
+			propvals.append({"property":"P35","datatype":"novalue","value":"novalue","Qualifiers": [
+			{"property":"P38","datatype":"string","value":val.strip()}]})
+	if "DOI" in item:
+		if "http://" in item['DOI'] or "https://" in item['DOI']:
+			val = re.search(r'/(10\..+)$', item['DOI']).group(1)
+		propvals.append({"property":"P17","datatype":"string","value":item['DOI']})
+	if "ISSN" in item:
+		if "-" not in item['ISSN']: # normalize ISSN, remove any secondary ISSN
+			item['ISSN'] = item['ISSN'][0:4]+"-"+item['ISSN'][4:9]
+		propvals.append({"property":"P20","datatype":"string","value":item['ISSN'][:9]})
+	if "ISBN" in item:
+		val = item['ISBN'].replace("-","") # normalize ISBN, remove any secondary ISBN
+		val = re.search(r'^\d+',val).group(0)
+		if len(val) == 10:
+			propvals.append({"property":"P19","datatype":"string","value":val})
+		elif len(val) == 13:
+			propvals.append({"property":"P18","datatype":"string","value":val})
+	if "volume" in item and item['type'] == "article-journal": # accept 'volume' only for journals (book series also have "volume")
+		propvals.append({"property":"P22","datatype":"string","value":item['volume']})
+	if "issue" in item and item['type'] == "article-journal": # issue only for journals
+		propvals.append({"property":"P23","datatype":"string","value":item['issue']})
+	if "page" in item:
+		propvals.append({"property":"P24","datatype":"string","value":item['page']})
+	# "journalAbbreviation":
+	# 	propvals.append({"property":"P54","datatype":"string","value":val})
+	if "URL" in item:
+		propvals.append({"property":"P21","datatype":"string","value":item['URL']})
+	if "issued" in item:
+		val = item['issued']
+		year = val['date-parts'][0][0]
+		precision = 9
+		if len(val["date-parts"][0]) > 1:
+			month = str(val["date-parts"][0][1])
+			if len(month) == 1:
+				month = "0"+month
+			precision = 10
+		else:
+			month = "01"
+		if len(val["date-parts"][0]) > 2:
+			day = str(val["date-parts"][0][2])
+			if len(day) == 1:
+				day = "0"+day
+			precision = 11
+		else:
+			day = "01"
+		timestr = "+"+year+"-"+month+"-"+day+"T00:00:00Z"
+		propvals.append({"property":"P15","datatype":"time","value":{"time":timestr,"precision":precision}})
+	if "edition" in item:
+		propvals.append({"property":"P64","datatype":"string","value":item['edition']})
 
-		# # Attachments
-		# elif zp == "attachments":
-		# 	txtfolder = None
-		# 	txttype = None
-		# 	pdffolder = None
-		# 	for attachment in val:
-		# 		if attachment['contentType'] == "application/pdf" and not pdffolder: # takes only the first PDF
-		# 			pdfloc = re.search(r'(D:\\Zotero\\storage)\\([A-Z0-9]+)\\(.*)', attachment['localPath'])
-		# 			pdfpath = pdfloc.group(1)
-		# 			pdffolder = pdfloc.group(2)
-		# 			pdfoldfile = pdfloc.group(3)
-		# 			pdfnewfile = pdffolder+".pdf" # rename file to <folder>.pdf
-		# 			if pdffolder not in attachment_folder_list or attachment_folder_list[pdffolder] < attachment['version']:
-		# 				copypath = 'D:\\LexBib\\zot2wb\\grobid_upload\\'+pdffolder
-		# 				if not os.path.isdir(copypath):
-		# 					os.makedirs(copypath)
-		# 				shutil.copy(pdfpath+'\\'+pdffolder+'\\'+pdfoldfile, copypath+'\\'+pdfnewfile)
-		# 				print('Found and copied to GROBID upload folder '+pdfnewfile)
-		# 				attachment_folder_list[pdffolder] = attachment['version']
-		# 				# save new PDF location to listfile
-		# 				with open('D:/LexBib/zot2wb/attachment_folders.csv', 'a', encoding="utf-8") as attachment_folder_listfile:
-		# 					attachment_folder_listfile.write(pdffolder+"\t"+str(attachment['version'])+"\n")
-		# 			propvals.append({"property":"P70","datatype":"string","value":pdffolder})
-		# 		elif attachment['contentType'] == "text/plain": # prefers cleantext or any other over grobidtext
-		# 			txtloc = re.search(r'(D:\\Zotero\\storage)\\([A-Z0-9]+)\\(.*)', attachment['localPath']).group(2)
-		# 			filetype = None
-		# 			if "GROBID" not in attachment['title'] and "pdf2txt" not in attachment['title'] and "pdf2text" not in attachment['title']:
-		# 				txtfolder = txtloc
-		# 				txttype = "clean"
-		# 			elif txttype != "clean" and "pdf2txt" not in attachment['title'] and "pdf2text" not in attachment['title']:
-		# 				txtfolder = txtloc
-		# 				txttype = "GROBID or other"
-		# 	if txtfolder:
-		# 		propvals.append({"property":"P71","datatype":"string","value":txtfolder})
+	# creators
 
-		# Extra field, can contain a wikipedia page title, used in Elexifinder project as first-author-location-URI
-		elif zp == "extra":
-			wppage = urllib.parse.unquote(val.replace("\n","").replace(" ","").split(";")[0].replace("http://","https://"))
+	if "author" in item:
+		write_creatortriples("P12", item['author'])
+	elif ("author" not in item) and ("editor" in item):
+		write_creatortriples("P13", item['editor'])
 
-			if "en.wikipedia" in wppage:
-				print('Found authorloc wppage: '+wppage)
-				# check if this location is already in LWB, if it doesn't exist, create it
-				wppagetitle = wppage.replace("https://en.wikipedia.org/wiki/","")
-				if wppagetitle not in wikipairs:
-					wdjsonsource = requests.get(url='https://www.wikidata.org/w/api.php?action=wbgetentities&sites=enwiki&format=json&titles='+wppage)
-					wdjson =  wdjsonsource.json()
-					entities = wdjson['entities']
-					for wdid in entities:
-						print("found new wdid on wikidata"+wdid+" for AUTHORLOC "+wppage)
-						placeqid = lwb.wdid2lwbid(wdid)
-				else:
-					wdid = wikipairs[wppagetitle]
+	# Extra field, can contain a wikipedia page title, used in Elexifinder project as first-author-location-URI
+
+	if "extra" in item:
+		wppage = urllib.parse.unquote(item['extra'].replace("\n","").replace(" ","").split(";")[0].replace("http://","https://"))
+
+		if "https://en.wikipedia.org/wiki/" in wppage:
+			print('Found authorloc wppage: '+wppage)
+			# check if this location is already in LWB, if it doesn't exist, create it
+			wppagetitle = wppage.replace("https://en.wikipedia.org/wiki/","")
+			if wppagetitle not in wikipairs:
+				wdjsonsource = requests.get(url='https://www.wikidata.org/w/api.php?action=wbgetentities&sites=enwiki&format=json&titles='+wppage)
+				wdjson =  wdjsonsource.json()
+				entities = wdjson['entities']
+				for wdid in entities:
+					print("found new wdid on wikidata"+wdid+" for AUTHORLOC "+wppage)
 					placeqid = lwb.wdid2lwbid(wdid)
-				if placeqid:
-						print("This is a known authorloc: "+placeqid)
-				else:
-					print("This is an unknown place an will be created: "+wppagetitle)
-					placeqid = lwb.newitemwithlabel("Q9", "en", wppagetitle)
-					wdstatement = lwb.stringclaim(placeqid, "P2", wdid)
-					wpstatement = lwb.stringclaim(placeqid, "P66", wppage)
-					lwb.save_wdmapping({"lwbid": placeqid, "wdid": wdid})
-					lwb.wdids[placeqid] = wdid
-					new_places.append({"placeQid":placeqid,"wppage":wppage, "wdid":wdid})
-				propvals.append({"property":"P29","datatype":"item","value":placeqid})
-
-
 			else:
-				print('Found NO authorloc wppage.')
+				wdid = wikipairs[wppagetitle]
+				placeqid = lwb.wdid2lwbid(wdid)
+			if placeqid:
+					print("This is a known authorloc: "+placeqid)
+			else:
+				print("This is an unknown place an will be created: "+wppagetitle)
+				placeqid = lwb.newitemwithlabel("Q9", "en", wppagetitle)
+				wdstatement = lwb.stringclaim(placeqid, "P2", wdid)
+				wpstatement = lwb.stringclaim(placeqid, "P66", wppage)
+				lwb.save_wdmapping({"lwbid": placeqid, "wdid": wdid})
+				lwb.wdids[placeqid] = wdid
+				new_places.append({"placeQid":placeqid,"wppage":wppage, "wdid":wdid})
+			propvals.append({"property":"P29","datatype":"item","value":placeqid})
+
+
+		else:
+			print('Found NO authorloc wppage.')
 
 	with open(outfilename, 'a', encoding="utf-8") as outfile:
 		outfile.write(json.dumps({"lexBibID":bibItemQid,"lexbibLegacyID":legacy_qid,"creatorvals":creatorvals,"propvals":propvals})+'\n')

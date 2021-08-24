@@ -522,19 +522,12 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 					continue
 			done = True
 
-		print('Successful time object write operation to item '+item.write(wdilogin))
-		# TBD: duplicate statement control
+		print('Claim with datatype Time: success, '+item.write(wdilogin))
+
 		claims = getclaims(s,p)
 		#print(str(claims))
-		return claims[1][p][0]['id']
-	elif dtype == "string" or dtype == "url":
-		value = '"'+o.replace('"', '\\"')+'"'
-	elif dtype == "monolingualtext":
-		value = json.dumps({"text":o['text'],"language":o['language']})
-	elif dtype == "item" or dtype =="wikibase-entityid":
-		value = json.dumps({"entity-type":"item","numeric-id":int(o.replace("Q",""))})
-	elif dtype == "novalue":
-		value = "novalue"
+		return claims[1][p][0]['id'] # guid of the datatype time statement
+
 	elif dtype == "globecoordinate":
 		if not o['precision']: # sometimes, wikidata gives precision=None, wdi rejects that
 			o['precision'] = 0.000277778 # an arcminute
@@ -543,8 +536,21 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 		print('Successful globecoordinate object write operation to item '+item.write(wdilogin))
 		claims = getclaims(s,p)
 		#print(str(claims))
-		return claims[1][p][0]['id']
+		return claims[1][p][0]['id'] # guid of the datatype globecoordinate statement
 
+	elif dtype == "string" or dtype == "url":
+		value = '"'+o.replace('"', '\\"')+'"'
+
+	elif dtype == "monolingualtext":
+		value = json.dumps({"text":o['text'],"language":o['language']})
+
+	elif dtype == "item" or dtype =="wikibase-entityid":
+		value = json.dumps({"entity-type":"item","numeric-id":int(o.replace("Q",""))})
+
+	elif dtype == "novalue":
+		value = "novalue"
+
+	# check existing claims
 	claims = getclaims(s,p)
 	s = claims[0]
 	claims = claims[1]
@@ -563,10 +569,10 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 			elif claim['mainsnak']['snaktype'] == "novalue":
 				try:
 					foundo = claim['qualifiers']['P38'][0]['datavalue']['value']
-					print('Found Novalue P38 quali: '+foundo)
+					#print('Found Novalue P38 quali: '+foundo)
 				except:
 					foundo = "novalue"
-					print('Found Novalue, but no P38 quali.')
+					print('Found Novalue, but no P38 "source string" quali.')
 
 			if foundo in foundobjs:
 				print('Will remove a duplicate claim: '+guid)
@@ -580,8 +586,6 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 				if foundo == o or foundo == value:
 					print('Found redundant triple ('+p+') '+str(o)+' >> Claim update skipped.')
 					returnvalue = guid
-
-
 
 				if p in max1props:
 					if returnvalue and len(foundobjs) > 1:
@@ -610,8 +614,9 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 									print('Claim update failed... Will try again.')
 									time.sleep(4)
 
-	if returnvalue:
+	if returnvalue: # means statement needs not to be written, returns guid
 		return returnvalue
+
 	if o not in foundobjs and value not in foundobjs: # must create new statement
 
 		count = 0
@@ -639,11 +644,37 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 					time.sleep(4)
 
 		print ('*** Claim creation operation '+s+' ('+p+') '+str(o)+' failed 5 times... skipped.')
-		logging.warning('Label set operation '+s+' ('+p+') '+str(o)+' failed 5 times... skipped.')
+		logging.warning('Claim creation operation '+s+' ('+p+') '+str(o)+' failed 5 times... skipped.')
 		return False
 	else:
-		print('*** Unknown error in lwb.updateclaim function.')
+		print('*** Unknown error in lwb.updateclaim function, parameters were:',s, p, str(o), dtype)
+		sys.exit()
 
+# set a claim value
+def setclaimvalue(guid, value, dtype):
+	global token
+	guidfix = re.compile(r'^(Q\d+)\-')
+	guid = re.sub(guidfix, r'\1$', guid)
+	print('Will now set value "'+value+'" to guid '+guid)
+	if dtype == "item" or dtype =="wikibase-entityid":
+		value = json.dumps({"entity-type":"item","numeric-id":int(value.replace("Q",""))})
+	else:
+		print('This item type is still not implemented in "lwb.setclaimvalue": '+dtype)
+		sys.exit()
+	while True:
+		try:
+			results = site.post('wbsetclaimvalue', token=token, claim=guid, snaktype="value", value=value)
+
+			if results['success'] == 1:
+				print('Claim update for '+value+' (dtype: '+dtype+'): success.')
+				break
+		except Exception as ex:
+			if 'Invalid CSRF token.' in str(ex):
+				print('Wait a sec. Must get a new CSRF token...')
+				token = get_token()
+			else:
+				print('Claim update failed... Will try again. Result was: '+str(results))
+				time.sleep(4)
 
 
 # set a Qualifier
@@ -654,13 +685,6 @@ def setqualifier(qid, prop, claimid, qualiprop, qualivalue, dtype):
 	elif dtype == "item" or dtype =="wikibase-entityid":
 		qualivalue = json.dumps({"entity-type":"item","numeric-id":int(qualivalue.replace("Q",""))})
 
-	# claims = getclaims(qid,prop)
-	# foundobjs = []
-	# if bool(claims):
-	# 	statementcount = 0
-	# 	for claim in claims[prop]:
-	# 		if claim['id'] == claimid:
-	#
 	try:
 		while True:
 			setqualifier = site.post('wbsetqualifier', token=token, claim=claimid, property=qualiprop, snaktype="value", value=qualivalue, bot=1)
@@ -717,6 +741,9 @@ def setref(claimid, refprop, refvalue, dtype):
 		logging.error('Reference set failed for '+prop+' ('+refprop+') '+refvalue+': '+str(ex))
 		time.sleep(2)
 
+
+
+
 # Function for getting wikipedia url from wikidata qid (from https://stackoverflow.com/a/60811917)
 def get_wikipedia_url_from_wikidata_id(wikidata_id, lang='en', debug=False):
 	#import requests
@@ -750,6 +777,9 @@ def get_wikipedia_url_from_wikidata_id(wikidata_id, lang='en', debug=False):
 					return wiki_urls
 	return None
 
+
+
+
 #remove claim
 def removeclaim(guid):
 	global token
@@ -772,7 +802,7 @@ def removeclaim(guid):
 				done = True
 			time.sleep(4)
 
-#remove claim
+#remove qualifier
 def removequali(guid, hash):
 	global token
 	done = False

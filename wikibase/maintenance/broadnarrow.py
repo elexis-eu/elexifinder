@@ -5,8 +5,10 @@ import csv
 from collections import OrderedDict
 from datetime import datetime
 import sys
+import os
 import sparql
 import json
+sys.path.insert(1, os.path.realpath(os.path.pardir))
 import lwb
 import config
 
@@ -85,5 +87,5 @@ for row in sparqlresults:
 	narstatement = item[2].replace("http://lexbib.elex.is/entity/statement/","")
 	broader_uri = item[3].replace("http://lexbib.elex.is/entity/","")
 	broader_label = item[4]
-	print('Removing orphaned narrower-rel: "'+broader_label+'" (skos:narrower) '"+narrower_label+'"...')
+	print('Removing orphaned narrower-rel: "'+broader_label+'" (skos:narrower) "'+narrower_label+'"...')
 	lwb.removeclaim(narstatement)
