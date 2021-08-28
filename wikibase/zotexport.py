@@ -301,10 +301,10 @@ for item in data:
 	if 'language' not in item:
 		print('This item has no language, fatal error: '+item['id'])
 		item['language'] = "en"
-	else:
-		if item['language'] == "nor":
-			item['language'] = "nbo" # "Norwegian (mixed) to Norwegian (Bokmal)"
+
 	itemlangiso3 = langmapping.getiso3(item['language'])
+	if itemlangiso3 == "nor":
+		itemlangiso3 = "nbo" # "Norwegian (mixed) to Norwegian (Bokmal)"
 	labellang = langmapping.getWikiLangCode(itemlangiso3)
 	itemlangqid = langmapping.getqidfromiso(itemlangiso3)
 	abslangqid = itemlangqid
@@ -348,9 +348,9 @@ for item in data:
 				# 	else:
 				# 		contqid = lwb.getqid("Q3", container)
 				# 	#lwb.itemclaim(contqid,"P5","Q12") # BibCollection Q12
-				# 	if contqid not in seen_containers:
-				# 		lwb.updateclaim(contqid,"P5","Q12","item") # BibCollection Q12
-				# 		seen_containers.append(contqid)
+				if v3container not in seen_containers:
+					lwb.updateclaim(v3container,"P5","Q12","item") # BibCollection Q12
+					seen_containers.append(v3container)
 
 				# # get container short title from contained item and write to container
 				# if item['type'] != "chapter" and "title-short" in item and item['title-short'] not in seen_titles:
