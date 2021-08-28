@@ -56,30 +56,51 @@ with open(config.datafolder+'logs/errorlog_'+infilename+'_'+time.strftime("%Y%m%
 					print('LexBibID is '+lexBibID)
 					if 'lexBibClass' in item and item['lexBibClass'].startswith("Q"):
 						classStatement = lwb.updateclaim(lexBibID,"P5",item['lexbibClass'],"item")
-					if '"property": "P12"' in str(item['creatorvals']):
-						skipeditors = True
-						print('This items has authors: any editor info skipped.')
-					else:
-						skipeditors = False
+					creatortype = item['creatorvals'][0]['property'] # assumes that only one creator type is passed by zotexport.property
+					#print('creator type is '+creatortype)
+					existingcreators = lwb.getclaims(lexBibID,creatortype)[1]
+					#print('existingcreators: '+str(existingcreators))
+					existinglistpos = []
+					if existingcreators and (creatortype in existingcreators):
+						for existingcreator in existingcreators:
+							if "qualifiers" in existingcreator and "P33" in existingcreator['qualifiers']:
+								print(str(existingcreator))
+								existinglistpos.append(existingcreator['qualifiers']["P33"][0]['datavalue']['value'])
+					print('existing creator listpos: '+str(existinglistpos))
 					for triple in item['creatorvals']:
-						if triple['property'] == "P13" and skipeditors == True:
-							continue
+						skipcreator = False
+						if triple['datatype'] == "novalue" and "Qualifiers" in triple:
+							for qualitriple in triple['Qualifiers']:
+								if qualitriple['property'] == "P33":
+									if qualitriple['value'] in existinglistpos:
+										print(qualitriple['value']+' creator listpos is already there, skipped.')
+										skipcreator = True
+								if qualitriple['property'] == "P38":
+									creatorliteral = qualitriple['value']
+							if skipcreator == False:
+								statement = lwb.updateclaim(lexBibID,triple['property'],creatorliteral,"novalue")
+
+						else:
+							statement = lwb.updateclaim(lexBibID,triple['property'],triple['value'],triple['datatype'])
+						if skipcreator == False and "Qualifiers" in triple:
+							for qualitriple in triple['Qualifiers']:
+								lwb.setqualifier(lexBibID,triple['property'],statement, qualitriple['property'], qualitriple['value'], qualitriple['datatype'])
+
+					for triple in item['propvals']:
 						if triple['datatype'] == "novalue" and "Qualifiers" in triple:
 							for qualitriple in triple['Qualifiers']:
 								if qualitriple['property'] == "P38":
-									statement = lwb.updateclaim(lexBibID,triple['property'],qualitriple['value'],"novalue")
-									break
+									sourceliteral = qualitriple['value']
+									statement = lwb.updateclaim(lexBibID,triple['property'],sourceliteral,"novalue")
+
 						else:
 							statement = lwb.updateclaim(lexBibID,triple['property'],triple['value'],triple['datatype'])
 						if "Qualifiers" in triple:
 							for qualitriple in triple['Qualifiers']:
 								lwb.setqualifier(lexBibID,triple['property'],statement, qualitriple['property'], qualitriple['value'], qualitriple['datatype'])
 
-					for triple in item['propvals']:
-						statement = lwb.updateclaim(lexBibID,triple['property'],triple['value'],triple['datatype'])
-						if "Qualifiers" in triple:
-							for qualitriple in triple['Qualifiers']:
-								lwb.setqualifier(lexBibID,triple['property'],statement, qualitriple['property'], qualitriple['value'], qualitriple['datatype'])
+
+
 
 				except Exception as ex:
 					traceback.print_exc()
