@@ -179,11 +179,14 @@ for diclang in langmapping.langcodemapping.keys():
 					break
 
 			equivs_iter = iter(translist)
-			status_translation.text = ("AUTOMATIC")
+
 			label = xml.SubElement(translation, 'label')
 			if len(translist) > 0:
 				label.text = next(equivs_iter).replace("_"," ") # take the first translation as preferred translation
+				status_translation.text = ("AUTOMATIC")
 				preflabels_count += 1
+			else:
+				status_translation.text = ("MISSING")
 			while True:
 				try:
 					altEquiv = next(equivs_iter).replace("_"," ")
@@ -192,8 +195,7 @@ for diclang in langmapping.langcodemapping.keys():
 				altlabel = xml.SubElement(translation, 'altlabel')
 				altlabel.text = altEquiv
 				altlabels_count += 1
-		else:
-			status_translation.text = ("MISSING")
+
 
 	tree_obj = xml.ElementTree(root)
 	with open('D:/LexBib/lexonomy/lexonomy_upload_'+diclang+'.xml', "w", encoding='utf-8') as file:
