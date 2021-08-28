@@ -4,6 +4,6 @@ Scripts for bibliodata migration from Zotero LexBib collection to LexBib RDF, an
 
 LexBib Zotero Group: https://www.zotero.org/groups/lexbib
 
-LexDo Ontology used in LexBib RDF: http://lexbib.org/lexdo
+LexBib wikibase : https://lexbib.elex.is
 
-Elexifinder user interface: http://er.elex.is
+Elexifinder user interface: http://finder.elex.is
