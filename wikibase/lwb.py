@@ -563,7 +563,7 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 			#print(str(claim['mainsnak']))
 			if claim['mainsnak']['snaktype'] == "value":
 				foundo = claim['mainsnak']['datavalue']['value']
-				if isinstance(foundo, dict) and 'id' in foundo: # foundo is a dict with "id" as key in case of datatype wikibaseItem
+				if isinstance(foundo, dict) and 'id' in foundo: # foundo is a {} with "id" as key in case of datatype wikibaseItem
 					#print(str(foundo))
 					foundo = foundo['id']
 			elif claim['mainsnak']['snaktype'] == "novalue":
@@ -595,7 +595,7 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 							print('Wb remove duplicate claim for '+s+' ('+p+') '+str(o)+': success.')
 							foundobjs.remove(foundo)
 					elif not returnvalue:
-						print('('+p+') is a max 1 prop. Will replace statement.')
+						print('('+p+') is a max 1 prop. Will write statement.')
 
 						while True:
 							try:
@@ -835,14 +835,16 @@ def load_propmapping():
 	PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
 	PREFIX lpr: <http://lexbib.elex.is/prop/reference/>
 
-	select ?order (REPLACE(str(?lwb_p), "http://lexbib.elex.is/entity/", "") as ?pid) ?datatype ?wdEquivProp (REPLACE(str(?range), "http://lexbib.elex.is/entity/", "") as ?p_range)
+	select ?order ?lexbib_prop ?propLabel ?datatype (uri(concat("http://www.wikidata.org/entity/",?wikidata_prop)) as ?wikidata)
+	       ?property_range
 	where {
-	  ?lwb_p rdf:type <http://wikiba.se/ontology#Property> ;
-	     <http://wikiba.se/ontology#propertyType> ?datatype .
-	  ?lwb_p ldp:P2 ?wdEquivProp.
-	  OPTIONAL {?lwb_p ldp:P48 ?range}
-	BIND (xsd:integer(REPLACE(str(?lwb_p), "http://lexbib.elex.is/entity/P", "")) as ?order )
-	} group by ?order ?lwb_p ?datatype ?wdEquivProp ?range order by ?order
+	  ?lexbib_prop rdf:type <http://wikiba.se/ontology#Property> ;
+	         <http://wikiba.se/ontology#propertyType> ?datatype ;
+	         rdfs:label ?propLabel . filter (lang(?propLabel)="en")
+	  OPTIONAL {{?lexbib_prop ldp:P2 ?wikidata_prop.}UNION{?lexbib_prop ldp:P95 ?super_prop. ?super_prop ldp:P2 ?wikidata_prop.}}
+	  OPTIONAL {?lexbib_prop ldp:P48 ?property_range.}
+	  BIND (xsd:integer(REPLACE(str(?lexbib_prop), "http://lexbib.elex.is/entity/P", "")) as ?order )
+	} group by ?order ?lexbib_prop ?propLabel ?datatype ?wikidata_prop ?property_range order by ?order
 	"""
 	print("Waiting for LexBib v3 SPARQL (load property mapping)...")
 	sparqlresults = sparql.query('https://lexbib.elex.is/query/sparql',query)
@@ -851,14 +853,14 @@ def load_propmapping():
 	propmapping = {}
 	for row in sparqlresults:
 		sparqlitem = sparql.unpack_row(row, convert=None, convert_type={})
-		pid = sparqlitem[1]
+		pid = sparqlitem[1].replace("http://lexbib.elex.is/entity/","")
 		propmapping[pid] = {}
-		if sparqlitem[2]:
-			propmapping[pid]['datatype'] = sparqlitem[2]
 		if sparqlitem[3]:
-			propmapping[pid]['wdid'] = sparqlitem[3]
-		if sparqlitem[3]:
-			propmapping[pid]['range'] = sparqlitem[4]
+			propmapping[pid]['datatype'] = sparqlitem[3].replace("http://wikiba.se/ontology#","")
+		if sparqlitem[4]:
+			propmapping[pid]['wdid'] = sparqlitem[4].replace("http://www.wikidata.org/entity/","")
+		if sparqlitem[5]:
+			propmapping[pid]['range'] = sparqlitem[5].replace("http://lexbib.elex.is/entity/","")
 		print(str(propmapping))
 	return propmapping
 
