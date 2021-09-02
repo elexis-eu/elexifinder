@@ -158,6 +158,8 @@ for item in bindings:
 			target['details']['collection']=collection
 			if collection in images:
 				target['images']=images[collection]
+			else:
+				target['images']="https://elex.is/wp-content/uploads/2021/03/elexis_logo_default.png"
 	#	if 'container' in item:
 	#		target['sourceUri'] = item['container']['value'] # replaced by containerFullTextUrl or containerUri
 		if 'containerFullTextUrl' in item:

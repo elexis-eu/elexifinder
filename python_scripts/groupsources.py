@@ -39,48 +39,48 @@ er_groupnames = {
 
 # this takes sparql query result (json-ld) from 'rdf2er/groupsquery.rq'
 with open('D:/LexBib/groupsources/query-result.srj', 'r', encoding="utf-8") as infile:
-    colldict = json.load(infile, encoding="utf-8")['results']['bindings']
-    print(str(colldict))
+	colldict = json.load(infile, encoding="utf-8")['results']['bindings']
+	print(str(colldict))
 result = {}
 result['sourceGroupToList'] = {}
 useduri = []
 for item in colldict:
-    zotcoll = int(item['coll']['value'])
-    zotcollname = zotero_collections[zotcoll]['name']
-    ercoll = zotero_collections[zotcoll]['group']
-    ercollname = er_groupnames[ercoll]
+	zotcoll = int(item['coll']['value'])
+	zotcollname = zotero_collections[zotcoll]['name']
+	ercoll = zotero_collections[zotcoll]['group']
+	ercollname = er_groupnames[ercoll]
 
-    if 'containerFullTextUrl' in item:
-        source = item['containerFullTextUrl']['value']
-    else:
-        if 'containerUri' in item:
-            source = item['containerUri']['value']
-        else:
-            source = ""
-    if 'containerShortTitle' in item:
-        title = item['containerShortTitle']['value']
-    else:
-        title = re.sub(r'https?://', '', source)
+	if 'containerFullTextUrl' in item:
+		source = item['containerFullTextUrl']['value']
+	else:
+		if 'containerUri' in item:
+			source = item['containerUri']['value']
+		else:
+			source = ""
+	if 'containerShortTitle' in item:
+		title = item['containerShortTitle']['value']
+	else:
+		title = re.sub(r'https?://', '', source)
 
-    if source != "" and source not in useduri:
-        sourcestring = source #title + ' <' + source + '>' // change: title is not wanted here
-        if 'general/'+str(ercoll) not in result['sourceGroupToList']:
-            result['sourceGroupToList']['general/'+str(ercoll)]=[sourcestring]
-            useduri.append(source)
-        else:
-            if sourcestring not in result['sourceGroupToList']['general/'+str(ercoll)]:
-                result['sourceGroupToList']['general/'+str(ercoll)].append(sourcestring)
-                useduri.append(source)
+	if source != "" and source not in useduri:
+		sourcestring = source #title + ' <' + source + '>' // change: title is not wanted here
+		if 'general/'+str(ercoll) not in result['sourceGroupToList']:
+			result['sourceGroupToList']['general/'+str(ercoll)]=[sourcestring]
+			useduri.append(source)
+		else:
+			if sourcestring not in result['sourceGroupToList']['general/'+str(ercoll)]:
+				result['sourceGroupToList']['general/'+str(ercoll)].append(sourcestring)
+				useduri.append(source)
 
 with open('D:/LexBib/groupsources/grouped_sources.json', 'w', encoding="utf-8") as outfile:
-    json.dump(result['sourceGroupToList'], outfile, ensure_ascii=False, indent=2)
+	json.dump(result['sourceGroupToList'], outfile, ensure_ascii=False, indent=2)
 
 
 
 result['sourceGroupToName'] = {}
 for coll in result['sourceGroupToList']:
-    ercollkey = int(coll.split('/')[1])
-    result['sourceGroupToName'][coll] = 'General/'+er_groupnames[ercollkey]
+	ercollkey = int(coll.split('/')[1])
+	result['sourceGroupToName'][coll] = 'General/'+er_groupnames[ercollkey]
 
 with open('D:/GitHub/elexifinder/rdf2er/elexifinder_groups.json', 'w', encoding="utf-8") as outfile:
-    json.dump(result, outfile, ensure_ascii=False, indent=2)
+	json.dump(result, outfile, ensure_ascii=False, indent=2)

@@ -37,16 +37,16 @@ graph.bind("lexterm", lexterm)
 
 for isocode in langdict:
 
-    langnode = URIRef(lexvo+isocode)
-    rootterm = URIRef(lexterm+'Term_Language')
-    scheme = URIRef(lexterm+'Scheme_Language')
-    graph.add((langnode, rdf.type, skos.Concept))
-    graph.add((langnode, skos.broader, rootterm))
-    graph.add((langnode, skos.inScheme, scheme))
+	langnode = URIRef(lexvo+isocode)
+	rootterm = URIRef(lexterm+'Term_Language')
+	scheme = URIRef(lexterm+'Scheme_Language')
+	graph.add((langnode, rdf.type, skos.Concept))
+	graph.add((langnode, skos.broader, rootterm))
+	graph.add((langnode, skos.inScheme, scheme))
 
-    for item in langdict[isocode]:
-        langname = Literal(item['label'], lang=item['labelLang'])
-        graph.add((langnode, skos.prefLabel, langname))
+	for item in langdict[isocode]:
+		langname = Literal(item['label'], lang=item['labelLang'])
+		graph.add((langnode, skos.prefLabel, langname))
 
 
 

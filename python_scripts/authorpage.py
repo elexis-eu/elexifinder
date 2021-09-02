@@ -84,7 +84,7 @@ for authoruri in authorlist:
         os.makedirs('D:/LexBib/persons/pages/'+author[2])
     authorfilename = 'D:/LexBib/persons/pages/'+author[2]+'/index.html'
     with open(authorfilename, 'w', encoding="utf-8") as authorfile:
-        authorfile.write('<html>\n<h1>LexBib author <i>'+author[2]+'</i> profile page, test version</h1>\n')
+        authorfile.write('<html><head><meta charset="UTF-8"></head>\n<h1>LexBib author <i>'+author[2]+'</i> profile page, test version</h1>\n')
         authorfile.write('<p>Author URI is <a href="'+str(authoruri)+'">'+str(authoruri)+'</a>.')
         authorfile.write('<h2>Most frequent name variant</h2>\n')
         preflabellist = g.objects(subject=authoruri, predicate=skosxl.prefLabel)
