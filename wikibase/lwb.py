@@ -10,6 +10,10 @@ import unidecode
 import sparql
 import logging
 from wikidataintegrator import wdi_core, wdi_login
+# import os
+# import sys
+# sys.path.insert(1, os.path.realpath(os.path.pardir))
+# from wikibase import config
 import config
 
 # Properties with constraint: max. 1 value
@@ -433,7 +437,9 @@ def setdescription(s, lang, val):
 				print('*** Oh, it seems that we have a hot candidate for merging here... Writing info to mergecandidates.log')
 				with open (config.datafolder+'logs/mergecandidates.log', 'a', encoding='utf-8') as mergecandfile:
 					mergecand = re.search(r'\[\[Item:(Q\d+)',str(ex)).group(1)
-					mergecandfile.write(s+' and '+mergecand+' : '+val+'\n')
+					duplilabel = re.search(r'already has label \"([\w \(\)&\.]+)\"',str(ex)).group(1)
+					mergecandjson = {'olditem':mergecand,'newitem':s,'duplilabel':duplilabel, 'description':value}
+					mergecandfile.write(json.dumps(mergecandjson)+'\n')
 				break
 			else:
 				print('Description set operation '+s+' ('+lang+') '+val+' failed, will try again...\n'+str(ex))
@@ -480,7 +486,7 @@ def getclaims(s, p):
 					continue
 
 
-			print('Getclaims operation failed, will try again...\n'+str(ex))
+			print('Getclaims operation for',s,p,' failed, will try again...\n'+str(ex))
 			time.sleep(4)
 
 #get claim from statement ID
@@ -698,7 +704,7 @@ def setqualifier(qid, prop, claimid, qualiprop, qualivalue, dtype):
 
 	except Exception as ex:
 		if 'The statement has already a qualifier' in str(ex):
-			print('**** The statement already has a ('+qualiprop+') '+qualivalue+' duplicate qualifier')
+			print('**** The statement already has a ('+qualiprop+') '+qualivalue+': skipped writing duplicate qualifier')
 			return False
 
 

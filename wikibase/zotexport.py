@@ -168,7 +168,7 @@ def define_uri(item):
 			if re.match(r'http://lexbib.elex.is/entity/(Q\d+)', zot_qid):
 				bibItemQid = re.match(r'http://lexbib.elex.is/entity/(Q\d+)', zot_qid).group(1)
 				legacy_qid = None
-				return bibItemQid
+				# return bibItemQid
 			elif re.match(r'^Q\d+', zot_qid):
 				legacy_qid = re.match('^Q\d+',zot_qid).group(0)
 				bibItemQid = lwb.getidfromlegid("Q3", legacy_qid)
@@ -177,7 +177,7 @@ def define_uri(item):
 			print('Abort after 5 failed attempts to get data from Zotero API.')
 			sys.exit()
 
-		#write to zotero
+		#write to zotero AN field
 
 		attempts = 0
 		while attempts < 5:
@@ -198,36 +198,61 @@ def define_uri(item):
 			print('Abort after 5 failed attempts.')
 			sys.exit()
 
-		# attach link to wikibase
-		attachment = [
-		{
-		"itemType": "attachment",
-		"parentItem": zotitemid,
-		"linkMode": "linked_url",
-		"title": "LexBib Linked Data",
-		"accessDate": "2021-08-08T00:00:00Z",
-		"url": "http://lexbib.elex.is/entity/"+bibItemQid,
-		"note": '<p>See this item as linked data at <a href="http://lexbib.elex.is/entity/'+bibItemQid+'">http://lexbib.elex.is/entity/'+bibItemQid+'</a>',
-		"tags": [],
-		"collections": [],
-		"relations": {},
-		"contentType": "",
-		"charset": ""
-		}
-		]
+		#check for presence of link attachment
 
-		r = requests.post('https://api.zotero.org/groups/1892855/items', headers={"Zotero-API-key":config.zotero_api_key, "Content-Type":"application/json"} , json=attachment)
+		attempts = 0
+		while attempts < 5:
+			attempts += 1
+			r = requests.get(zotapid+"/children")
+			if "200" in str(r):
+				zotitem = r.json()
+				print(zotitemid+': got zotitem attachment data')
+				break
+			if "400" or "404" in str(r):
+				print('*** Fatal error: Item '+zotitemid+' got '+str(r)+', does not exist on Zotero. Will skip.')
+				time.sleep(5)
+				break
+			print('Zotero API GET request failed ('+zotitemid+'), will repeat. Response was '+str(r))
+			time.sleep(2)
 
-		if "200" in str(r):
-			#print(r.json())
-			attkey = r.json()['successful']['0']['key']
-			linked_done[bibItemQid] = {"itemkey":zotitemid,"attkey":attkey}
-			with open(config.datafolder+'mappings/linkattachmentmappings.jsonl', 'a', encoding="utf-8") as jsonl_file:
-				jsonline = {"bibitem":bibItemQid,"itemkey":zotitemid,"attkey":attkey}
-				jsonl_file.write(json.dumps(jsonline)+'\n')
-			print('Zotero item link attachment successfully written and bibitem-attkey mapping stored; attachment key is '+attkey+'.')
-		else:
-			print('Failed writing link attachment to Zotero item '+zotitemid+'.')
+		if attempts < 5:
+			att_presence = None
+			for attachmnt in r.json():
+				if attachmnt['data']['title'] == "LexBib Linked Data":
+					att_presence = True
+					break
+
+		if not att_presence:
+			# attach link to wikibase
+			attachment = [
+			{
+			"itemType": "attachment",
+			"parentItem": zotitemid,
+			"linkMode": "linked_url",
+			"title": "LexBib Linked Data",
+			"accessDate": "2021-08-08T00:00:00Z",
+			"url": "http://lexbib.elex.is/entity/"+bibItemQid,
+			"note": '<p>See this item as linked data at <a href="http://lexbib.elex.is/entity/'+bibItemQid+'">http://lexbib.elex.is/entity/'+bibItemQid+'</a>',
+			"tags": [],
+			"collections": [],
+			"relations": {},
+			"contentType": "",
+			"charset": ""
+			}
+			]
+
+			r = requests.post('https://api.zotero.org/groups/1892855/items', headers={"Zotero-API-key":config.zotero_api_key, "Content-Type":"application/json"} , json=attachment)
+
+			if "200" in str(r):
+				#print(r.json())
+				attkey = r.json()['successful']['0']['key']
+				linked_done[bibItemQid] = {"itemkey":zotitemid,"attkey":attkey}
+				with open(config.datafolder+'mappings/linkattachmentmappings.jsonl', 'a', encoding="utf-8") as jsonl_file:
+					jsonline = {"bibitem":bibItemQid,"itemkey":zotitemid,"attkey":attkey}
+					jsonl_file.write(json.dumps(jsonline)+'\n')
+				print('Zotero item link attachment successfully written and bibitem-attkey mapping stored; attachment key is '+attkey+'.')
+			else:
+				print('Failed writing link attachment to Zotero item '+zotitemid+'.')
 	print('BibItemQid successfully defined: '+bibItemQid)
 	return bibItemQid
 
@@ -335,6 +360,8 @@ for item in data:
 				if re.match(r'^Q\d+', container):
 					v3container = re.search(r'^Q\d+', container).group(0)
 					propvals.append({"property":"P9","datatype":"item","value":v3container}) # container relation
+				else:
+					v3container = None
 				# else:
 				# 	if container.startswith('isbn:') or container.startswith('oclc:'):
 				# 		container = container.replace("-","")
@@ -348,7 +375,8 @@ for item in data:
 				# 	else:
 				# 		contqid = lwb.getqid("Q3", container)
 				# 	#lwb.itemclaim(contqid,"P5","Q12") # BibCollection Q12
-				if v3container not in seen_containers:
+				print('Container item is: '+str(v3container))
+				if v3container and (v3container not in seen_containers):
 					lwb.updateclaim(v3container,"P5","Q12","item") # BibCollection Q12
 					seen_containers.append(v3container)
 
@@ -549,9 +577,9 @@ for item in data:
 
 
 
-#print(str(json.dumps(lwb_data)))
-# with open(infile.replace('.json', '_lwb_import_data.json'), 'w', encoding="utf-8") as json_file: # path to result JSON file
-#	json.dump(lwb_data, json_file, indent=2)
+print(str(json.dumps(lwb_data)))
+with open(infile.replace('.json', '_lwb_import_data.json'), 'w', encoding="utf-8") as json_file: # path to result JSON file
+	json.dump(lwb_data, json_file, indent=2)
 print("\n=============================================\nCreated processed JSON file "+infile.replace('.json', '_lwb_import_data.json')+". Finished.")
 print("Now you probably will run bibimport, update placemapping, grobidupload\n")
 print('New places:')

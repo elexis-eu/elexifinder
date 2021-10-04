@@ -15,9 +15,9 @@ try:
 except:
 	donelist = []
 
-print('Will now get a list of all bibitems that are not reviews nor community comms nor event reports nor videos.')
+print('Will now get a list of all bibitems that have disambiguated creators, that are not reviews nor community comms nor event reports nor videos, and their description (if present)...')
 
-url = "https://lexbib.elex.is/query/sparql?format=json&query=PREFIX%20lwb%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fentity%2F%3E%0APREFIX%20ldp%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fdirect%2F%3E%0APREFIX%20lp%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2F%3E%0APREFIX%20lps%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fstatement%2F%3E%0APREFIX%20lpq%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fqualifier%2F%3E%0APREFIX%20lpr%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Freference%2F%3E%0APREFIX%20lno%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fnovalue%2F%3E%0A%0Aselect%20distinct%20%3FbibItem%20where%0A%7B%20%3FbibItem%20ldp%3AP5%20lwb%3AQ3.%0A%20filter%20not%20exists%20%7B%3FbibItem%20ldp%3AP5%20lwb%3AQ15.%7D%20%23%20no%20reviews%0A%20filter%20not%20exists%20%7B%3FbibItem%20ldp%3AP5%20lwb%3AQ26.%7D%20%23%20no%20community%20communications%0A%20filter%20not%20exists%20%7B%3FbibItem%20ldp%3AP5%20lwb%3AQ46.%7D%20%23%20no%20event%20reports%0A%20filter%20not%20exists%20%7B%3FbibItem%20ldp%3AP100%20lwb%3AQ30.%7D%20%23%20no%20videos%0A%20%0A%20%20%7D"
+url = "https://lexbib.elex.is/query/sparql?format=json&query=PREFIX%20lwb%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fentity%2F%3E%0APREFIX%20ldp%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fdirect%2F%3E%0APREFIX%20lp%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2F%3E%0APREFIX%20lps%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fstatement%2F%3E%0APREFIX%20lpq%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fqualifier%2F%3E%0APREFIX%20lpr%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Freference%2F%3E%0APREFIX%20lno%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fnovalue%2F%3E%0A%0Aselect%20distinct%20%3FbibItem%20%3Fdesc%20where%0A%7B%20%3FbibItem%20ldp%3AP5%20lwb%3AQ3%3B%0A%20%20%20%20%20%20%20%20%20%20%20ldp%3AP12%7Cldp%3AP13%20%3Fcreator.%0A%20OPTIONAL%7B%3FbibItem%20schema%3Adescription%20%3Fdesc.%20filter%28lang%28%3Fdesc%29%3D%22en%22%29%7D%0A%20filter%20not%20exists%20%7B%3FbibItem%20ldp%3AP5%20lwb%3AQ15.%7D%20%23%20no%20reviews%0A%20filter%20not%20exists%20%7B%3FbibItem%20ldp%3AP5%20lwb%3AQ26.%7D%20%23%20no%20community%20communications%0A%20filter%20not%20exists%20%7B%3FbibItem%20ldp%3AP5%20lwb%3AQ46.%7D%20%23%20no%20event%20reports%0A%20filter%20not%20exists%20%7B%3FbibItem%20ldp%3AP100%20lwb%3AQ30.%7D%20%23%20no%20videos%0A%20%0A%20%20%7D"
 done = False
 while (not done):
 	try:
@@ -38,6 +38,13 @@ for item in bindings:
 	count +=1
 	lwbitem = item['bibItem']['value'].replace("http://lexbib.elex.is/entity/","")
 	print('\nWill now process ['+str(count)+']: '+lwbitem)
+	if 'desc' in item:
+		desc = item['desc']['value']
+		if desc.startswith("Publication by"):
+			print('This item is already done.')
+			with open(config.datafolder+'/logs/bibitemdesc_doneitems.txt', 'a') as donelistfile:
+				donelistfile.write(lwbitem+'\n')
+				continue
 	if lwbitem in donelist:
 		print('Item appears in donelist, skipped.')
 		continue
@@ -54,7 +61,7 @@ for item in bindings:
 			time.sleep(2)
 			continue
 		done = True
-	#print(str(bindings))
+	print(str(itembindings))
 
 	if len(itembindings) != 1:
 		print('Error, should have got one result, got '+str(len(itembindings)))
@@ -83,6 +90,9 @@ for item in bindings:
 	# set description from authors, year
 
 	print(str(creators))
+	if len(creators) == 0:
+		print('This item has no P12|P13 creator, skipped.')
+		continue
 	if len(creators) > 3:
 		for creator in creators:
 			if int(creator['listpos']) == 1:

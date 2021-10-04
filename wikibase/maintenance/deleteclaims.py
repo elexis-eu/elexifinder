@@ -6,7 +6,7 @@ import lwb
 import config
 
 
-with open(config.datafolder+'newwikibase/delp4041.csv', 'r', encoding="utf-8") as csvfile:
+with open(config.datafolder+'newwikibase/deltmp.csv', 'r', encoding="utf-8") as csvfile:
 	dellist = csv.DictReader(csvfile)
 
 	count = 0

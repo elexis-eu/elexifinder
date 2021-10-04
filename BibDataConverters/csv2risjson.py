@@ -3,8 +3,8 @@ import re
 import json
 import csv
 
-with open('D:/Lab_LexBib/Euralex2021/titles.csv', encoding="utf-8") as csvfile: # source file
-    csvrows = csv.reader(csvfile, delimiter="\t")
+with open('D:/Lab_LexBib/elex-2021/procs.csv', encoding="utf-8") as csvfile: # source file
+    csvrows = csv.reader(csvfile, delimiter=",")
     csvkeys = next(csvrows)
     print(csvkeys)
     csvjson = []
@@ -23,5 +23,5 @@ with open('D:/Lab_LexBib/Euralex2021/titles.csv', encoding="utf-8") as csvfile: 
         csvjson.append(itemdict)
 print(csvjson)
 
-with open('D:/Lab_LexBib/Euralex2021/titles.json', 'w', encoding="utf-8") as json_file: # result file
+with open('D:/Lab_LexBib/elex-2021/procs.json', 'w', encoding="utf-8") as json_file: # result file
 	json.dump(csvjson, json_file, ensure_ascii=False, indent=2)

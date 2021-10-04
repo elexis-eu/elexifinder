@@ -1,0 +1,29 @@
+PREFIX lwb: <http://lexbib.elex.is/entity/>
+PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
+PREFIX lp: <http://lexbib.elex.is/prop/>
+PREFIX lps: <http://lexbib.elex.is/prop/statement/>
+PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
+PREFIX lpr: <http://lexbib.elex.is/prop/reference/>
+PREFIX lno: <http://lexbib.elex.is/prop/novalue/>
+
+select ?Term ?enPrefLabel (group_concat(?enAltLabel;SEPARATOR=";") as ?enAltLabels) ?corpus_hits ?source ?sent2lexonomy
+
+where {
+#   ?Term ldp:P5 lwb:Q7;
+#   rdfs:label ?enPrefLabel. filter(lang(?enPrefLabel)="en")
+#  { ?Term ldp:P72* lwb:Q1 .} # present in narrower-broader-tree with "Lexicography" as root node
+#    UNION
+#  { ?Term ldp:P77 ?closeMatch. ?closeMatch ldp:P72* lwb:Q1 . } # includes closeMatch items without own broader-rels
+#
+#  OPTIONAL { ?Term skos:altLabel ?enAltLabel.
+#             filter(lang(?enAltLabel)="en") }
+ ?Term lp:P109 ?corpus_hits_st;
+       rdfs:label ?enPrefLabel. filter(lang(?enPrefLabel)="en")
+  ?corpus_hits_st lps:P109 ?corpus_hits;
+                  lpq:P84 ?source . filter(?source="LexBib Oct 2021").
+ OPTIONAL { ?Term skos:altLabel ?enAltLabel.
+            filter(lang(?enAltLabel)="en") }
+  OPTIONAL{ ?Term ldp:P117 ?sent2lexonomy .}
+
+  } group by ?Term ?enPrefLabel ?corpus_hits ?source ?sent2lexonomy
+    order by DESC (xsd:integer(?corpus_hits))

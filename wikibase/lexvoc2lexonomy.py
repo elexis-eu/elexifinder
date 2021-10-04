@@ -44,7 +44,7 @@ print ('\nSKOS relations loaded from saved query result.\n')
 
 # build xml
 
-with open('D:/LexBib/bodytxt/termstats.json', encoding="utf-8") as f:
+with open('D:/LexBib/bodytxt/termstats_last.json', encoding="utf-8") as f:
 	termstats =  json.load(f, encoding="utf-8")
 
 transdir = config.datafolder+'babelnet'

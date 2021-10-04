@@ -1,5 +1,7 @@
-import time
 import sys
+import os
+sys.path.insert(1, os.path.realpath(os.path.pardir))
+import time
 import json
 import requests
 import csv
@@ -14,11 +16,11 @@ for iso3lang in langmapping.langcodemapping: # gets LexVoc elexis languages
 	allowed_languages.append(langmapping.getWikiLangCode(iso3lang))
 print(str(allowed_languages))
 
-with open(config.datafolder+'languages/v3langqids.txt', 'r') as infile:
+with open(config.datafolder+'terms/terms_wdqids.txt', 'r') as infile:
 	items_to_update = infile.read().split('\n')
 print('\n'+str(len(items_to_update))+' items will be updated.')
 
-with open(config.datafolder+'languages/v3langqids_labels_done.txt', 'r') as donefile:
+with open(config.datafolder+'terms/terms_wdqids_done.txt', 'r') as donefile:
 	done_items = donefile.read().split('\n')
 
 itemcount = 0
@@ -51,5 +53,5 @@ for lwbqid in items_to_update:
 			time.sleep(4)
 
 	itemcount += 1
-	with open(config.datafolder+'languages/v3langqids_labels_done.txt', 'a') as outfile:
+	with open(config.datafolder+'terms/terms_wdqids_done.txt', 'a') as outfile:
 		outfile.write(lwbqid+'\n')

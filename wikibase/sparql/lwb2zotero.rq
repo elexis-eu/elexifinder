@@ -1,0 +1,17 @@
+PREFIX lwb: <http://lexbib.elex.is/entity/>
+PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
+PREFIX lp: <http://lexbib.elex.is/prop/>
+PREFIX lps: <http://lexbib.elex.is/prop/statement/>
+PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
+PREFIX lpr: <http://lexbib.elex.is/prop/reference/>
+
+select ?AN (YEAR(?date) as ?PY) ?TI (STRBEFORE(?pg,"-") as ?SP) (STRAFTER(?pg,"-") as ?EP) ?pdf where
+{ ?AN ldp:P5 lwb:Q3; # Q3: BibItem
+       ldp:P36 lwb:Q15736; # elex-2021
+       ldp:P6 ?TI;
+       ldp:P15 ?date;
+       ldp:P24 ?pg;
+       ldp:P21 ?pdf .
+
+
+}# group by ?AN ?PY ?title
