@@ -2,24 +2,35 @@
 # These term labels are very ambiguous and bound to produce many false positives
 # (at the moment, English only)
 
-stopterms = [
-"quote",
-"label",
-"survey",
-"example",
-"article",
-"entry",
-"stop",
-"voiced",
-"tap",
-"back",
-"central",
-"front",
-"high",
-"low",
-"mid",
-"noun",
-"filter",
-"closed",
-"compressed"
-]
+
+stopterms = """example
+case
+aspect
+survey
+voice
+filter
+article
+entry
+number
+context
+usage
+translation
+customization
+innovative feature
+several number
+design
+access
+frequency
+label
+style
+variant
+register
+illustration
+device
+interface
+dual
+clarity""".split('\n')
+
+
+print('\nWill load stopterms:')
+print(str(stopterms)+'\n')
