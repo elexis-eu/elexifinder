@@ -6,11 +6,14 @@ import os
 import csv
 from collections import OrderedDict
 from datetime import datetime
-import sys
 import sparql
 from flashtext import KeywordProcessor
 keyword_processor = KeywordProcessor()
 import requests
+import sys
+import os
+sys.path.insert(1, os.path.realpath(os.path.pardir))
+
 #
 import nlp
 import config
@@ -32,10 +35,16 @@ PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
 select distinct (strafter(str(?concepturi),"http://lexbib.elex.is/entity/") as ?concept) ?termLabel where {
   ?concepturi ldp:P5 lwb:Q7 .
  { ?concepturi ldp:P72* lwb:Q1 .} # present in narrower-broader-tree with "Lexicography" as root node
-   UNION
+  UNION
  {?concepturi ldp:P77 ?closeMatch. ?closeMatch ldp:P72* lwb:Q1 . } # includes closeMatch items without own broader-rels
   ?concepturi rdfs:label|skos:altLabel ?termLabel . FILTER (lang(?termLabel)="en")
 } ORDER BY ?concept
+
+# select distinct (strafter(str(?concepturi),"http://lexbib.elex.is/entity/") as ?concept) ?termLabel where {
+#
+#   ?concepturi ldp:P74 lwb:Q15469 . # part of "lexinfo 3.0"
+#   ?concepturi rdfs:label|skos:altLabel ?termLabel . FILTER (lang(?termLabel)="en")
+# } ORDER BY ?concept
 
 """
 print(query)
@@ -44,7 +53,7 @@ url = "https://lexbib.elex.is/query/sparql"
 print("Waiting for SPARQL...")
 sparqlresults = sparql.query(url,query)
 print('\nGot list of valid vocab items and labels from LexBib SPARQL.')
-
+print('Now feeding KeywordProcessor...')
 #go through sparqlresults
 # build dict for keyword processor
 rowindex = 0
@@ -155,7 +164,9 @@ for row in sparqlresults:
 
 	print('This lemcleantext ['+str(cleantext[1])+' tokens] contains '+str(len(foundterms[bibItem]))+' term candidates.')
 
-with open(config.datafolder+'bodytxt/foundterms.json', 'w', encoding="utf-8") as json_file: # path to result JSON file
+with open(config.datafolder+'bodytxt/foundterms_'+time.strftime("%Y%m%d-%H%M%S")+'.json', 'w', encoding="utf-8") as json_file: # path to result JSON file
 	json.dump(foundterms, json_file, indent=2)
-with open(config.datafolder+'bodytxt/termstats.json', 'w', encoding="utf-8") as json_file: # path to result JSON file
+with open(config.datafolder+'bodytxt/termstats_'+time.strftime("%Y%m%d-%H%M%S")+'.json', 'w', encoding="utf-8") as json_file: # path to result JSON file
+	json.dump(termstats, json_file, indent=2)
+with open(config.datafolder+'bodytxt/termstats_last.json', 'w', encoding="utf-8") as json_file: # path to result JSON file
 	json.dump(termstats, json_file, indent=2)
