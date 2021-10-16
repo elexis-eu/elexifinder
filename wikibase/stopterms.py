@@ -24,11 +24,14 @@ frequency
 label
 style
 variant
+size
 register
 illustration
 device
 interface
 dual
+modal
+particle
 clarity""".split('\n')
 
 
