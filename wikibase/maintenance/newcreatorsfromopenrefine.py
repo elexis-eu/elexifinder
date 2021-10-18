@@ -45,15 +45,16 @@ with open(infile, encoding="utf-8") as f:
 				print('This is a new name variant for '+creatorqid+': '+item['fullName'])
 				lwb.setlabel(creatorqid,"en",item['fullName'],type="alias")
 		else: # crate a new person item and write it to creatorstatement
-			if item['FullName'] not in newcreators:
+			if item['fullName'].strip() not in newcreators:
 				print('Will create new person item for '+item['fullName'])
-				creatorqid = lwb.newitemwithlabel("Q5","en",item['fullName'])
-				lwb.stringclaim(creatorqid,"P101",item['givenName'])
-				lwb.stringclaim(creatorqid,"P102",item['lastName'])
-				lwb.setlabel(creatorqid,"en",item['lastName']+", "+item['givenName'], type="alias")
+				creatorqid = lwb.newitemwithlabel("Q5","en",item['fullName'].strip())
+				lwb.stringclaim(creatorqid,"P101",item['firstName'].strip())
+				lwb.stringclaim(creatorqid,"P102",item['lastName'].strip())
+				lwb.setlabel(creatorqid,"en",item['lastName'].strip()+", "+item['firstName'].strip(), type="alias")
+				newcreators[item['fullName'].strip()] = creatorqid
 			else:
-				print('A person item for this fullName has been created before in this iteration of the script and will be re-used: '+item['fullName'])
-				creatorqid = newcreators[item['FullName']]
+				creatorqid = newcreators[item['fullName'].strip()]
+				print('A person item for this fullName has been created before in this iteration of the script and will be re-used: '+item['fullName']+': '+creatorqid)
 			lwb.setclaimvalue(creatorstatement, creatorqid, "item")
 		count +=1
 		time.sleep(1)

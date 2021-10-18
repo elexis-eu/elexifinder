@@ -32,7 +32,13 @@ for item in changed_items:
 	if attempts < 5:
 		version = zotitem['version']
 		tags = zotitem['data']['tags']
-		print(str(zotitem))
+		print(str(zotitem['data']['creators']))
 	else:
 		print('Abort after 5 failed attempts to get data from Zotero API.')
 		sys.exit()
+
+	authorclaims = lwb.getclaims(item['qid'],"P12")
+	newauthors = {}
+	for claim in authorclaims[1]["P12"]:
+		guid = claim['id']
+		authoritem = claim['datavalue']['value']['id']

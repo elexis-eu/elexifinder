@@ -12,8 +12,8 @@ select *
 where {
   ?bibItem lp:P12|lp:P13 ?creatorstatement .
   ?creatorstatement lpq:P33 ?listpos ;
-                    lpq:P38 ?fullName ;
-                    lpq:P40 ?givenName ;
-                    lpq:P41 ?lastName .
+                    lpq:P38 ?fullName .
+optional {?creatorstatement lpq:P40 ?givenName.}
+optional {?creatorstatement lpq:P41 ?lastName .}
   filter not exists {?creatorstatement lps:P12|lps:P13 ?creatoritem.}
   } 

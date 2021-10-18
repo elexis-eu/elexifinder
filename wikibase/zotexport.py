@@ -118,7 +118,7 @@ def define_uri(item):
 
 	if not bibItemQid:	# set up new item
 		print('No Qid found for "'+item['title']+'", will create new item.')
-		bibItemQid = lwb.newitemwithlabel("Q3", "en", item['title'])
+		bibItemQid = lwb.newitemwithlabel([], "en", item['title'])
 
 	# # check if this zotId exists on LWB
 	# url = "https://data.lexbib.org/query/sparql?format=json&query=PREFIX%20ldp%3A%20%3Chttp%3A%2F%2Fdata.lexbib.org%2Fprop%2Fdirect%2F%3E%0Aselect%20%3Fqid%20where%0A%7B%3Fqid%20ldp%3AP16%20%3Chttp%3A%2F%2Flexbib.org%2Fzotero%2F"+zotitemid+"%3E.%20%7D"
@@ -300,7 +300,8 @@ itemcount = 0
 for item in data:
 	print("\nItem ["+str(itemcount+1)+"] of "+str(data_length)+": "+item['title'])
 
-	lexbibClass = ""
+	lexbibClass = "Q3" # default class Q3
+	p100set = None
 	bibItemQid = define_uri(item)
 
 	if bibItemQid in done_items:
@@ -393,11 +394,12 @@ for item in data:
 					propvals.append({"property":"P5","datatype":"item","value":"Q25"})
 				elif type == "Proceedings":
 					propvals.append({"property":"P5","datatype":"item","value":"Q18"})
-				elif type == "Dictionary":
+				elif type == "DictionaryDistribution":
 					propvals.append({"property":"P5","datatype":"item","value":"Q24"}) # LCR distribution
-				elif type == "Software":
-					lexbibClass = "Q13" # this will override item type "book"
-					#propvals.append({"property":"P5","datatype":"item","value":"Q13"})
+				elif type == "e-Dict":
+					#lexbibClass = "Q13" # this overrides "Q3"
+					p100set = True # this overrides "book" (Zotero type computer program is mapped to book)
+					propvals.append({"property":"P100","datatype":"item","value":"Q13"})
 				elif type == "Community":
 					propvals.append({"property":"P5","datatype":"item","value":"Q26"})
 
@@ -411,7 +413,7 @@ for item in data:
 				abslangqid = langmapping.getqidfromiso(abslangiso3)
 
 	### bibitem type mapping
-	if "type" in item and lexbibClass == "": # setting lexbibClass before overrides this bibItem type P100 setting
+	if "type" in item and lexbibClass == "Q3" and (not p100set): # setting lexbibClass to something else before overrides this bibItem type P100 setting; p100set=True skips type setting
 		if item['type'] == "paper-conference":
 			propvals.append({"property":"P100","datatype":"item","value":"Q27"})
 		elif item['type'] == "article-journal":
@@ -570,17 +572,26 @@ for item in data:
 		else:
 			print('Found NO authorloc wppage.')
 
+		oclc_re = re.search(r'OCLC: (\d+)',item['extra'])
+		if oclc_re:
+			oclc = oclc_re.group(1)
+			propvals.append({"property":"P62","datatype":"string","value":oclc})
+			print('Found OCLC in EXTRA field.')
+		else:
+			print('No OCLC found.')
+
+
 	with open(outfilename, 'a', encoding="utf-8") as outfile:
-		outfile.write(json.dumps({"lexBibID":bibItemQid,"lexbibLegacyID":legacy_qid,"creatorvals":creatorvals,"propvals":propvals})+'\n')
+		outfile.write(json.dumps({"lexBibID":bibItemQid,"lexBibClass":lexbibClass,"creatorvals":creatorvals,"propvals":propvals})+'\n')
 	print('Triples successfully defined.')
 	itemcount += 1
 
 
 
 print(str(json.dumps(lwb_data)))
-with open(infile.replace('.json', '_lwb_import_data.json'), 'w', encoding="utf-8") as json_file: # path to result JSON file
-	json.dump(lwb_data, json_file, indent=2)
-print("\n=============================================\nCreated processed JSON file "+infile.replace('.json', '_lwb_import_data.json')+". Finished.")
+# with open(infile.replace('.json', '_lwb_import_data.json'), 'w', encoding="utf-8") as json_file: # path to result JSON file
+# 	json.dump(lwb_data, json_file, indent=2)
+print("\n=============================================\nFinished. "+infile.replace('.json', '_lwb_import_data.jsonl')+". Finished.")
 print("Now you probably will run bibimport, update placemapping, grobidupload\n")
 print('New places:')
 print(str(new_places))

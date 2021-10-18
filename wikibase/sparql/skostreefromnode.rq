@@ -1,0 +1,42 @@
+#defaultView:Graph
+# SKOS Tree with specified root node.
+# P72 broader, P73 narrower, P77 closeMatch
+PREFIX lwb: <http://lexbib.elex.is/entity/>
+PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
+PREFIX lp: <http://lexbib.elex.is/prop/>
+PREFIX lps: <http://lexbib.elex.is/prop/statement/>
+PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
+PREFIX lpr: <http://lexbib.elex.is/prop/reference/>
+PREFIX lno: <http://lexbib.elex.is/prop/novalue/>
+
+select ?s ?sLabel ?rgb ?edgeLabel ?o ?oLabel (xsd:integer(?count) as ?corpus) where {
+
+  BIND (lwb:Q14284 as ?root) # specify root node for the representation here, e.g. "lwb:Q1" for "Lexicography"
+
+  ?o ldp:P5 lwb:Q7 ; ldp:P72* ?root ; rdfs:label ?oLabel . FILTER (lang(?oLabel)="en")
+  {?s ldp:P5 lwb:Q7 ; ldp:P72* ?root .} UNION {?s ldp:P77 ?o.}
+  ?s rdfs:label ?sLabel . FILTER (lang(?sLabel)="en")
+  ?s ?p ?o .
+  filter (?p = ldp:P73 || ?p = ldp:P77) # skos:narrower / skos:closeMatch
+  ?edge wikibase:directClaim ?p ; rdfs:label ?edgeLabel .
+ # OPTIONAL {?s lp:P109 ?countstatement . ?countstatement lps:P109 ?count; lpq:P84 "LexBib Oct 2021 stopterms" . }
+
+  # distance from root node "Lexicography" (number of broader concepts)
+  { select ?s (count (?broader) as ?distance) where {
+      OPTIONAL {?s ldp:P72+ ?broader . }} GROUP BY ?s ?distance }
+
+  # colouring
+  BIND (
+  COALESCE(
+    IF(?s = ?root , "0000CC", 1/0),
+    IF(?p = ldp:P77, "CCFF99", 1/0),
+    IF(?p = ldp:P5, "CCFFE5", 1/0),
+    IF(str(?distance)="1" , "FF9999", 1/0),
+    IF(str(?distance)="2" , "FFB266", 1/0),
+    IF(str(?distance)="3" , "FFFF99", 1/0),
+    IF(str(?distance)="4" , "CCFF99", 1/0),
+    IF(str(?distance)="5" , "CCFFE5", 1/0),
+    "FFFF99"
+  ) AS ?rgb
+)
+  } GROUP BY ?s ?sLabel ?distance ?rgb ?edgeLabel ?o ?oLabel ?count

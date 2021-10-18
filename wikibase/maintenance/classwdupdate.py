@@ -12,7 +12,7 @@ sys.path.insert(1, os.path.realpath(os.path.pardir))
 import lwb
 import config
 
-classes_to_update = ["Q6", "Q34"]
+classes_to_update = ["Q8"]
 
 with open(config.datafolder+"mappings/classes_props_schema.csv", "r", encoding="utf-8") as schemacsv:
 	schema = csv.DictReader(schemacsv, delimiter=",")
@@ -143,7 +143,7 @@ for c in schemadict:
 			for row in sparqlresults:
 				sparqlitem = sparql.unpack_row(row, convert=None, convert_type={})
 				classmembers_to_update.append({"lwbid":sparqlitem[0],"wdid":sparqlitem[1]})
-			print('Class '+c+' has '+str(len(classmembers_to_update))+' members with wdid P2 and prop '+prop+' set.')
+			print('Class '+c+' has '+str(len(classmembers_to_update))+' members with wdid P2 value, and with no '+prop+' statement asserted.')
 
 			itemcount = 1
 			for item in classmembers_to_update:

@@ -33,7 +33,7 @@ def wdi_setup():
 	wdilogin = wdi_login.WDLogin(config.lwbuser, lwbbotpass, mediawiki_api_url=mediawiki_api_url)
 	lwbEngine = wdi_core.WDItemEngine.wikibase_item_engine_factory(mediawiki_api_url, sparql_endpoint_url)
 	print('Logged into WDI.')
-wdi_setup = wdi_setup()
+wdi_setup = None # If WDI is needed, login is done.
 
 # LexBib wikibase OAuth for mwclient
 with open(config.datafolder+'wikibase/'+config.lwbuser+'_pwd.txt', 'r', encoding='utf-8') as pwdfile:
@@ -377,7 +377,7 @@ def stringclaim(s, p, o):
 	return claimId
 
 #create string (or url) claim
-def setlabel(s, lang, val, type="label"):
+def setlabel(s, lang, val, type="label", set=False):
 	global token
 
 	done = False
@@ -388,8 +388,10 @@ def setlabel(s, lang, val, type="label"):
 		try:
 			if type == "label":
 				request = site.post('wbsetlabel', id=s, language=lang, value=value, token=token, bot=1)
-			elif type == "alias":
+			elif type == "alias" and set == False:
 				request = site.post('wbsetaliases', id=s, language=lang, add=value, token=token, bot=1)
+			elif type == "alias" and set == True:
+				request = site.post('wbsetaliases', id=s, language=lang, set=value, token=token, bot=1)
 			if request['success'] == 1:
 				print('Label creation done: '+s+' ('+lang+') '+val+', type: '+type)
 				return True
@@ -437,7 +439,7 @@ def setdescription(s, lang, val):
 				print('*** Oh, it seems that we have a hot candidate for merging here... Writing info to mergecandidates.log')
 				with open (config.datafolder+'logs/mergecandidates.log', 'a', encoding='utf-8') as mergecandfile:
 					mergecand = re.search(r'\[\[Item:(Q\d+)',str(ex)).group(1)
-					duplilabel = re.search(r'already has label \"([\w \(\)&\.]+)\"',str(ex)).group(1)
+					duplilabel = re.search(r'already has label \"([^\"]+)\"',str(ex)).group(1)
 					mergecandjson = {'olditem':mergecand,'newitem':s,'duplilabel':duplilabel, 'description':value}
 					mergecandfile.write(json.dumps(mergecandjson)+'\n')
 				break
@@ -452,6 +454,10 @@ def setdescription(s, lang, val):
 
 #get claims from qid
 def getclaims(s, p):
+
+# returns subject and response to wbgetclaim api quera, example:
+# https://lexbib.elex.is/wiki/Special:ApiSandbox#action=wbgetclaims&format=json&entity=Q14680&property=P72
+
 	done = False
 	while (not done):
 		#print('will try to get claims now for '+s)
@@ -468,7 +474,7 @@ def getclaims(s, p):
 			if 'unresolved-redirect' in str(ex):
 
 				#get redirect target
-				url = "https://lexbib.elex.is/query/sparql?format=json&query=PREFIX%20lwb%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fentity%2F%3E%0APREFIX%20ldp%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fdirect%2F%3E%0APREFIX%20lp%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2F%3E%0APREFIX%20lps%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fstatement%2F%3E%0APREFIX%20lpq%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fqualifier%2F%3E%0A%0Aselect%20%28strafter%28str%28%3Fredirect%29%2C%22http%3A%2F%2Flexbib.elex.is%2Fentity%2F%22%29%20as%20%3Frqid%29%20where%0A%7Blwb%3AQ2874%20owl%3AsameAs%20%3Fredirect.%7D%0A%20%20%0A"
+				url = "https://lexbib.elex.is/query/sparql?format=json&query=PREFIX%20lwb%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fentity%2F%3E%0APREFIX%20ldp%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fdirect%2F%3E%0APREFIX%20lp%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2F%3E%0APREFIX%20lps%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fstatement%2F%3E%0APREFIX%20lpq%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fqualifier%2F%3E%0A%0Aselect%20%28strafter%28str%28%3Fredirect%29%2C%22http%3A%2F%2Flexbib.elex.is%2Fentity%2F%22%29%20as%20%3Frqid%29%20where%0A%7Blwb%3A"+s+"%20owl%3AsameAs%20%3Fredirect.%7D%0A%20%20%0A"
 				subdone = False
 				while (not subdone):
 					try:
@@ -510,7 +516,11 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 	returnvalue = None
 	language = None
 	if dtype == "time":
+		global wdi_setup
+		if not wdi_setup:
+			wdi_setup = wdi_setup()
 		data=[(wdi_core.WDTime(o['time'], prop_nr=p, precision=o['precision']))]
+		#print(str(data))
 		attempts = 1
 		done = False
 		while attempts < 5 and done == False:
@@ -518,7 +528,6 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 				item = lwbEngine(wd_item_id=s, data=data)
 			except Exception as ex:
 				if 'badtoken' in str(ex):
-					global wdi_setup
 					wdi_setup = wdi_setup()
 					attempt += 1
 					continue
@@ -690,7 +699,43 @@ def setqualifier(qid, prop, claimid, qualiprop, qualivalue, dtype):
 		qualivalue = '"'+qualivalue.replace('"', '\\"')+'"'
 	elif dtype == "item" or dtype =="wikibase-entityid":
 		qualivalue = json.dumps({"entity-type":"item","numeric-id":int(qualivalue.replace("Q",""))})
+	if qualiprop in config.max1props:
+		print('Detected max1prop as qualifier.')
+		existingclaims = getclaims(qid,prop)
+		#print(str(existingclaims))
+		qid = existingclaims[0]
+		existingclaims = existingclaims[1]
+		if prop in existingclaims:
+			for claim in existingclaims[prop]:
+				if claim['id'] != claimid:
+					continue
+				if "qualifiers" in claim:
+					if qualiprop in claim['qualifiers']:
+						print('Found an existing type max1 qualifier for that claim.')
+						for quali in claim['qualifiers'][qualiprop]:
+							existingqualihash = quali['hash']
+							existingqualivalue = quali['datavalue']['value']
+							if existingqualivalue == qualivalue:
+								print('Found duplicate value for max1quali. Skipped.')
+								return False
+							else:
+								print('New value to be written to existing max1 type qualifier.')
+								try:
+									while True:
+										setqualifier = site.post('wbsetqualifier', token=token, claim=claimid, snakhash=existingqualihash, property=qualiprop, snaktype="value", value=qualivalue, bot=1)
+										# always set!!
+										if setqualifier['success'] == 1:
+											print('Qualifier set ('+qualiprop+') '+qualivalue+': success.')
+											return True
+										print('Qualifier set failed, will try again...')
+										logging.error('Qualifier set failed for '+prop+' ('+qualiprop+') '+qualivalue+': '+str(ex))
+										time.sleep(2)
 
+								except Exception as ex:
+									if 'The statement has already a qualifier' in str(ex):
+										print('**** The statement already has a ('+qualiprop+') '+qualivalue+': skipped writing duplicate qualifier')
+										return False
+	# not a max1quali >> write new quali in case value is different to existing value
 	try:
 		while True:
 			setqualifier = site.post('wbsetqualifier', token=token, claim=claimid, property=qualiprop, snaktype="value", value=qualivalue, bot=1)

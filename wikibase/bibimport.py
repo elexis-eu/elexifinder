@@ -55,7 +55,7 @@ with open(config.datafolder+'logs/errorlog_'+infilename+'_'+time.strftime("%Y%m%
 					lexBibID = item['lexBibID']
 					print('LexBibID is '+lexBibID)
 					if 'lexBibClass' in item and item['lexBibClass'].startswith("Q"):
-						classStatement = lwb.updateclaim(lexBibID,"P5",item['lexbibClass'],"item")
+						classStatement = lwb.updateclaim(lexBibID,"P5",item['lexBibClass'],"item")
 					if len(item['creatorvals']) > 0:
 						creatortype = item['creatorvals'][0]['property'] # assumes that only one creator type is passed by zotexport.property
 						#print('creator type is '+creatortype)
