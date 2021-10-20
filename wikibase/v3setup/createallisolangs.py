@@ -22,7 +22,7 @@ with open(config.datafolder+'languages/wikidata_iso3.csv', 'r', encoding="utf-8"
 		lanqid = langmapping.getqidfromiso(iso)
 		if lanqid == None:
 			lanqid = lwb.newitemwithlabel("Q8", "en", lang['langLabel'])
-			lwb.setdescription(lanqid, "en", "a natural language")
+			lwb.setdescription(lanqid, "en", "["+iso+"], a natural language")
 			statement = lwb.stringclaim(lanqid, "P2", lang['lang'].replace("http://www.wikidata.org/entity/",""))
 			statement = lwb.stringclaim(lanqid, "P32", iso)
 			if 'glcodes' in lang:
