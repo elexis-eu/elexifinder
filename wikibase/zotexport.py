@@ -16,6 +16,8 @@ import collections
 import langmapping
 import lwb
 import config
+from pyzotero import zotero
+pyzot = zotero.Zotero(1892855,'group',config.zotero_api_key)
 
 # ask for file to process
 print('Please select Zotero export JSON to be processed.')
@@ -55,7 +57,7 @@ except Exception as ex:
 
 # load list of place-mappings
 
-
+# wppage_lwbplace.jsonl
 wikipairs = {}
 with open(config.datafolder+'mappings/wppage-wdid-mappings.json', encoding="utf-8") as f:
 	wikipairs_orig =  json.load(f, encoding="utf-8")
@@ -89,17 +91,6 @@ with open(config.datafolder+'mappings/linkattachmentmappings.jsonl', encoding="u
 				print('Found unparsable mapping json in linkattachmentmappings.jsonl line ['+str(count)+']: '+mapping)
 				print(str(ex))
 				pass
-
-wpplaces = lwb.load_wppageplaces()
-
-# # load list of already patched zotero items
-# with open(config.datafolder+'zoteroapi/lwbqid2zotero.csv', 'r', encoding="utf-8") as logfile:
-# 	donelog = csv.DictReader(logfile)
-# 	doneqids = {}
-# 	for row in donelog:
-# 		doneqids[row['zotid']] = row['lwbqid']
-# 	print('Loaded '+str(len(doneqids))+' done items.')
-
 
 # define LexBib BibItem URI
 
@@ -294,7 +285,7 @@ lwb_data = []
 used_uri = []
 seen_titles = []
 new_places = []
-seen_containers = []
+seen_containers = {}
 legacy_qid = None
 itemcount = 0
 for item in data:
@@ -358,33 +349,91 @@ for item in data:
 					propvals.append({"property":"P36","datatype":"item","value":eventqid})
 			if tag["tag"].startswith(':container '):
 				container = tag["tag"].replace(":container ","")
-				if re.match(r'^Q\d+', container):
-					v3container = re.search(r'^Q\d+', container).group(0)
-					propvals.append({"property":"P9","datatype":"item","value":v3container}) # container relation
-				else:
-					v3container = None
-				# else:
-				# 	if container.startswith('isbn:') or container.startswith('oclc:'):
-				# 		container = container.replace("-","")
-				# 		container = container.replace("isbn:","http://worldcat.org/isbn/")
-				# 		container = container.replace("oclc:","http://worldcat.org/oclc/")
-				# 	elif container.startswith('doi:'):
-				# 		container = container.replace("doi:", "http://doi.org/")
-				# 	# check container type
-				# 	if item['type'] == "article-journal":
-				# 		contqid = lwb.getqid("Q1907", container) # Serials Publication volume Q1907. These are not member of Q3 (=have no ZotItems)
-				# 	else:
-				# 		contqid = lwb.getqid("Q3", container)
-				# 	#lwb.itemclaim(contqid,"P5","Q12") # BibCollection Q12
-				print('Container item is: '+str(v3container))
-				if v3container and (v3container not in seen_containers):
-					lwb.updateclaim(v3container,"P5","Q12","item") # BibCollection Q12
-					seen_containers.append(v3container)
 
-				# # get container short title from contained item and write to container
-				# if item['type'] != "chapter" and "title-short" in item and item['title-short'] not in seen_titles:
-				# 	lwb.updateclaim(v3container, "P97", item['title-short'], "string")
-				# 	seen_titles.append(item['title-short'])
+				if re.match(r'^Q\d+', container): # LexBib version 3 container item is already created and linked
+					v3container = re.search(r'^Q\d+', container).group(0)
+
+				elif re.match(r'^https?://', container): # old LexBib v2 container tag (landing page url)
+														 # or newly added container-link
+														 # (i.e. journal issue landing page URL as value for ":container") found,
+														 # will be updated to v3 container tag
+					containername = re.sub(r'^https?://','',container)
+					print('Found http-container: '+containername)
+					if containername in seen_containers:
+						v3container = seen_containers[containername]
+						print('Container item created before will be used: '+str(v3container))
+					else:
+						print('Will check if this exists already on LWB; waiting for SPARQL...')
+						# check if container already exists (TBD)
+						query ="""
+								PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
+								select ?item ?itemLabel where
+								{?item ldp:P44 <"""+container+"""> ; rdfs:label ?itemLabel . filter(lang(?itemLabel)="en")
+								 }"""
+						sparqlresults = sparql.query('https://lexbib.elex.is/query/sparql',query)
+						print('Got data from LexBib v3 SPARQL.')
+						#go through sparqlresults
+						v3container = None
+						for row in sparqlresults:
+							sparqlitem = sparql.unpack_row(row, convert=None, convert_type={})
+							print(str(sparqlitem))
+							if sparqlitem[0].startswith("http://lexbib.elex.is/entity/Q"):
+								v3container = sparqlitem[0].replace("http://lexbib.elex.is/entity/","")
+								print('This container has been found by SPARQL, will rename tag to '+v3container)
+						if not v3container: # no container item found
+							# create new container item
+
+							print('Nothing found. Will create new container item.')
+							# TBD: other bibitem types
+							if item['type'] == "article-journal":
+								if "ISSN" in item:
+									if "-" not in item['ISSN']: # normalize ISSN, remove any secondary ISSN
+										contissn = item['ISSN'][0:4]+"-"+item['ISSN'][4:9]
+									else:
+										contissn = item['ISSN'][:9]
+								else:
+									contissn = None
+
+								contlabel = ""
+								if "container-title" in item:
+									contlabel += item['container-title']
+								voliss = ""
+								if "volume" in item:
+									voliss += item['volume']
+								if "volume" in item and "issue" in item:
+									voliss += "/"
+								if "issue" in item:
+									voliss += item['issue']
+								if voliss != "":
+									voliss = " "+voliss
+								contyear = ""
+								if "issued" in item:
+									contyear = " ("+item['issued']['date-parts'][0][0]+")"
+								v3container = lwb.newitemwithlabel("Q12","en",contlabel+voliss+contyear)
+								print('New container item is: '+str(v3container)+" "+contlabel+voliss+contyear)
+								print('Will write container entity data.')
+								lwb.itemclaim(v3container,"P5","Q16")
+								if contissn:
+									lwb.stringclaim(v3container,"P20",contissn)
+								if "volume" in item:
+									lwb.stringclaim(v3container,"P22",item['volume'])
+								if "issue" in item:
+									lwb.stringclaim(v3container,"P23",item['issue'])
+								lwb.stringclaim(v3container,"P111",container)
+								lwb.stringclaim(v3container,"P97",contlabel+voliss+contyear)
+
+						# update zotero container tags for all items that point to this container
+						print('Will now update zotero tags to v3 container tag...')
+						tagzotitems = pyzot.items(tag=":container "+container)
+						for tagzotitem in tagzotitems:
+							pyzot.add_tags(tagzotitem, ":container "+v3container)
+							print('container-tag '+v3container+' written to '+tagzotitem['key'])
+							time.sleep(0.2)
+						pyzot.delete_tags(":container "+container)
+						print('Zotero container tag '+container+' updated to '+v3container)
+						seen_containers[containername] = v3container
+
+				propvals.append({"property":"P9","datatype":"item","value":v3container}) # container relation
 
 			if tag["tag"].startswith(':type '):
 				type = tag["tag"].replace(":type ","")
@@ -506,7 +555,10 @@ for item in data:
 	# "journalAbbreviation":
 	# 	propvals.append({"property":"P54","datatype":"string","value":val})
 	if "URL" in item:
-		propvals.append({"property":"P21","datatype":"string","value":item['URL']})
+		if item['URL'].endswith(".pdf"):
+			propvals.append({"property":"P113","datatype":"string","value":item['URL']})
+		else:
+			propvals.append({"property":"P12","datatype":"string","value":item['URL']})
 	if "issued" in item:
 		val = item['issued']
 		year = val['date-parts'][0][0]
@@ -559,7 +611,7 @@ for item in data:
 			if placeqid:
 					print("This is a known authorloc: "+placeqid)
 			else:
-				print("This is an unknown place an will be created: "+wppagetitle)
+				print("This is a place unknown to LWB, will be created: "+wppagetitle)
 				placeqid = lwb.newitemwithlabel("Q9", "en", wppagetitle)
 				wdstatement = lwb.stringclaim(placeqid, "P2", wdid)
 				wpstatement = lwb.stringclaim(placeqid, "P66", wppage)
@@ -583,7 +635,7 @@ for item in data:
 
 	with open(outfilename, 'a', encoding="utf-8") as outfile:
 		outfile.write(json.dumps({"lexBibID":bibItemQid,"lexBibClass":lexbibClass,"creatorvals":creatorvals,"propvals":propvals})+'\n')
-	print('Triples successfully defined.')
+	print('Triples for bibimport.py successfully defined.')
 	itemcount += 1
 
 
