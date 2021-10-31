@@ -6,12 +6,12 @@ PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
 PREFIX lpr: <http://lexbib.elex.is/prop/reference/>
 PREFIX lno: <http://lexbib.elex.is/prop/novalue/>
 
-select distinct ?prop ?propLabel ?wikidata ?equivProp where
-{
+select distinct ?prop ?propLabel ?wikidata (sample(?equivProp) as ?equiv) where
+{ values ?bibitem { lwb:Q6493 lwb:Q6273 lwb:Q8536 lwb:Q11306 }
 ?bibitem ldp:P5 lwb:Q3 ;
          ?p ?o.
 ?prop wikibase:directClaim ?p;
       rdfs:label ?propLabel. filter(lang(?propLabel)="en")
   OPTIONAL {?prop ldp:P2 ?wikidata.}
-  OPTIONAL {?prop ldp:P34 ?equivProp.}
-  }
+  OPTIONAL {?prop ldp:P42|ldp:P57 ?equivProp.}
+  } group by ?prop ?propLabel ?wikidata ?equiv
