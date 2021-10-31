@@ -393,7 +393,7 @@ def setlabel(s, lang, val, type="label", set=False):
 			elif type == "alias" and set == True:
 				request = site.post('wbsetaliases', id=s, language=lang, set=value, token=token, bot=1)
 			if request['success'] == 1:
-				print('Label creation done: '+s+' ('+lang+') '+val+', type: '+type)
+				print('Label creation done: '+s+' ('+lang+') '+str(val)+', type: '+type)
 				return True
 		except Exception as ex:
 			if 'Invalid CSRF token.' in str(ex):
@@ -404,12 +404,12 @@ def setlabel(s, lang, val, type="label", set=False):
 				logging.warning('Cannot set label in this language: '+lang)
 				break
 			else:
-				print('Label set operation '+s+' ('+lang+') '+val+' failed, will try again...\n'+str(ex))
-				logging.error('Label set operation '+s+' ('+lang+') '+val+' failed, will try again...', exc_info=True)
+				print('Label set operation '+s+' ('+lang+') '+str(val)+' failed, will try again...\n'+str(ex))
+				logging.error('Label set operation '+s+' ('+lang+') '+str(val)+' failed, will try again...', exc_info=True)
 				time.sleep(4)
 	# log.add
-	print ('*** Label set operation '+s+' ('+lang+') '+val+' failed up to 5 times... skipped.')
-	logging.warning('Label set operation '+s+' ('+lang+') '+val+' failed up to 5 times... skipped.')
+	print ('*** Label set operation '+s+' ('+lang+') '+str(val)+' failed up to 5 times... skipped.')
+	logging.warning('Label set operation '+s+' ('+lang+') '+str(val)+' failed up to 5 times... skipped.')
 	return False
 
 #create string (or url) claim
