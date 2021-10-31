@@ -742,7 +742,10 @@ def getWikiLangCode(iso3):
 		return None
 
 # LWB ISO3 mapping
-
+#
+# csv is created with this query:
+#
+# PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
 # select ?iso3 ?langqid where {?langqid ldp:P32 ?iso3 . }
 
 with open(config.datafolder+'mappings/lwb_iso3.csv', 'r', encoding="utf-8") as csvfile:
