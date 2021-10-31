@@ -16,3 +16,4 @@ Elexifinder user interface: http://finder.elex.is
 * buildtermindex.py finds LexVoc terms in full text bodies.
 * zotexport.py processes a Zotero JSON export, and uploads statements regarding container items (BibCollection items).
 * bibimport.py uploads statements describing BibItems to LexBib Wikibase.
+* zoteroauthosupdate.py updates Zotero items with author data from LexBib Wikibase.
