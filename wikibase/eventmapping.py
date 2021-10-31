@@ -1,4 +1,4 @@
-
+# this maps old (LexBib v1, RDF) event identifiers to LexBib v3 Q-ID
 
 mapping = {
 "ConfElex2009": "Q1418",
