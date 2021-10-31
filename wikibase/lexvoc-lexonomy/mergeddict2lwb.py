@@ -9,6 +9,7 @@ import config
 import langmapping
 import time
 import json
+import sparql
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 
@@ -24,6 +25,30 @@ except Exception as ex:
 	print (str(ex))
 	sys.exit()
 
+# load owl:sameAs redirect mappings
+
+query = """
+PREFIX lwb: <http://lexbib.elex.is/entity/>
+PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
+PREFIX lp: <http://lexbib.elex.is/prop/>
+PREFIX lps: <http://lexbib.elex.is/prop/statement/>
+PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
+PREFIX lpr: <http://lexbib.elex.is/prop/reference/>
+PREFIX lno: <http://lexbib.elex.is/prop/novalue/>
+
+select ?redirected ?term ?label where
+{?redirected owl:sameAs ?term.
+ ?term ldp:P5 lwb:Q7;
+       rdfs:label ?label.
+ filter(lang(?label)="en")}"""
+print("Loading owl:sameAs mappings. Waiting for LexBib v3 SPARQL...")
+sparqlresults = sparql.query('https://lexbib.elex.is/query/sparql',query)
+print('Got data from LexBib v3 SPARQL.')
+#go through sparqlresults
+redirects = {}
+for row in sparqlresults:
+	item = sparql.unpack_row(row, convert=None, convert_type={})
+	redirects[item[0].replace('http://lexbib.elex.is/entity/','')] = item[1].replace('http://lexbib.elex.is/entity/','')
 
 completedterms = {}
 completedlangs = {}
@@ -31,10 +56,16 @@ equivs = {}
 termqidlist = []
 
 root = tree.getroot()
-
+count = 0
 for entry in root:
-	#time.sleep(2)
+	count += 1
+	if count < 123:
+		continue
 	termqid = entry.attrib['lexbib_id']
+	print('\n['+str(count)+'] Now processing term '+termqid+'...')
+	if termqid in redirects:
+		termqid = redirects[termqid]
+		print('This term Qid redirects to '+termqid)
 	termqidlist.append(termqid)
 	for translations in entry.findall("translations"):
 		for translation in translations:
@@ -43,21 +74,23 @@ for entry in root:
 			status = translation.attrib["status"]
 			prefLabel = translation.findall("label")[0].text
 			altLabels = translation.findall("altlabel")
-			if status != "MISSING":
-				prefLabelStatement = lwb.updateclaim(termqid,"P129",{'language':wikilang,'text':prefLabel},"monolingualtext")
-				lwb.setqualifier(termqid,"P129",prefLabelStatement,"P128",status,"string")
-				for altLabel in altLabels:
-					altLabelStatement = lwb.updateclaim(termqid,"P130",{'language':wikilang,'text':altLabel.text},"monolingualtext")
-					lwb.setqualifier(termqid,"P129",altLabelStatement,"P128",status,"string")
+			#if status != "MISSING":
+			if prefLabel and (status == "COMPLETED" or status == "COMPLETE"):
+				prefLabelStatement = lwb.updateclaim(termqid,"P129",{'language':wikilang,'text':prefLabel.strip()},"monolingualtext")
+				lwb.setqualifier(termqid,"P129",prefLabelStatement,"P128","COMPLETED","string")
+				if altLabels:
+					for altLabel in altLabels:
+						if altLabel.text:
+							altLabelStatement = lwb.updateclaim(termqid,"P130",{'language':wikilang,'text':altLabel.text.strip()},"monolingualtext")
+							lwb.setqualifier(termqid,"P129",altLabelStatement,"P128","COMPLETED","string")
 
-
-
-			if status == "COMPLETED":
-				lwb.setlabel(termqid,wikilang,prefLabel,type="label")
+				lwb.setlabel(termqid,wikilang,prefLabel.strip(),type="label")
 				aliasstring = ""
-				for altLabel in altLabels:
-					aliasstring += "|"+altLabel.text
-				lwb.setlabel(termqid,wikilang,aliasstring[1:],type="alias",set=True)
+				if altLabels:
+					for altLabel in altLabels:
+						if altLabel.text:
+							aliasstring += "|"+altLabel.text.strip()
+					lwb.setlabel(termqid,wikilang,aliasstring[1:],type="alias",set=True)
 
 				if termqid not in completedterms:
 					completedterms[termqid] = []
@@ -71,11 +104,12 @@ for entry in root:
 					equivs[termqid] = {}
 				if lang not in equivs[termqid]:
 					equivs[termqid][lang] = {}
-				equivs[termqid][lang]['prefLabel'] = prefLabel
+				equivs[termqid][lang]['prefLabel'] = prefLabel.strip()
 				if len(altLabels) > 0:
 					equivs[termqid][lang]['altlabels'] = []
 					for altlabel in altLabels:
-						equivs[termqid][lang]['altlabels'].append(altlabel.text)
+						if altLabel.text:
+							equivs[termqid][lang]['altlabels'].append(altlabel.text.strip())
 
 
 result = {'completed_terms':completedterms,'completed_langs':completedlangs}
