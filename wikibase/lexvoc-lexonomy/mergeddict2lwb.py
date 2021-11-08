@@ -59,8 +59,8 @@ root = tree.getroot()
 count = 0
 for entry in root:
 	count += 1
-	if count < 123:
-		continue
+	# if count < 123:
+	# 	continue
 	termqid = entry.attrib['lexbib_id']
 	print('\n['+str(count)+'] Now processing term '+termqid+'...')
 	if termqid in redirects:
