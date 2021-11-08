@@ -1,4 +1,3 @@
-## assigns term candidates to bibitems. (Term labels are found in English full texts)
 
 import re
 import json
