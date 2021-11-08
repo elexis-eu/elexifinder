@@ -461,6 +461,10 @@ for item in data:
 				abslangiso3 = langmapping.getiso3(abslangcode)
 				abslangqid = langmapping.getqidfromiso(abslangiso3)
 
+			if tag["tag"].startswith(':enTitle'): # this means zotero field "collection-title" contains the English title of the publication
+				if 'collection-title' in item:
+					propvals.append({"property":"P6","datatype":"monolingualtext","value":{"text":item['collection-title'], "language":"en"}})
+
 	### bibitem type mapping
 	if "type" in item and lexbibClass == "Q3" and (not p100set): # setting lexbibClass to something else before overrides this bibItem type P100 setting; p100set=True skips type setting
 		if item['type'] == "paper-conference":
@@ -558,7 +562,7 @@ for item in data:
 		if item['URL'].endswith(".pdf"):
 			propvals.append({"property":"P113","datatype":"string","value":item['URL']})
 		else:
-			propvals.append({"property":"P12","datatype":"string","value":item['URL']})
+			propvals.append({"property":"P112","datatype":"string","value":item['URL']})
 	if "issued" in item:
 		val = item['issued']
 		year = val['date-parts'][0][0]
