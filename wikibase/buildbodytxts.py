@@ -69,7 +69,8 @@ for row in sparqlresults:
 
 	# check if already processed
 	if bibItem in bodytxtcoll:
-		print(bibItem+' is in bodytxtcoll already, skipped.')
+		if bodytxtcoll[bibItem]['source'] == 'manual_txt':
+			print(bibItem+' is in bodytxtcoll already with manual txt, skipped.')
 		continue
 
 	if item[1]:
