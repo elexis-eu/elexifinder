@@ -1,14 +1,17 @@
 import re
 from nltk.tokenize import word_tokenize
 import spacy
-sp = spacy.load('en_core_web_sm') # SpaCy English NLP module
+sp = {
+'eng': spacy.load('en_core_web_sm'),
+'spa': spacy.load('es_core_news_sm') 
+}
 
 # lemmatize english text and clean it
-def lemmatize_clean(bodytxt):
+def lemmatize_clean(bodytxt, lang="eng"):
 	global sp
 	bodylem = ""
 	tokencount = 0
-	for token in sp(bodytxt):
+	for token in sp[lang](bodytxt):
 		tokencount += 1
 		bodylem+=("%s " % token.lemma_)
 	# remove stop words
