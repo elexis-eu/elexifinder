@@ -33,7 +33,8 @@ def wdi_setup():
 	wdilogin = wdi_login.WDLogin(config.lwbuser, lwbbotpass, mediawiki_api_url=mediawiki_api_url)
 	lwbEngine = wdi_core.WDItemEngine.wikibase_item_engine_factory(mediawiki_api_url, sparql_endpoint_url)
 	print('Logged into WDI.')
-wdi_setup = None # If WDI is needed, login is done.
+	return True
+wdisetup = None # If WDI is needed, login is done.
 
 # LexBib wikibase OAuth for mwclient
 with open(config.datafolder+'wikibase/'+config.lwbuser+'_pwd.txt', 'r', encoding='utf-8') as pwdfile:
@@ -516,9 +517,9 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 	returnvalue = None
 	language = None
 	if dtype == "time":
-		global wdi_setup
-		if not wdi_setup:
-			wdi_setup = wdi_setup()
+		global wdisetup
+		if wdisetup == None: # if no wdi login has been done so far
+			wdisetup = wdi_setup()
 		data=[(wdi_core.WDTime(o['time'], prop_nr=p, precision=o['precision']))]
 		#print(str(data))
 		attempts = 1
@@ -528,7 +529,7 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 				item = lwbEngine(wd_item_id=s, data=data)
 			except Exception as ex:
 				if 'badtoken' in str(ex):
-					wdi_setup = wdi_setup()
+					wdisetup = wdi_setup()
 					attempt += 1
 					continue
 				else:
@@ -700,7 +701,7 @@ def setqualifier(qid, prop, claimid, qualiprop, qualivalue, dtype):
 	elif dtype == "item" or dtype =="wikibase-entityid":
 		qualivalue = json.dumps({"entity-type":"item","numeric-id":int(qualivalue.replace("Q",""))})
 	if qualiprop in config.max1props:
-		print('Detected max1prop as qualifier.')
+		#print('Detected max1prop as qualifier.')
 		existingclaims = getclaims(qid,prop)
 		#print(str(existingclaims))
 		qid = existingclaims[0]
