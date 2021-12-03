@@ -3,11 +3,11 @@
   <info>
     <title>Euralex 2022 (Mannheim)</title>
     <id>http://www.zotero.org/styles/euralex-2022-mannheim</id>
-	<link href="http://www.zotero.org/styles/euralex-2022-mannheim" rel="self"/>
+    <link href="http://www.zotero.org/styles/euralex-2022-mannheim" rel="self"/>
     <link href="http://www.zotero.org/styles/harvard-cite-them-right-11th-edition" rel="template"/>
     <author>
       <name>David Lindemann</name>
-	  <uri>http://www.wikidata.org/entity/Q57694630</uri>
+      <uri>http://www.wikidata.org/entity/Q57694630</uri>
     </author>
     <category citation-format="author-date"/>
     <category field="generic-base"/>
@@ -23,8 +23,8 @@
       </term>
       <term name="editortranslator" form="verb">edited and translated by</term>
       <term name="edition" form="short">edn.</term>
-	  <term name="in">In:</term>
-	</terms>
+      <term name="in">In:</term>
+    </terms>
   </locale>
   <macro name="editor">
     <choose>
@@ -101,18 +101,18 @@
       </if>
       <else-if variable="URL">
         <text variable="URL"/>
-		<choose>
-			<if type="chapter paper-conference article-journal article article-magazine book review review-book thesis" match="none">
-				<group prefix=" (" delimiter=": " suffix=")">
-				  <text value="last access"/>
-				  <date form="text" variable="accessed">
-					<date-part name="day"/>
-					<date-part name="month"/>
-					<date-part name="year"/>
-				  </date>
-				</group>
-			</if>
-		</choose>
+        <choose>
+            <if type="chapter paper-conference article-journal article article-magazine book review review-book thesis" match="none">
+                <group prefix=" (" delimiter=": " suffix=")">
+                  <text value="last access"/>
+                  <date form="text" variable="accessed">
+                    <date-part name="day"/>
+                    <date-part name="month"/>
+                    <date-part name="year"/>
+                  </date>
+                </group>
+            </if>
+        </choose>
       </else-if>
     </choose>
   </macro>
@@ -167,10 +167,10 @@
       </else-if>
       <else-if type="article-journal article-newspaper article-magazine" match="none">
         <group prefix="(= " suffix="). " delimiter=" ">
-			<text variable="collection-title"/>
-			<text variable="collection-number"/>
-		</group>
-		<text variable="publisher-place"/>
+            <text variable="collection-title"/>
+            <text variable="collection-number"/>
+        </group>
+        <text variable="publisher-place"/>
       </else-if>
     </choose>
   </macro>
@@ -221,7 +221,7 @@
       <if variable="container-title">
         <group delimiter=". ">
           <group delimiter=" ">
-			<text variable="container-title"/>
+            <text variable="container-title"/>
             <choose>
               <if type="article article-journal" match="any">
                 <choose>
@@ -235,13 +235,13 @@
           <text macro="edition"/>
         </group>
       </if>
-	  <else>
-		<choose>
-			<if type="speech" variable="event" match="any">
-				<text variable="event"/>
-			</if>
-		</choose>
-	  </else>
+      <else>
+        <choose>
+            <if type="speech" variable="event" match="any">
+                <text variable="event"/>
+            </if>
+        </choose>
+      </else>
     </choose>
   </macro>
   <macro name="edition">
