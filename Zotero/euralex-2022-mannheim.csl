@@ -3,15 +3,16 @@
   <info>
     <title>Euralex 2022 (Mannheim)</title>
     <id>http://www.zotero.org/styles/euralex-2022-mannheim</id>
-    <link href="http://www.zotero.org/styles/euralex-2022-mannheim" rel="self"/>
-    <link href="http://www.citethemrightonline.com/" rel="documentation"/>
+	<link href="http://www.zotero.org/styles/euralex-2022-mannheim" rel="self"/>
+    <link href="http://www.zotero.org/styles/harvard-cite-them-right-11th-edition" rel="template"/>
     <author>
-      <name>Patrick O'Brien</name>
+      <name>David Lindemann</name>
+	  <uri>http://www.wikidata.org/entity/Q57694630</uri>
     </author>
     <category citation-format="author-date"/>
     <category field="generic-base"/>
-    <summary>Euralex Mannheim Conference</summary>
-    <updated>2021-09-01T10:12:20+00:00</updated>
+    <summary>Style for Euralex 2022 (Mannheim) Conference Proceedings. Based on "Cite Them Right 11th edition - Harvard", by Patrick O'Brien</summary>
+    <updated>2021-12-02T10:12:20+00:00</updated>
     <rights license="http://creativecommons.org/licenses/by-sa/3.0/">This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 License</rights>
   </info>
   <locale xml:lang="en-GB">
