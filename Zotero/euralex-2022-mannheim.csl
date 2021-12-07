@@ -259,7 +259,7 @@
   </macro>
   <macro name="container-prefix">
     <choose>
-      <if type="chapter paper-conference" match="any">
+      <if type="chapter paper-conference article-journal article article-magazine article-newspaper" match="any">
         <text term="in"/>
       </if>
     </choose>
