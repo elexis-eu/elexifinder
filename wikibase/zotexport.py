@@ -464,6 +464,9 @@ for item in data:
 			if tag["tag"].startswith(':enTitle'): # this means zotero field "collection-title" contains the English title of the publication
 				if 'collection-title' in item:
 					propvals.append({"property":"P6","datatype":"monolingualtext","value":{"text":item['collection-title'], "language":"en"}})
+					print('Detected English title in field collection-title')
+				else:
+					print('*** English title in field collection-title not found.')
 
 	### bibitem type mapping
 	if "type" in item and lexbibClass == "Q3" and (not p100set): # setting lexbibClass to something else before overrides this bibItem type P100 setting; p100set=True skips type setting
