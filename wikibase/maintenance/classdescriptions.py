@@ -8,11 +8,11 @@ import lwb
 
 
 descriptions = {
-#"Q2": "a LexBib Ontology Class",
+# "Q2": "a LexBib Ontology Class",
 # "Q4":"a lexical-conceptual resource",
-# "Q5":"a person",
+ "Q5":"a person"
 # "Q6":"an event",
- "Q7":"a term"
+# "Q7":"a term",
 # "Q8":"a natural language",
 # "Q9":"a place",
 # "Q10":"a project",
@@ -21,18 +21,14 @@ descriptions = {
 # "Q18":"a proceedings volume",
 # "Q17":"a country",
 # "Q16":"a serial publication volume",
-# "Q15":"a review article",
-# "Q24":"a LCR distribution",
-# "Q41":"a lexicographical work"
+# "Q41":"a lexicographical work",
 # "Q21":"a BibItem type"
 # "Q34":"a conference series",
 # "Q12":"a BibCollection",
-# "Q26":"a piece of community communication",
 
 }
 
 setalways = [
-"Q24",
 "Q41"
 ]
 
