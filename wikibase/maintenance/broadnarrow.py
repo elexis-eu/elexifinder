@@ -24,10 +24,13 @@ where {
   ?n ldp:P72 ?b.
  # ?n lp:P72 ?bs .
  # ?bs lps:P72 ?b .
-  ?b ldp:P5 lwb:Q7 ;
-  rdfs:label ?bLabel . filter (lang(?bLabel)="en")
+  {?b ldp:P5 lwb:Q7 ;
+  rdfs:label ?bLabel . filter (lang(?bLabel)="en")}
+  UNION
+  {?b owl:sameAs ?redirect.}
+
   filter not exists { ?b ldp:P73 ?n . }
- #optional {?b owl:sameAs ?redirect.}
+
 
 #  {?redirect rdfs:label ?rLabel .}UNION {?b rdfs:label ?rLabel .}FILTER (lang(?rLabel)="en")
   }
@@ -59,7 +62,7 @@ for row in sparqlresults:
 			if "P72" in broaderclaims:
 				broaderstatement = broaderclaims['P72'][0]['id']
 				lwb.setclaimvalue(broaderstatement, redirect_qid, "item")
-				print('Updating relation: '+narrower_uri+' "'+broader_label+'" (skos:narrower) "'+narrower_label+'"...')
+				print('Updating relation: '+narrower_uri+' "'+str(broader_label)+'" (skos:narrower) "'+str(narrower_label)+'"...')
 				lwb.updateclaim(redirect_qid,"P73",narrower_uri,"item")
 		else:
 			print('Strange: for '+broader_uri+' I got redirect: '+redirect_qid)
