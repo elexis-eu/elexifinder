@@ -10,19 +10,20 @@ PREFIX lpr: <http://lexbib.elex.is/prop/reference/>
 PREFIX lno: <http://lexbib.elex.is/prop/novalue/>
 
 SELECT
-?subject
+#?subject
 (strafter(str(?subject),"http://lexbib.elex.is/entity/") as ?term_id)
 ?babelnet_synset
-?match_quality
+#?match_quality
 ?enPrefLabel
-(group_concat(distinct ?enAltLabel; SEPARATOR="@") as ?enAltLabels)
-(group_concat(distinct concat('{"lang":"',lang(?subjectLabel),'","text":"',str(?subjectLabel),'"}'); SEPARATOR=",") as ?subjectLabels)
+?wd
+#(group_concat(distinct ?enAltLabel; SEPARATOR="@") as ?enAltLabels)
+#(group_concat(distinct concat('{"lang":"',lang(?subjectLabel),'","text":"',str(?subjectLabel),'"}'); SEPARATOR=",") as ?subjectLabels)
 (group_concat(distinct ?broaderLabel; SEPARATOR="@") as ?broaderLabels)
 (group_concat(distinct ?narrowerLabel; SEPARATOR="@") as ?narrowerLabels)
 (group_concat(distinct ?closeMatchLabel; SEPARATOR="@") as ?closeMatchLabels)
 (group_concat(distinct ?relatedLabel; SEPARATOR="@") as ?relatedLabels)
 (group_concat(distinct ?definition; SEPARATOR="@") as ?definitions)
-
+(sample(?hits) as ?corpus)
 #(group_concat(BIND(REPLACE(str(?broader), "[/#]([^#/]+)$", "$1") AS ?cleanbroader)) as ?broaders)
 
 #(group_concat(?broaderLabel; SEPARATOR="@") as ?broaderLabels)
@@ -31,15 +32,19 @@ SELECT
 
 
 WHERE {
-    ?subject ldp:P5 lwb:Q7 .
-    ?subject rdfs:label|skos:altLabel ?subjectLabel .
+    ?facet ldp:P131 lwb:Q1 .
+    ?subject ldp:P5 lwb:Q7  ; ldp:P72* ?facet .
+  filter not exists { ?subject ldp:P149 ?inferslabel . } # exclude those that infer labels from another concept node
+   # ?subject rdfs:label|skos:altLabel ?subjectLabel .
+    ?subject lp:P109 [ lps:P109 ?hits ].
+  #                    lpq:P84 ?source . filter(?source="LexBib Nov 2021 stopterms").
     ?subject rdfs:label ?enPrefLabel . filter(lang(?enPrefLabel)="en")
 
-OPTIONAL { ?subject skos:altLabel ?enAltLabel . filter(lang(?enAltLabel)="en")}
+OPTIONAL { ?subject ldp:P2 ?wd . }
 OPTIONAL {
            ?subject lp:P86 ?babelnet_synset_statement .
            ?babelnet_synset_statement lps:P86 ?babelnet_synset .
-           ?babelnet_synset_statement lpq:P87 ?match_quality .
+         #  ?babelnet_synset_statement lpq:P87 ?match_quality .
     }
 
 OPTIONAL {
@@ -74,4 +79,6 @@ OPTIONAL {
     ?subject ldp:P80 ?definition .
     }
 }
-GROUP BY ?subjectLabels ?term_id ?babelnet_synset ?match_quality ?enPrefLabel ?enAltLabels ?subject ?broaderLabels ?narrowerLabels ?closeMatchLabels ?relatedLabels ?definitions
+GROUP BY  ?subject ?babelnet_synset #?match_quality
+?enPrefLabel ?wd
+?broaderLabels ?narrowerLabels ?closeMatchLabels ?relatedLabels ?definitions ?corpus
