@@ -132,7 +132,7 @@
         <group delimiter=". ">
           <group delimiter=" ">
             <group delimiter=" ">
-              <text variable="title" />
+              <text variable="title"/>
               <text variable="medium" prefix="[" suffix="]"/>
             </group>
             <text macro="number-volumes"/>
