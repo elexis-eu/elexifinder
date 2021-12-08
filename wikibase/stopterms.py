@@ -32,7 +32,10 @@ interface
 dual
 modal
 particle
-clarity""".split('\n')
+clarity
+progressive
+note
+person""".split('\n')
 
 
 print('\nWill load stopterms:')
