@@ -1,0 +1,102 @@
+#defaultView:Graph
+PREFIX lwb: <http://lexbib.elex.is/entity/>
+PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
+PREFIX lp: <http://lexbib.elex.is/prop/>
+PREFIX lps: <http://lexbib.elex.is/prop/statement/>
+PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
+PREFIX lpr: <http://lexbib.elex.is/prop/reference/>
+
+select ?uri ?uriLabel ?rgb ?edgeLabel
+?uri2 ?uri2Label
+
+
+where {
+  bind(lwb:Q16096 as ?wuri)
+{
+ ?wuri ldp:P118 ?uri .
+  ?uri ldp:P5 lwb:Q4; ldp:P55 ?uri2.
+  ?uri rdfs:label ?uriL .
+ bind(concat(?uriL,", an LCR") as ?uriLabel)
+ ?uri2 rdfs:label ?uri2L .
+ bind(concat(?uri2L,", a Distribution") as ?uri2Label)
+ bind("has distribution" as ?edgeLabel)
+ bind("FFFF99" as ?rgb)
+
+}
+  union
+
+{ bind(lwb:Q16096 as ?uri)
+  ?uri ldp:P5 lwb:Q41; ldp:P118 ?uri2.
+  ?uri rdfs:label ?uriL .
+ bind(concat(?uriL,", a Work") as ?uriLabel)
+ ?uri2 rdfs:label ?uri2L .
+ bind(concat(?uri2L,", an LCR") as ?uri2Label)
+ bind("has realisation" as ?edgeLabel)
+bind("0000CC" as ?rgb)
+
+}
+  union
+{ ?wuri ldp:P118 ?uri .
+ ?wuri ldp:P118 ?uri2 .
+ ?uri ?p ?uri2 .
+ ?edge wikibase:directClaim ?p ;
+       rdfs:label ?edgeLabel .
+ ?uri rdfs:label ?uriL .
+ bind(concat(?uriL,", an LCR") as ?uriLabel)
+ ?uri2 rdfs:label ?uri2L .
+ bind(concat(?uri2L,", an LCR") as ?uri2Label)
+ bind("FFFF99" as ?rgb)
+
+}
+   union
+{ ?wuri ldp:P118 ?euri .
+ ?euri ldp:P55 ?uri .
+ ?euri ldp:P55 ?uri2 .
+ ?uri ?p ?uri2 .
+ ?edge wikibase:directClaim ?p ;
+       rdfs:label ?edgeLabel .
+ ?uri rdfs:label ?uriL .
+ bind(concat(?uriL,", a Distribution") as ?uriLabel)
+ ?uri2 rdfs:label ?uri2L .
+ bind(concat(?uri2L,", a Distribution") as ?uri2Label)
+ bind("CCFFE5" as ?rgb)
+
+}
+ union
+{
+  { bind (?wuri as ?uri) ?uri rdfs:label ?uriL .
+    bind(concat(?uriL,", a Work") as ?uriLabel)}
+ union
+  {?wuri ldp:P55 ?uri . ?uri rdfs:label ?uriL .
+ bind(concat(?uriL,", an LCR") as ?uriLabel)}
+ union
+  {?wuri ldp:P118/ldp:P55 ?uri. ?uri rdfs:label ?uriL .
+ bind(concat(?uriL,", a Distribution") as ?uriLabel)}
+
+  ?uri2 ldp:P27 ?uri .
+ bind("is subject of" as ?edgeLabel)
+ ?uri2 rdfs:label ?uri2L .
+ bind(concat(?uri2L,", a BibItem") as ?uri2Label)
+  bind("CCFFE5" as ?rgb)
+}
+
+
+
+
+  #   # colouring
+#   BIND (
+#   COALESCE(
+#     IF(?s = ?facet , "0000CC", 1/0),
+#   #  IF(?termcoll = lwb:Q49 ,  "0000CC", 1/0),
+#     IF(str(?distance)="1" , "FF9999", 1/0),
+#     IF(str(?distance)="2" , "FFB266", 1/0),
+#     IF(str(?distance)="3" , "FFFF99", 1/0),
+#     IF(str(?distance)="4" , "CCFF99", 1/0),
+#     IF(str(?distance)="5" , "CCFFE5", 1/0),
+#     IF(str(?distance)="6" , "DDFFE5", 1/0),
+#     "FFFF99"
+#   ) AS ?rgb
+
+
+
+}
