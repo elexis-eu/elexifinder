@@ -15,7 +15,7 @@ import lwb
 # bibItem [bibitem lwb Qid] / creatorstatement / listpos / fullName / Qid [reconciled person item lwb-qid] / givenName / lastName
 
 # ask for file to process
-print('Please select Zotero export JSON to be processed.')
+print('Please select Open Refine output CSV to be processed.')
 Tk().withdraw()
 infile = askopenfilename()
 print('This file will be processed: '+infile)
@@ -48,7 +48,11 @@ with open(infile, encoding="utf-8") as f:
 			if item['fullName'].strip() not in newcreators:
 				print('Will create new person item for '+item['fullName'])
 				creatorqid = lwb.newitemwithlabel("Q5","en",item['fullName'].strip())
-				lwb.stringclaim(creatorqid,"P101",item['firstName'].strip())
+				try:
+					lwb.stringclaim(creatorqid,"P101",item['firstName'].strip())
+				except:
+					lwb.stringclaim(creatorqid,"P101",item['givenName'].strip())
+					item['firstName'] = item['givenName']
 				lwb.stringclaim(creatorqid,"P102",item['lastName'].strip())
 				lwb.setlabel(creatorqid,"en",item['lastName'].strip()+", "+item['firstName'].strip(), type="alias")
 				newcreators[item['fullName'].strip()] = creatorqid
