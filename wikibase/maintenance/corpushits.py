@@ -10,7 +10,7 @@ import json
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 
-corpname = "LexBib Oct 2021 stopterms"
+corpname = "LexBib Nov 2021 stopterms"
 
 # ask for file to process
 print('Please select termstats JSON to be processed.')
