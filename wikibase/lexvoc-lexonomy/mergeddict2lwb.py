@@ -72,44 +72,46 @@ for entry in root:
 			lang = re.search('^term_(\w+)',translation.tag).group(1)
 			wikilang = langmapping.getWikiLangCode(lang)
 			status = translation.attrib["status"]
+			if status == "COMPLETE":
+				status == "COMPLETED" # a bug in the lexvoc lexonomy style defs (both exist)
 			prefLabel = translation.findall("label")[0].text
 			altLabels = translation.findall("altlabel")
-			#if status != "MISSING":
-			if prefLabel and (status == "COMPLETED" or status == "COMPLETE"):
+			if prefLabel and status != "MISSING":
+			#if prefLabel and (status == "COMPLETED" or status == "COMPLETE"):
 				prefLabelStatement = lwb.updateclaim(termqid,"P129",{'language':wikilang,'text':prefLabel.strip()},"monolingualtext")
-				lwb.setqualifier(termqid,"P129",prefLabelStatement,"P128","COMPLETED","string")
+				lwb.setqualifier(termqid,"P129",prefLabelStatement,"P128",status,"string")
 				if altLabels:
 					for altLabel in altLabels:
 						if altLabel.text:
 							altLabelStatement = lwb.updateclaim(termqid,"P130",{'language':wikilang,'text':altLabel.text.strip()},"monolingualtext")
-							lwb.setqualifier(termqid,"P129",altLabelStatement,"P128","COMPLETED","string")
+							lwb.setqualifier(termqid,"P129",altLabelStatement,"P128",status,"string")
+				if prefLabel and status == "COMPLETED":
+					lwb.setlabel(termqid,wikilang,prefLabel.strip(),type="label")
+					aliasstring = ""
+					if altLabels:
+						for altLabel in altLabels:
+							if altLabel.text:
+								aliasstring += "|"+altLabel.text.strip()
+						lwb.setlabel(termqid,wikilang,aliasstring[1:],type="alias",set=True)
 
-				lwb.setlabel(termqid,wikilang,prefLabel.strip(),type="label")
-				aliasstring = ""
-				if altLabels:
-					for altLabel in altLabels:
-						if altLabel.text:
-							aliasstring += "|"+altLabel.text.strip()
-					lwb.setlabel(termqid,wikilang,aliasstring[1:],type="alias",set=True)
-
-				if termqid not in completedterms:
-					completedterms[termqid] = []
-				if lang not in completedterms[termqid]:
-					completedterms[termqid].append(lang)
-				if lang not in completedlangs:
-					completedlangs[lang] = []
-				if termqid not in completedlangs[lang]:
-					completedlangs[lang].append(termqid)
-				if termqid not in equivs:
-					equivs[termqid] = {}
-				if lang not in equivs[termqid]:
-					equivs[termqid][lang] = {}
-				equivs[termqid][lang]['prefLabel'] = prefLabel.strip()
-				if len(altLabels) > 0:
-					equivs[termqid][lang]['altlabels'] = []
-					for altlabel in altLabels:
-						if altLabel.text:
-							equivs[termqid][lang]['altlabels'].append(altlabel.text.strip())
+					if termqid not in completedterms:
+						completedterms[termqid] = []
+					if lang not in completedterms[termqid]:
+						completedterms[termqid].append(lang)
+					if lang not in completedlangs:
+						completedlangs[lang] = []
+					if termqid not in completedlangs[lang]:
+						completedlangs[lang].append(termqid)
+					if termqid not in equivs:
+						equivs[termqid] = {}
+					if lang not in equivs[termqid]:
+						equivs[termqid][lang] = {}
+					equivs[termqid][lang]['prefLabel'] = prefLabel.strip()
+					if len(altLabels) > 0:
+						equivs[termqid][lang]['altlabels'] = []
+						for altlabel in altLabels:
+							if altLabel.text:
+								equivs[termqid][lang]['altlabels'].append(altlabel.text.strip())
 
 
 result = {'completed_terms':completedterms,'completed_langs':completedlangs}
