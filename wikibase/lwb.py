@@ -441,8 +441,9 @@ def setdescription(s, lang, val):
 				with open (config.datafolder+'logs/mergecandidates.log', 'a', encoding='utf-8') as mergecandfile:
 					mergecand = re.search(r'\[\[Item:(Q\d+)',str(ex)).group(1)
 					duplilabel = re.search(r'already has label \"([^\"]+)\"',str(ex)).group(1)
-					mergecandjson = {'olditem':mergecand,'newitem':s,'duplilabel':duplilabel, 'description':value}
-					mergecandfile.write(json.dumps(mergecandjson)+'\n')
+					#mergecandjson = {'olditem':mergecand,'newitem':s,'duplilabel':duplilabel, 'description':value}
+					#mergecandfile.write(json.dumps(mergecandjson)+'\n')
+					mergecandfile.write('MERGE\t'+s+'\t'+mergecand+'\t'+duplilabel+'\t'+value+'\n')
 				break
 			else:
 				print('Description set operation '+s+' ('+lang+') '+val+' failed, will try again...\n'+str(ex))
@@ -570,6 +571,7 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 	claims = getclaims(s,p)
 	s = claims[0]
 	claims = claims[1]
+	foundmonolinguallangs = []
 	foundobjs = []
 	if claims and bool(claims):
 		statementcount = 0
@@ -583,7 +585,7 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 					#print(str(foundo))
 					foundo = foundo['id']
 			elif claim['mainsnak']['snaktype'] == "novalue":
-				try:
+				try: # take P38 quali literal value as found object
 					foundo = claim['qualifiers']['P38'][0]['datavalue']['value']
 					#print('Found Novalue P38 quali: '+foundo)
 				except:
@@ -596,15 +598,23 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 				if results['success'] == 1:
 					print('Wb remove duplicate claim for '+s+' ('+p+') '+str(o)+': success.')
 			elif foundo != "novalue": # novalue statements without P38 qualifier are always written
-				foundobjs.append(foundo)
-				#print("A statement #"+str(statementcount)+" for prop "+p+" is already there: "+foundo)
+				if dtype == "monolingualtext":
+					if o['language'] == foundo['language']:
+						foundobjs.append(foundo)
+						print('There is another card1prop monolingualtext claim for the same language: '+foundo['language'])
+					else:
+						print('There is a card1prop monolingualtext claim with another language: '+foundo['language'])
+						continue
+				else:
+					foundobjs.append(foundo)
+					#print("A statement #"+str(statementcount)+" for prop "+p+" is already there: "+foundo)
 
 				if foundo == o or foundo == value:
 					print('Found redundant triple ('+p+') '+str(o)+' >> Claim update skipped.')
 					returnvalue = guid
 
 				if p in max1props:
-					if returnvalue and len(foundobjs) > 1:
+					if returnvalue and len(foundobjs) > 1 :
 						print('There is a second statement for a max1prop. Will delete that.')
 						results = site.post('wbremoveclaims', claim=guid, token=token)
 						if results['success'] == 1:
@@ -612,13 +622,11 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 							foundobjs.remove(foundo)
 					elif not returnvalue:
 						print('('+p+') is a max 1 prop. Will write statement.')
-
 						while True:
 							try:
 								results = site.post('wbsetclaimvalue', token=token, claim=guid, snaktype="value", value=value)
-
 								if results['success'] == 1:
-									print('Claim update for '+s+' ('+p+') '+str(o)+': success.')
+									print('Existing claim value update for '+s+' ('+p+') '+str(o)+': success.')
 									foundobjs.append(o)
 									returnvalue = guid
 									break
@@ -759,6 +767,9 @@ def setqualifier(qid, prop, claimid, qualiprop, qualivalue, dtype):
 # set a Reference
 def setref(claimid, refprop, refvalue, dtype):
 	global token
+	guidfix = re.compile(r'^(Q\d+)\-')
+	claimid = re.sub(guidfix, r'\1$', claimid)
+	#print(claimid)
 	if dtype == "string" or dtype == "monolingualtext":
 		#refvalue = '"'+refvalue.replace('"', '\\"')+'"'
 		refvalue = refvalue.replace('"', '\\"')
@@ -767,13 +778,14 @@ def setref(claimid, refprop, refvalue, dtype):
 		# no transformation
 		valtype = "string"
 	elif dtype == "item" or dtype =="wikibase-entityid":
-		refvalue = json.dumps({"entity-type":"item","numeric-id":int(refvalue.replace("Q",""))})
+		refvalue = {"entity-type":"item","numeric-id":int(refvalue.replace("Q",""))}
 		valtype = "wikibase-entityid"
 	snaks = json.dumps({refprop:[{"snaktype":"value","property":refprop,"datavalue":{"type":valtype,"value":refvalue}}]})
+	#print(str(snaks))
 	while True:
 		try:
 			setref = site.post('wbsetreference', token=token, statement=claimid, index=0, snaks=snaks, bot=1)
-			# always set at index 0!!
+			# is now always set at index 0 (TBD!)
 			if setref['success'] == 1:
 				print('Reference set for '+refprop+': success.')
 				return True
