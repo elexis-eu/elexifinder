@@ -404,6 +404,25 @@ def setlabel(s, lang, val, type="label", set=False):
 				print('Cannot set label in this language: '+lang)
 				logging.warning('Cannot set label in this language: '+lang)
 				break
+			elif 'unresolved-redirect' in str(ex):
+
+				#get redirect target
+				url = "https://lexbib.elex.is/query/sparql?format=json&query=PREFIX%20lwb%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fentity%2F%3E%0APREFIX%20ldp%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fdirect%2F%3E%0APREFIX%20lp%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2F%3E%0APREFIX%20lps%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fstatement%2F%3E%0APREFIX%20lpq%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fqualifier%2F%3E%0A%0Aselect%20%28strafter%28str%28%3Fredirect%29%2C%22http%3A%2F%2Flexbib.elex.is%2Fentity%2F%22%29%20as%20%3Frqid%29%20where%0A%7Blwb%3A"+s+"%20owl%3AsameAs%20%3Fredirect.%7D%0A%20%20%0A"
+				subdone = False
+				while (not subdone):
+					try:
+						r = requests.get(url)
+						bindings = r.json()['results']['bindings']
+					except Exception as ex:
+						print('Error: SPARQL request for redirects failed: '+str(ex))
+						time.sleep(2)
+						continue
+					subdone = True
+
+				if 'rqid' in bindings[0]:
+					print('Found redirect target '+bindings[0]['rqid']['value']+', will use that instead.')
+					s = bindings[0]['rqid']['value']
+					continue
 			else:
 				print('Label set operation '+s+' ('+lang+') '+str(val)+' failed, will try again...\n'+str(ex))
 				logging.error('Label set operation '+s+' ('+lang+') '+str(val)+' failed, will try again...', exc_info=True)
@@ -598,12 +617,12 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 				if results['success'] == 1:
 					print('Wb remove duplicate claim for '+s+' ('+p+') '+str(o)+': success.')
 			elif foundo != "novalue": # novalue statements without P38 qualifier are always written
-				if dtype == "monolingualtext":
+				if dtype == "monolingualtext" and p in max1props:
 					if o['language'] == foundo['language']:
 						foundobjs.append(foundo)
 						print('There is another card1prop monolingualtext claim for the same language: '+foundo['language'])
 					else:
-						print('There is a card1prop monolingualtext claim with another language: '+foundo['language'])
+						#print('There is a card1prop monolingualtext claim with another language: '+foundo['language'])
 						continue
 				else:
 					foundobjs.append(foundo)
@@ -720,30 +739,46 @@ def setqualifier(qid, prop, claimid, qualiprop, qualivalue, dtype):
 					continue
 				if "qualifiers" in claim:
 					if qualiprop in claim['qualifiers']:
-						print('Found an existing type max1 qualifier for that claim.')
+						existingqualihashes = {}
 						for quali in claim['qualifiers'][qualiprop]:
 							existingqualihash = quali['hash']
 							existingqualivalue = quali['datavalue']['value']
-							if existingqualivalue == qualivalue:
-								print('Found duplicate value for max1quali. Skipped.')
-								return False
-							else:
-								print('New value to be written to existing max1 type qualifier.')
-								try:
-									while True:
-										setqualifier = site.post('wbsetqualifier', token=token, claim=claimid, snakhash=existingqualihash, property=qualiprop, snaktype="value", value=qualivalue, bot=1)
-										# always set!!
-										if setqualifier['success'] == 1:
-											print('Qualifier set ('+qualiprop+') '+qualivalue+': success.')
-											return True
-										print('Qualifier set failed, will try again...')
-										logging.error('Qualifier set failed for '+prop+' ('+qualiprop+') '+qualivalue+': '+str(ex))
-										time.sleep(2)
+							existingqualihashes[existingqualihash] = existingqualivalue
+						print('Found an existing type max1 qualifier for that claim: '+str(list(existingqualihashes.values())))
+						allhashes = list(existingqualihashes.keys())
+						done = False
+						while (not done):
+							if len(existingqualihashes) > 1:
+								print('Found several qualis, but cardinality is 1; will delete all but one.')
+								for delqualihash in allhashes:
+									if delqualihash == allhashes[1]:
+										print('Will leave intact this quali: '+existingqualihashes[delqualihash])
+									else:
+										removequali(claimid,delqualihash)
+										del existingqualihashes[delqualihash]
+							elif len(existingqualihashes) == 1:
+								done = True
 
-								except Exception as ex:
-									if 'The statement has already a qualifier' in str(ex):
-										print('**** The statement already has a ('+qualiprop+') '+qualivalue+': skipped writing duplicate qualifier')
-										return False
+						if list(existingqualihashes.values())[0] in qualivalue:
+							print('Found duplicate value for max1quali. Skipped.')
+							return True
+						else:
+							print('New value to be written to existing max1 type qualifier.')
+							try:
+								while True:
+									setqualifier = site.post('wbsetqualifier', token=token, claim=claimid, snakhash=existingqualihash, property=qualiprop, snaktype="value", value=qualivalue, bot=1)
+									# always set!!
+									if setqualifier['success'] == 1:
+										print('Qualifier set ('+qualiprop+') '+qualivalue+': success.')
+										return True
+									print('Qualifier set failed, will try again...')
+									logging.error('Qualifier set failed for '+prop+' ('+qualiprop+') '+qualivalue+': '+str(ex))
+									time.sleep(2)
+
+							except Exception as ex:
+								if 'The statement has already a qualifier' in str(ex):
+									print('**** The statement already has a ('+qualiprop+') '+qualivalue+' qualifier: skipped writing duplicate qualifier')
+									return False
 	# not a max1quali >> write new quali in case value is different to existing value
 	try:
 		while True:
