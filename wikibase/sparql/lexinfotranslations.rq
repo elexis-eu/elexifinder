@@ -1,0 +1,37 @@
+PREFIX lwb: <http://lexbib.elex.is/entity/>
+PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
+PREFIX lp: <http://lexbib.elex.is/prop/>
+PREFIX lps: <http://lexbib.elex.is/prop/statement/>
+PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
+PREFIX lpr: <http://lexbib.elex.is/prop/reference/>
+PREFIX lno: <http://lexbib.elex.is/prop/novalue/>
+
+select ?termuri ?enPreflabel
+ (?equiv as ?lexinfoUri) # alternative: following line
+ #(group_concat (distinct str(?equiv);SEPARATOR="; ") as ?lexinfoUri)
+ (concat('[ ',(group_concat(distinct concat('{"',lang(?preflabel),'": "',?preflabel,'"}');SEPARATOR=", ")),' ]') as ?preflabels)
+ (concat('[ ',(group_concat(distinct concat('{"',lang(?altlabel),'": "',?altlabel,'"}');SEPARATOR=", ")),' ]') as ?altlabels)
+ (uri(concat("http://www.wikidata.org/entity/",?wd)) as ?wikidata)
+
+
+ where {
+
+  ?termuri ldp:P74 lwb:Q15469 ; # member of SKOS collection "lexinfo 3.0"
+              ldp:P57 ?equiv ;
+              ldp:P109 ?corpus ; # is found in LexBib corpus
+              rdfs:label ?preflabel ;
+              rdfs:label ?enPreflabel .
+   FILTER (regex(str(?equiv), "http://www.lexinfo.net/ontology/3.0/lexinfo#"))
+   FILTER (lang(?enPreflabel)="en")
+
+  OPTIONAL { ?termuri skos:altLabel ?altlabel. }
+
+   OPTIONAL { ?termuri ldp:P2 ?wd.}
+
+
+} GROUP BY ?termuri ?enPreflabel
+# ?lexinfoUri
+?equiv
+?preflabels ?altlabels ?wd
+
+ORDER BY LCASE(?enPreflabel)
