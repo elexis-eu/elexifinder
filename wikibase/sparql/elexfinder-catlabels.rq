@@ -1,0 +1,44 @@
+PREFIX lwb: <http://lexbib.elex.is/entity/>
+PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
+PREFIX lp: <http://lexbib.elex.is/prop/>
+PREFIX lps: <http://lexbib.elex.is/prop/statement/>
+PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
+PREFIX lpr: <http://lexbib.elex.is/prop/reference/>
+PREFIX lno: <http://lexbib.elex.is/prop/novalue/>
+
+select distinct ?term ?termLabel ?l3termLabel ?l2termLabel ?l1termLabel ?facetLabel ?ercat
+
+    where {
+      {?term ldp:P131 lwb:Q1; rdfs:label ?termLabel . FILTER (lang(?termLabel)="en")
+       BIND (concat("Lexicography/",?termLabel) as ?ercat)
+      } # gets facets
+      UNION
+      { ?facet ldp:P131 lwb:Q1; rdfs:label ?facetLabel . FILTER (lang(?facetLabel)="en")
+        ?term ldp:P72 ?facet. ?term rdfs:label ?termLabel. FILTER (lang(?termLabel)="en")
+       BIND (concat("Lexicography/",?facetLabel,"/",?termLabel) as ?ercat)
+      } # gets facets minus 1 level
+      UNION
+      { ?facet ldp:P131 lwb:Q1; rdfs:label ?facetLabel . FILTER (lang(?facetLabel)="en")
+        ?term ldp:P72 ?l1term; rdfs:label ?termLabel. FILTER (lang(?termLabel)="en")
+       ?l1term ldp:P72 ?facet; rdfs:label ?l1termLabel. FILTER (lang(?l1termLabel)="en")
+       BIND (concat("Lexicography/",?facetLabel,"/",?l1termLabel,"/",?termLabel) as ?ercat)
+      } # gets facets minus 2 level
+      UNION
+      { ?facet ldp:P131 lwb:Q1; rdfs:label ?facetLabel . FILTER (lang(?facetLabel)="en")
+        ?term ldp:P72 ?l2term; rdfs:label ?termLabel. FILTER (lang(?termLabel)="en")
+       ?l2term ldp:P72 ?l1term; rdfs:label ?l2termLabel. FILTER (lang(?l2termLabel)="en")
+       ?l1term ldp:P72 ?facet; rdfs:label ?l1termLabel. FILTER (lang(?l1termLabel)="en")
+       BIND (concat("Lexicography/",?facetLabel,"/",?l1termLabel,"/",?l2termLabel,"/",?termLabel) as ?ercat)
+      } # gets facets minus 3 level
+      UNION
+      { ?facet ldp:P131 lwb:Q1; rdfs:label ?facetLabel . FILTER (lang(?facetLabel)="en")
+        ?term ldp:P72+ ?l3term; rdfs:label ?termLabel. FILTER (lang(?termLabel)="en")
+       ?l3term ldp:P72 ?l2term; rdfs:label ?l3termLabel. FILTER (lang(?l3termLabel)="en")
+       ?l2term ldp:P72 ?l1term; rdfs:label ?l2termLabel. FILTER (lang(?l2termLabel)="en")
+       ?l1term ldp:P72 ?facet; rdfs:label ?l1termLabel. FILTER (lang(?l1termLabel)="en")
+       BIND (concat("Lexicography/",?facetLabel,"/",?l1termLabel,"/",?l2termLabel,"/",?l3termLabel) as ?ercat)
+      } # gets facets minus 4+ level
+
+} group by ?term ?termLabel ?l3termLabel ?l2termLabel ?l1termLabel ?facetLabel ?ercat
+ORDER BY ?term
+#limit 100
