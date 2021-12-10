@@ -38,9 +38,10 @@ PREFIX lno: <http://lexbib.elex.is/prop/novalue/>
 
 select ?redirected ?term ?label where
 {?redirected owl:sameAs ?term.
- ?term ldp:P5 lwb:Q7;
-       rdfs:label ?label.
- filter(lang(?label)="en")}"""
+#?term ldp:P5 lwb:Q7;
+#       rdfs:label ?label.
+# filter(lang(?label)="en")
+}"""
 print("Loading owl:sameAs mappings. Waiting for LexBib v3 SPARQL...")
 sparqlresults = sparql.query('https://lexbib.elex.is/query/sparql',query)
 print('Got data from LexBib v3 SPARQL.')
@@ -49,7 +50,7 @@ redirects = {}
 for row in sparqlresults:
 	item = sparql.unpack_row(row, convert=None, convert_type={})
 	redirects[item[0].replace('http://lexbib.elex.is/entity/','')] = item[1].replace('http://lexbib.elex.is/entity/','')
-
+print(str(redirects))
 completedterms = {}
 completedlangs = {}
 equivs = {}
@@ -63,7 +64,7 @@ for entry in root:
 	# 	continue
 	termqid = entry.attrib['lexbib_id']
 	print('\n['+str(count)+'] Now processing term '+termqid+'...')
-	if termqid in redirects:
+	while termqid in redirects:
 		termqid = redirects[termqid]
 		print('This term Qid redirects to '+termqid)
 	termqidlist.append(termqid)
@@ -71,6 +72,8 @@ for entry in root:
 		for translation in translations:
 			lang = re.search('^term_(\w+)',translation.tag).group(1)
 			wikilang = langmapping.getWikiLangCode(lang)
+			if wikilang == "eu":
+				continue
 			status = translation.attrib["status"]
 			if status == "COMPLETE":
 				status == "COMPLETED" # a bug in the lexvoc lexonomy style defs (both exist)
@@ -84,7 +87,7 @@ for entry in root:
 					for altLabel in altLabels:
 						if altLabel.text:
 							altLabelStatement = lwb.updateclaim(termqid,"P130",{'language':wikilang,'text':altLabel.text.strip()},"monolingualtext")
-							lwb.setqualifier(termqid,"P129",altLabelStatement,"P128",status,"string")
+							lwb.setqualifier(termqid,"P130",altLabelStatement,"P128",status,"string")
 				if prefLabel and status == "COMPLETED":
 					lwb.setlabel(termqid,wikilang,prefLabel.strip(),type="label")
 					aliasstring = ""
