@@ -2,8 +2,8 @@ import re
 from nltk.tokenize import word_tokenize
 import spacy
 sp = {
-'eng': spacy.load('en_core_web_sm'),
-'spa': spacy.load('es_core_news_sm') 
+'eng': spacy.load('en_core_web_sm'), # English
+'spa': spacy.load('es_core_news_sm') # Spanish
 }
 
 # lemmatize english text and clean it
