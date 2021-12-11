@@ -32,22 +32,22 @@ select
 (sample(?txtfolder) as ?txt)
 (sample(?pdffolder) as ?pdf)
 ?zotero
-?lang
+?isolang
 
 where
 {
   #BIND(lwb:Q1605 as ?bibItem)
 
   ?bibItem ldp:P5 lwb:Q3 .
-  ?bibItem ldp:P11 ?lang .
-  filter(?lang = lwb:Q201) # English only
+  ?bibItem ldp:P11 ?lang . ?lang ldp:P32 ?isolang .
+  filter(?lang = lwb:Q201 || ?lang = lwb:Q204) # English or Spanish only
   ?bibItem ldp:P85 ?coll . # Items with Elexifinder collection only
   ?bibItem lp:P16 ?zoterostatement .
   ?zoterostatement lps:P16 ?zotero .
  OPTIONAL{?zoterostatement lpq:P70 ?pdffolder .}
  OPTIONAL{?zoterostatement lpq:P71 ?txtfolder .}
  }
-group by ?bibItem ?txt ?pdf ?zotero ?lang
+group by ?bibItem ?txt ?pdf ?zotero ?isolang
 """
 print(query)
 
@@ -156,7 +156,7 @@ for row in sparqlresults:
 			time.sleep(4)
 
 	if bodytxt:
-		bodylemclean = nlp.lemmatize_clean(bodytxt)
+		bodylemclean = nlp.lemmatize_clean(bodytxt, lang=lang)
 		bodytxtcoll[bibItem] = {'zotItem': zotItem, 'source': bodytxtsource, 'lang': lang, 'bodytxt': bodytxt, 'bodylemclean' : bodylemclean}
 	else:
 		bodytxtsource = "failed"
