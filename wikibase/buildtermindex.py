@@ -8,7 +8,7 @@ from collections import OrderedDict
 from datetime import datetime
 import sparql
 from flashtext import KeywordProcessor
-keyword_processor = KeywordProcessor()
+
 import requests
 import sys
 import os
@@ -16,127 +16,117 @@ sys.path.insert(1, os.path.realpath(os.path.pardir))
 
 #
 import nlp
+import langmapping
 import config
-from stopterms import stopterms
+from stoptermlabels import stoptermlabels
+
+keydict = {}
+keyindex = {}
+# one keywordprocessor for every language to process:
+keyword_processor = {"eng": KeywordProcessor(), "spa": KeywordProcessor()}
+
+def feed_keywords(isolang):
+	global keyindex
+	global keydict
+	global keyword_processor
+	wikilang = '"'+langmapping.getWikiLangCode(isolang)+'"'
+	# get valid SKOS concepts and labels:
+	# concepts that have a skos:broader+ relation to a facet of Q1 "Lexicography", and their closeMatch concepts.
+	query = """
+	PREFIX lwb: <http://lexbib.elex.is/entity/>
+	PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
+	PREFIX lp: <http://lexbib.elex.is/prop/>
+	PREFIX lps: <http://lexbib.elex.is/prop/statement/>
+	PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
+	PREFIX lpr: <http://lexbib.elex.is/prop/reference/>
+	PREFIX lno: <http://lexbib.elex.is/prop/novalue/>
+
+	select ?sLabel (group_concat(distinct strafter(str(?s),"http://lexbib.elex.is/entity/");SEPARATOR=";") as ?uris) (count(?s) as ?count) where {
+
+	 ?facet ldp:P131 lwb:Q1.
+	  ?s ldp:P5 lwb:Q7.
+	  ?s ldp:P72+ ?facet.
+
+	  ?s rdfs:label|skos:altLabel ?sLabel . FILTER (lang(?sLabel)="""+wikilang+""")
+
+	}  group by ?sLabel ?uri ?count
+	order by desc(?count)
+
+	"""
+	print(query)
+
+	url = "https://lexbib.elex.is/query/sparql"
+	print("Waiting for SPARQL... Getting LexVoc concepts for lang: "+isolang)
+	sparqlresults = sparql.query(url,query)
+	print('\nGot list of valid vocab items and labels from LexBib SPARQL.')
+	print('Now feeding KeywordProcessor for '+isolang+'...')
+	#go through sparqlresults
+	# build dict for keyword processor
+	rowindex = 0
+	keydict[isolang] = {}
+	keyindex[isolang] = {}
+	for row in sparqlresults:
+		rowindex += 1
+		item = sparql.unpack_row(row, convert=None, convert_type={})
+		#print('\nNow processing item ['+str(rowindex)+']:\n'+str(item))
+		termqids = item[1].split(";")
+		termlabel = item[0].lower() # convert term label to lower case
+		#if entry['concept']['value'] in erdict: # add only to keyword processor if present in elexifinder categories dict.
+
+		if termlabel in stoptermlabels[isolang]:
+			continue
+
+		if "-" not in termlabel:
+			termlabellem = nlp.lemmatize_clean(termlabel, lang=isolang)[0]
+		else:
+			termlabellem = None
+		if termlabellem != None and termlabellem != termlabel:
+			termlabellist = [termlabel, termlabellem]
+		else:
+			termlabellist = [termlabel]
+		keydict[isolang][str(rowindex)] = termlabellist
+		for termqid in termqids:
+			if str(rowindex) not in keyindex[isolang]:
+				keyindex[isolang][str(rowindex)] = [termqid]
+			else:
+				keyindex[isolang][str(rowindex)].append(termqid)
+
+
+
+	with open(config.datafolder+'bodytxt/keyword_processor_keydict_'+isolang+'_last.json', 'w', encoding="utf-8") as json_file: # path to result JSON file
+		json.dump(keydict[isolang], json_file, indent=2)
+	with open(config.datafolder+'bodytxt/keyindex_'+isolang+'_last.json', 'w', encoding="utf-8") as json_file: # path to result JSON file
+		json.dump(keyindex[isolang], json_file, indent=2)
+
+
+	keyword_processor[isolang].add_keywords_from_dict(keydict[isolang])
+
+	print('\n***Keyword processor fed for language '+isolang+'\n')
 
 # load bodytxt collection
 with open(config.datafolder+'bodytxt/bodytxt_collection.json', encoding="utf-8") as infile:
 	bodytxtcoll = json.load(infile)
 
-# get valid SKOS concepts and labels:
-# concepts that have a skos:broader+ relation to Q1 "Lexicography, and their closeMatch concepts.
-query = """
-PREFIX lwb: <http://lexbib.elex.is/entity/>
-PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
-PREFIX lp: <http://lexbib.elex.is/prop/>
-PREFIX lps: <http://lexbib.elex.is/prop/statement/>
-PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
+# load keyword processor
+termstats = {}
+for isolang in keyword_processor:
+	feed_keywords(isolang)
+	termstats[isolang] = {}
 
-select distinct (strafter(str(?concepturi),"http://lexbib.elex.is/entity/") as ?concept) ?termLabel where {
-  ?concepturi ldp:P5 lwb:Q7 .
- { ?concepturi ldp:P72* lwb:Q1 .} # present in narrower-broader-tree with "Lexicography" as root node
-  UNION
- {?concepturi ldp:P77 ?closeMatch. ?closeMatch ldp:P72* lwb:Q1 . } # includes closeMatch items without own broader-rels
-  ?concepturi rdfs:label|skos:altLabel ?termLabel . FILTER (lang(?termLabel)="en")
-} ORDER BY ?concept
-
-# select distinct (strafter(str(?concepturi),"http://lexbib.elex.is/entity/") as ?concept) ?termLabel where {
-#
-#   ?concepturi ldp:P74 lwb:Q15469 . # part of "lexinfo 3.0"
-#   ?concepturi rdfs:label|skos:altLabel ?termLabel . FILTER (lang(?termLabel)="en")
-# } ORDER BY ?concept
-
-"""
-print(query)
-
-url = "https://lexbib.elex.is/query/sparql"
-print("Waiting for SPARQL...")
-sparqlresults = sparql.query(url,query)
-print('\nGot list of valid vocab items and labels from LexBib SPARQL.')
-print('Now feeding KeywordProcessor...')
-#go through sparqlresults
-# build dict for keyword processor
-rowindex = 0
-keydict = {}
-for row in sparqlresults:
-	rowindex += 1
-	item = sparql.unpack_row(row, convert=None, convert_type={})
-	#print('\nNow processing item ['+str(rowindex)+']:\n'+str(item))
-	termqid = item[0]
-	termlabel = item[1].lower() # convert term label to lower case
-	#if entry['concept']['value'] in erdict: # add only to keyword processor if present in elexifinder categories dict.
-	if "-" not in termlabel:
-		termlabellem = nlp.lemmatize_clean(termlabel)[0]
-	else:
-		termlabellem = None
-	if termlabellem != None and termlabellem != termlabel:
-		termlabellist = [termlabel, termlabellem]
-	else:
-		termlabellist = [termlabel]
-	for termlabel in termlabellist:
-		if termlabel in stopterms:
-			continue
-		if termqid not in keydict:
-			keydict[termqid] = [termlabel]
-		else:
-			if termlabel not in keydict[termqid]: # avoid duplicate labels (e.g. "NLP" [converted to "nlp"], and "nlp")
-				keydict[termqid].append(termlabel)
-with open(config.datafolder+'bodytxt/keyword_processor_keydict.json', 'w', encoding="utf-8") as json_file: # path to result JSON file
-	json.dump(keydict, json_file, indent=2)
-keyword_processor.add_keywords_from_dict(keydict)
-print('\n***Keyword processor fed.\n')
-
-#get bibitems to process
-query = """
-PREFIX lwb: <http://lexbib.elex.is/entity/>
-PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
-PREFIX lp: <http://lexbib.elex.is/prop/>
-PREFIX lps: <http://lexbib.elex.is/prop/statement/>
-PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
-
-select ?bibItem ?lang ?nid where
-{
-  #BIND(lwb:Q3901 as ?bibItem)
-
-  ?bibItem ldp:P5 lwb:Q3 .
-  ?bibItem ldp:P11 ?lang .
-  filter(?lang = lwb:Q201) # English only
-  ?bibItem ldp:P85 ?coll . # Items with Elexifinder collection only
-  #filter not exists {?bibItem lp:P96 ?termcandstatement. } # Items with no P96 statement (value or novalue) only
-  BIND(xsd:integer(strafter(str(?bibItem),"http://lexbib.elex.is/entity/Q")) as ?nid)
- } order by ?nid
-"""
-print(query)
-
-url = "https://lexbib.elex.is/query/sparql"
-print("Waiting for SPARQL...")
-sparqlresults = sparql.query(url,query)
-print('\nGot bibItem list from LexBib SPARQL.')
-
-#go through sparqlresults
+#go through items with bodytxt
 rowindex = 0
 foundterms = {}
-termstats = {}
-for row in sparqlresults:
+
+for bibItem in bodytxtcoll:
 	rowindex += 1
-	item = sparql.unpack_row(row, convert=None, convert_type={})
-	print('\nNow processing item ['+str(rowindex)+']:\n'+str(item))
-	bibItem = item[0].replace("http://lexbib.elex.is/entity/","")
-	lang = item[1].replace("http://lexbib.elex.is/entity/","")
-	nid = item[2]
+	print('\nNow processing item ['+str(rowindex)+'] of '+str(len(bodytxtcoll))+':')
 
-	if nid < 1: # if script needs to be re-started...
-		continue
-
+	isolang = bodytxtcoll[bibItem]['lang']
 
 	# load txt.
-	if bibItem in bodytxtcoll:
-		#bodytxt = bodytxtcoll[bibItem]['bodytxt']
-		cleantext = bodytxtcoll[bibItem]['bodylemclean']
-		bodytxtsource = bodytxtcoll[bibItem]['source']
-	else:
-		print('*** Missing entry in bodytxtcoll: '+bibItem)
-		continue
+	bodytxt = bodytxtcoll[bibItem]['bodytxt']
+	cleantext = bodytxtcoll[bibItem]['bodylemclean']
+	bodytxtsource = bodytxtcoll[bibItem]['source']
 
 	# # keyword extraction bodytxt (not lemmatized)
 	# keywords = keyword_processor.extract_keywords(bodytxt)
@@ -150,19 +140,27 @@ for row in sparqlresults:
 	# print('This bodytext ['+str(cleantext[1])+' tokens] contains '+str(len(foundterms[bibItem]['bodytxt']))+' term candidates.')
 
 	# keyword extraction cleantext
-	keywords = keyword_processor.extract_keywords(cleantext[0])
+	keywords = keyword_processor[isolang].extract_keywords(cleantext[0])
 	keywords = sorted(keywords,key=keywords.count,reverse=True) # sorts according to frequency in the text
 	foundterms[bibItem] = {}
 	uniqkws = list(OrderedDict.fromkeys(keywords))
 	for uniqkw in uniqkws:
 		hits = keywords.count(uniqkw)
-		if uniqkw not in termstats:
-			termstats[uniqkw] = 1
-		else:
-			termstats[uniqkw] += 1
-		foundterms[bibItem][uniqkw] = {'hits': hits, 'rfreq': hits/cleantext[1]}
+		termqids = keyindex[isolang][uniqkw]
+		for termqid in termqids:
+			if termqid not in termstats:
+				termstats[isolang][termqid] = 1
+			else:
+				termstats[isolang][termqid] += 1
+			if termqid not in foundterms[bibItem]:
+				foundterms[bibItem][termqid] = {'hits': hits, 'rfreq': hits/cleantext[1]}
+			else:
+				foundterms[bibItem][termqid]['hits'] += hits
+				foundterms[bibItem][termqid]['rfreq'] += hits/cleantext[1]
 
-	print('This lemcleantext ['+str(cleantext[1])+' tokens] contains '+str(len(foundterms[bibItem]))+' term candidates.')
+	print('This lemcleantext ['+str(cleantext[1])+' tokens] contains '+str(len(foundterms[bibItem]))+' term candidates. Language was '+isolang+'.')
+
+
 
 with open(config.datafolder+'bodytxt/foundterms_'+time.strftime("%Y%m%d-%H%M%S")+'.json', 'w', encoding="utf-8") as json_file: # path to result JSON file
 	json.dump(foundterms, json_file, indent=2)
