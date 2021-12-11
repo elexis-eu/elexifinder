@@ -1,9 +1,9 @@
 # list of term labels not to be considered (not to be sent to keyword_processor)
 # These term labels are very ambiguous and bound to produce many false positives
 # (at the moment, English only)
+stoptermlabels = {}
 
-
-stopterms = """example
+stoptermlabels['eng'] = """example
 case
 aspect
 survey
@@ -37,6 +37,8 @@ progressive
 note
 person""".split('\n')
 
-
-print('\nWill load stopterms:')
-print(str(stopterms)+'\n')
+stoptermlabels['spa'] = """ejemplo
+caso
+aspecto
+persona
+diverso""".split('\n')
