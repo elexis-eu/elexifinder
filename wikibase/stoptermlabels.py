@@ -3,7 +3,8 @@
 # (at the moment, English only)
 stoptermlabels = {}
 
-stoptermlabels['eng'] = """example
+stoptermlabels['eng'] = """
+example
 case
 aspect
 survey
@@ -35,10 +36,13 @@ particle
 clarity
 progressive
 note
-person""".split('\n')
+person
+""".split('\n')
 
-stoptermlabels['spa'] = """ejemplo
+stoptermlabels['spa'] = """
+ejemplo
 caso
 aspecto
 persona
-diverso""".split('\n')
+diverso
+""".split('\n')
