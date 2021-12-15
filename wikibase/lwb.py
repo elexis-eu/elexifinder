@@ -751,8 +751,9 @@ def setqualifier(qid, prop, claimid, qualiprop, qualivalue, dtype):
 							if len(existingqualihashes) > 1:
 								print('Found several qualis, but cardinality is 1; will delete all but one.')
 								for delqualihash in allhashes:
-									if delqualihash == allhashes[1]:
+									if delqualihash == allhashes[len(allhashes)-1]: # leave the last one intact
 										print('Will leave intact this quali: '+existingqualihashes[delqualihash])
+										existingqualihash = existingqualihashes[delqualihash]
 									else:
 										removequali(claimid,delqualihash)
 										del existingqualihashes[delqualihash]
