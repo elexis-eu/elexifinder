@@ -14,7 +14,17 @@ import sparql
 
 # items to export
 
-export_items = ["Q6273", "Q11312", "Q8536"]
+export_items = """Q9054
+Q13618
+Q10752
+Q13279
+Q12734
+Q8693
+Q12270
+Q11845
+Q15742
+Q11229
+""".split("\n")
 
 # pubTime
 pubTime = str(datetime.now()).replace(' ','T')[0:22]
@@ -109,7 +119,8 @@ limit 10
 	sparqlresults = sparql.query(url,query)
 	for row in sparqlresults:
 		itemdata = sparql.unpack_row(row, convert=None, convert_type={})
-		print(str(itemdata))
+		#print(str(itemdata))
+		print('Got item data.')
 		return itemdata
 
 
@@ -141,13 +152,16 @@ with open('D:/LexBib/terms/elexifinder-catlabels.csv', encoding="utf-8") as csvf
 	catlabels = {}
 	for row in catlabels_csv:
 		termqid = row['term'].replace("http://lexbib.elex.is/entity/","")
-		erlabel = re.search(r'[\w ]+$',row['ercat']).group(0)
-		catlabels[termqid] = {"uri":row['ercat'],"label":erlabel}
+		#erlabel = re.search(r'[\w ]+$',row['ercat']).group(0)
+		catlabels[termqid] = {"uri":row['ercat'].replace(" ","_"),"label":row['ercat'].replace("Lexicography/","")}
 
 #print(str(catlabels))
 
-with open('D:/LexBib/bodytxt/foundterms_last.json', encoding="utf-8") as jsonfile:
+with open('D:/LexBib/bodytxt/foundterms.json', encoding="utf-8") as jsonfile:
 	foundterms = json.load(jsonfile)
+
+with open('D:/LexBib/bodytxt/bodytxt_collection.json', encoding="utf-8") as jsonfile:
+	bodytxts = json.load(jsonfile)
 
 # Tk().withdraw()
 # infile = askopenfilename()
@@ -200,14 +214,15 @@ for itemuri in export_items:
 	if itemuri not in foundterms:
 		print('No term indexation found for item '+itemuri)
 		time.sleep(1)
-	for foundterm in foundterms[itemuri]:
-		if foundterm not in catlabels:
-			print('er-catlabel not found. Must be a redirect uri.')
-			time.sleep(1)
-			continue
-		if catlabels[foundterm] not in target['categories']:
-			target['categories'].append(catlabels[foundterm])
-			#print('Term found in this item: '+str(catlabels[foundterm]))
+	else:
+		for foundterm in foundterms[itemuri]:
+			if foundterm not in catlabels:
+				print('er-catlabel not found. Must be a redirect uri.')
+				time.sleep(1)
+				continue
+			if catlabels[foundterm] not in target['categories']:
+				target['categories'].append(catlabels[foundterm])
+				#print('Term found in this item: '+str(catlabels[foundterm]))
 
 	# get item data
 	itemdata = get_item_data(itemuri)
@@ -261,6 +276,11 @@ for itemuri in export_items:
 		target['type'] = "video"
 	else:
 		target['type'] = "news" # item type for all except videos
+	if itemuri in bodytxts:
+		target['body'] = bodytxts[itemuri]['bodytxt']
+		print('Textbody found and copied.')
+	else:
+		print('No textbody found.')
 
 #write to JSON
 	elexifinder.append(target)
