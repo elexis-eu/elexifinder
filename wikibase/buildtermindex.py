@@ -76,11 +76,11 @@ def feed_keywords(isolang):
 		if termlabel in stoptermlabels[isolang]:
 			continue
 
-		if "-" not in termlabel:
+		if "-" not in termlabel: # term labels with hyphen are excluded from being lemmatized
 			termlabellem = nlp.lemmatize_clean(termlabel, lang=isolang)[0]
 		else:
 			termlabellem = None
-		if termlabellem != None and termlabellem != termlabel:
+		if termlabellem != None and termlabellem != termlabel: # if the lemmatized version is different to the original
 			termlabellist = [termlabel, termlabellem]
 		else:
 			termlabellist = [termlabel]
@@ -108,7 +108,7 @@ with open(config.datafolder+'bodytxt/bodytxt_collection.json', encoding="utf-8")
 	bodytxtcoll = json.load(infile)
 
 # load keyword processor
-termstats = {}
+termstats = {'all_langs': {}}
 for isolang in keyword_processor:
 	feed_keywords(isolang)
 	termstats[isolang] = {}
@@ -148,7 +148,11 @@ for bibItem in bodytxtcoll:
 		hits = keywords.count(uniqkw)
 		termqids = keyindex[isolang][uniqkw]
 		for termqid in termqids:
-			if termqid not in termstats:
+			if termqid not in termstats['all_langs']:
+				termstats['all_langs'][termqid] = 1
+			else:
+				termstats['all_langs'][termqid] += 1
+			if termqid not in termstats[isolang]:
 				termstats[isolang][termqid] = 1
 			else:
 				termstats[isolang][termqid] += 1
