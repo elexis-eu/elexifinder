@@ -11,6 +11,7 @@ from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 import sys
 import sparql
+import requests
 
 # items to export
 
@@ -23,12 +24,17 @@ Q8693
 Q12270
 Q11845
 Q15742
-Q11229
-""".split("\n")
+Q11229""".split("\n")
 
 # pubTime
 pubTime = str(datetime.now()).replace(' ','T')[0:22]
 print(pubTime)
+
+# Elexifinder API
+with open('D:/LexBib/elexifinder/elexifinder_api_key.txt') as pwdfile:
+	EFapiKey = pwdfile.read()
+
+EFhost = "http://finder.elex.is"
 
 # get donelist
 with open('D:/LexBib/elexifinder/export_last_donelist.txt', 'r', encoding="utf-8") as txt_file:
@@ -123,31 +129,8 @@ limit 10
 		print('Got item data.')
 		return itemdata
 
-
-# collection images links:
-
-images = {
-1 : "https://elex.is/wp-content/uploads/2020/12/collection_1_elex.jpg.",
-2 : "https://elex.is/wp-content/uploads/2020/12/collection_2_euralex.jpg",
-3 : "https://elex.is/wp-content/uploads/2020/12/collection_3_ijl.jpg",
-4 : "https://elex.is/wp-content/uploads/2020/12/collection_4_lexikos.jpg",
-5 : "https://elex.is/wp-content/uploads/2020/12/collection_5_lexiconordica.jpg",
-6 : "https://elex.is/wp-content/uploads/2020/12/collection_6_lexicographica.jpg",
-7 : "https://elex.is/wp-content/uploads/2020/12/collection_7_NSL.jpg",
-8 : "https://elex.is/wp-content/uploads/2020/12/collection_8_lexicon_tokyo.jpg",
-9 : "https://elex.is/wp-content/uploads/2020/12/collection_9_lexicography_asialex.jpg",
-10 : "https://elex.is/wp-content/uploads/2020/12/collection_10_globalex.jpg",
-11 : "https://elex.is/wp-content/uploads/2020/12/collection_11_videolectures.jpg",
-12 : "https://elex.is/wp-content/uploads/2020/12/collection_12_dsna.jpg",
-13 : "https://elex.is/wp-content/uploads/2020/12/collection_13_teubert.jpg",
-14 : "https://elex.is/wp-content/uploads/2020/12/collection_14_fuertesolivera.jpg",
-15 : "https://elex.is/wp-content/uploads/2020/12/collection_15_mullerspitzer.jpg",
-16 : "https://elex.is/wp-content/uploads/2020/12/collection_16_slovenscina.jpg",
-17 : "https://elex.is/wp-content/uploads/2020/12/collection_17_rdelexicografia.jpg"
-}
-
 # load subject list
-with open('D:/LexBib/terms/elexifinder-catlabels.csv', encoding="utf-8") as csvfile:
+with open('D:/LexBib/terms/elexifinder-catlabels-3level.csv', encoding="utf-8") as csvfile:
 	catlabels_csv = csv.DictReader(csvfile)
 	catlabels = {}
 	for row in catlabels_csv:
@@ -163,39 +146,8 @@ with open('D:/LexBib/bodytxt/foundterms.json', encoding="utf-8") as jsonfile:
 with open('D:/LexBib/bodytxt/bodytxt_collection.json', encoding="utf-8") as jsonfile:
 	bodytxts = json.load(jsonfile)
 
-# Tk().withdraw()
-# infile = askopenfilename()
-# print('This file will be processed: '+infile)
-#
-# try:
-#     version = int(re.search('_v([0-9])', infile).group(1))
-# except:
-#     print('No version number in file name... Which version is this? Type the number.')
-#     try:
-#         version = int(input())
-#     except:
-#         print ('Error: This has to be a number.')
-#         sys.exit()
-#     pass
-#
-# pubTime = str(datetime.fromtimestamp(os.path.getmtime(infile)))[0:22].replace(' ','T')
-# print(pubTime)
-# try:
-#     with open(infile, encoding="utf-8") as f:
-#         data =  json.load(f, encoding="utf-8")
-# except:
-#     print ('Error: file does not exist.')
-#     sys.exit()
-#
-# results = data['results']
-# bindings = results['bindings']
-#print(bindings)
 elexifinder = []
-txtfilecount = 0
-grobidcount = 0
-pdftxtcount = 0
 itemcount = 0
-problemlog = []
 
 for itemuri in export_items:
 
@@ -238,20 +190,18 @@ for itemuri in export_items:
 	# target['crawlTm'] = item['modTM']['value'][0:22]
 	zotItemUri = "https://www.zotero.org/groups/1892855/lexbib/items/"+itemdata[5]+"/item-details"
 	target['details']['zotItemUri'] = zotItemUri
-	target['url'] = itemdata[8]
+	target['url'] = itemdata[7]
 	collection = int(itemdata[2])
 	target['details']['collection'] = collection
-	if collection in images:
-		target['images']=images[collection]
-	else:
-		target['images']="https://elex.is/wp-content/uploads/2021/03/elexis_logo_default.png"
+	target['images']="https://raw.githubusercontent.com/elexis-eu/elexifinder/master/elexifinder/collection-images/collection_"+str(collection)+".jpg"
+
 #	if 'container' in item:
 #		target['sourceUri'] = item['container']['value'] # replaced by containerFullTextUrl or containerUri
 	# if 'containerFullTextUrl' in item:
 	# 	target['sourceUri'] = item['containerFullTextUrl']['value']
 	# 	target['url'] = item['containerFullTextUrl']['value'] # this overwrites zotero item in target['url']
 	# elif 'containerUri' in item:
-	# 	target['sourceUri'] = item['containerUri']['value']
+	target['sourceUri'] = itemdata[8]
 	# 	target['url'] = item['containerUri']['value'] # this overwrites zotero item in target['url']
 	# if 'sourceUri' not in target:
 	# 	print ('*** ERROR: nothing to use as sourceUri in '+itemuri+'!')
@@ -282,15 +232,48 @@ for itemuri in export_items:
 	else:
 		print('No textbody found.')
 
-#write to JSON
-	elexifinder.append(target)
-	with open('D:/LexBib/elexifinder/export_last.jsonl', 'a', encoding="utf-8") as jsonl_file:
-		jsonl_file.write(json.dumps(target)+'\n')
+# upload to elexifinder
+	print('Will upload BibItem '+itemuri+' to Elexifinder.')
+	addParams = {
+	    "article": [json.dumps(target)],
+	    "apiKey": EFapiKey
+	}
+	done = False
+	attempts = 0
+	while (not done):
+		attempts += 1
+		if attempts > 4:
+			print('Elexifinder update failed 5 times. Abort.')
+			sys.exit()
+		res = requests.post(EFhost + "/api/admin/v1/addArticle", json = addParams)
+		print(res.json()['info'])
+		if "Added 0 new articles" in res.json()['info']:
+			errortext = res.json()['details'][0]['error']
+			if "Article with the given URI" in errortext and "already exists" in errortext:
+				removeParams = {
+				    "articleUri": [itemuri],
+				    "forceImmediateDelete": True,
+				    "apiKey": EFapiKey
+				}
+				res = requests.post(EFhost + "/api/admin/v1/articleAdmin/deleteArticle", json = removeParams)
+				print('Removed already existing article '+itemuri+'.')
+				print(res.json()['info'])
+			else:
+				print('Elexifinder upload failed. Will try again. Error info was:')
+				print(errortext)
+				time.sleep(1)
+		else:
+			done = True
+	#print('Uploaded item '+itemuri+' to Elexifinder.')
 	donelist.append(itemuri)
+	elexifinder.append(target)
+	print('Finished item '+itemuri+'.')
 	with open('D:/LexBib/elexifinder/export_last_donelist.txt', 'a', encoding="utf-8") as txt_file:
 		txt_file.write(itemuri+'\n')
 
 # end of item loop
+
+
 
 # with open(infile.replace('.json', '_problemlog.json'), 'w', encoding="utf-8") as problemfile:
 # 	problemfile.write(str(problemlog))
@@ -299,6 +282,20 @@ elexidict = {}
 for item in elexifinder:
 	elexidict[item['uri']] = item
 
+print('Will now update Elexifinder suggest indices...')
+res = requests.get(EFhost + "/api/v1/suggestConcepts", { "action": "updatePrefixes" })
+print(str(res))
+time.sleep(1)
+res = requests.get(EFhost + "/api/v1/suggestCategories", { "action": "updatePrefixes" })
+print(str(res))
+time.sleep(1)
+res = requests.get(EFhost + "/api/v1/suggestSources", { "action": "updatePrefixes" })
+print(str(res))
+time.sleep(1)
+res = requests.get(EFhost + "/api/v1/suggestAuthors", { "action": "updatePrefixes" })
+print(str(res))
+
+
 with open('D:/LexBib/elexifinder/export_last.json', 'w', encoding="utf-8") as json_file: # path to result JSON file
 	json.dump(elexidict, json_file, indent=2)
-	print("\n=============================================\nCreated processed JSON file.. Finished.\n")
+	print('\n=============================================\nCreated upload summary JSON file "export_last.json"... Finished.\n')
