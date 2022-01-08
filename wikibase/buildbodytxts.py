@@ -40,7 +40,7 @@ where
 
   ?bibItem ldp:P5 lwb:Q3 .
   ?bibItem ldp:P11 ?lang . ?lang ldp:P32 ?isolang .
-  filter(?lang = lwb:Q201 || ?lang = lwb:Q204) # English or Spanish only
+  #filter(?lang = lwb:Q201 || ?lang = lwb:Q204) # English or Spanish only
   ?bibItem ldp:P85 ?coll . # Items with Elexifinder collection only
   ?bibItem lp:P16 ?zoterostatement .
   ?zoterostatement lps:P16 ?zotero .
@@ -156,7 +156,11 @@ for row in sparqlresults:
 			time.sleep(4)
 
 	if bodytxt:
-		bodylemclean = nlp.lemmatize_clean(bodytxt, lang=lang)
+		if lang in list(nlp.sp.keys()):
+			bodylemclean = nlp.lemmatize_clean(bodytxt, lang=lang)
+		else:
+			print('Language '+lang+" not implemented in nlp.py, skipped lemmatization.")
+			bodylemclean = None
 		bodytxtcoll[bibItem] = {'zotItem': zotItem, 'source': bodytxtsource, 'lang': lang, 'bodytxt': bodytxt, 'bodylemclean' : bodylemclean}
 	else:
 		bodytxtsource = "failed"
