@@ -17,7 +17,7 @@ from wikidataintegrator import wdi_core, wdi_login
 import config
 
 # Properties with constraint: max. 1 value
-max1props = config.max1props
+card1props = config.card1props
 
 # Logging config
 logging.basicConfig(filename=config.datafolder+'logs/lwb.log', filemode='a', format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%m-%y %H:%M:%S')
@@ -354,6 +354,36 @@ def itemclaim(s, p, o):
 				time.sleep(4)
 	return claimId
 
+#create time claim. o needs format like {'time': '+1976-04-22T00:00:00Z', 'precision': 11}"
+def timeclaim(s, p, o):
+	global token
+
+	done = False
+	value = json.dumps({
+	"entity-type":"time",
+	"time": o['time'],
+    "timezone": 0,
+    "before": 0,
+    "after": 0,
+    "precision": o['precision'],
+    "calendarmodel": "http://www.wikidata.org/entity/Q1985727"})
+	while (not done):
+		try:
+			request = site.post('wbcreateclaim', token=token, entity=s, property=p, snaktype="value", value=value, bot=1)
+			if request['success'] == 1:
+				done = True
+				claimId = request['claim']['id']
+				print('Claim creation done: '+s+' ('+p+') '+o+'.')
+				#time.sleep(1)
+		except Exception as ex:
+			if 'Invalid CSRF token.' in str(ex):
+				print('Wait a sec. Must get a new CSRF token...')
+				token = get_token()
+			else:
+				print('Claim creation failed, will try again...\n'+str(ex))
+				time.sleep(4)
+	return claimId
+
 #create string (or url) claim
 def stringclaim(s, p, o):
 	global token
@@ -473,48 +503,55 @@ def setdescription(s, lang, val):
 	logging.warning('Description set operation '+s+' ('+lang+') '+val+' failed up to 5 times... skipped.')
 	return False
 
+claimcache = {"item": None, "claims": None}
 #get claims from qid
 def getclaims(s, p):
+	global claimcache
+	# returns subject and response to wbgetclaim api query, example:
+	# https://lexbib.elex.is/wiki/Special:ApiSandbox#action=wbgetclaims&format=json&entity=Q14680
 
-# returns subject and response to wbgetclaim api quera, example:
-# https://lexbib.elex.is/wiki/Special:ApiSandbox#action=wbgetclaims&format=json&entity=Q14680&property=P72
+	if claimcache['item'] != s: # if claims of that item have not just been retrieved before
 
-	done = False
-	while (not done):
-		#print('will try to get claims now for '+s)
-		try:
-			if p == True: # get all claims
+		# get claims and put in claimcache
+		done = False
+		while (not done):
+			print('Getting existing claims for '+s+'...')
+			try:
 				request = site.get('wbgetclaims', entity=s)
-			else:
-				request = site.get('wbgetclaims', entity=s, property=p)
-			if "claims" in request:
-				done = True
-				#print('Getclaims will return: '+s, request['claims'])
-				return (s, request['claims'])
-		except Exception as ex:
-			if 'unresolved-redirect' in str(ex):
 
-				#get redirect target
-				url = "https://lexbib.elex.is/query/sparql?format=json&query=PREFIX%20lwb%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fentity%2F%3E%0APREFIX%20ldp%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fdirect%2F%3E%0APREFIX%20lp%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2F%3E%0APREFIX%20lps%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fstatement%2F%3E%0APREFIX%20lpq%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fqualifier%2F%3E%0A%0Aselect%20%28strafter%28str%28%3Fredirect%29%2C%22http%3A%2F%2Flexbib.elex.is%2Fentity%2F%22%29%20as%20%3Frqid%29%20where%0A%7Blwb%3A"+s+"%20owl%3AsameAs%20%3Fredirect.%7D%0A%20%20%0A"
-				subdone = False
-				while (not subdone):
-					try:
-						r = requests.get(url)
-						bindings = r.json()['results']['bindings']
-					except Exception as ex:
-						print('Error: SPARQL request for redirects failed: '+str(ex))
-						time.sleep(2)
+				if "claims" in request:
+					done = True
+					#print('Getclaims will return: '+s, request['claims'])
+					claimcache['item'] = s
+					claimcache['claims'] = request['claims']
+			except Exception as ex:
+				if 'unresolved-redirect' in str(ex):
+
+					#get redirect target
+					url = "https://lexbib.elex.is/query/sparql?format=json&query=PREFIX%20lwb%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fentity%2F%3E%0APREFIX%20ldp%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fdirect%2F%3E%0APREFIX%20lp%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2F%3E%0APREFIX%20lps%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fstatement%2F%3E%0APREFIX%20lpq%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fqualifier%2F%3E%0A%0Aselect%20%28strafter%28str%28%3Fredirect%29%2C%22http%3A%2F%2Flexbib.elex.is%2Fentity%2F%22%29%20as%20%3Frqid%29%20where%0A%7Blwb%3A"+s+"%20owl%3AsameAs%20%3Fredirect.%7D%0A%20%20%0A"
+					subdone = False
+					while (not subdone):
+						try:
+							r = requests.get(url)
+							bindings = r.json()['results']['bindings']
+						except Exception as ex:
+							print('Error: SPARQL request for redirects failed: '+str(ex))
+							time.sleep(2)
+							continue
+						subdone = True
+
+					if 'rqid' in bindings[0]:
+						print('Found redirect target '+bindings[0]['rqid']['value']+', will use that instead.')
+						s = bindings[0]['rqid']['value']
 						continue
-					subdone = True
-
-				if 'rqid' in bindings[0]:
-					print('Found redirect target '+bindings[0]['rqid']['value']+', will use that instead.')
-					s = bindings[0]['rqid']['value']
-					continue
-
-
-			print('Getclaims operation for',s,p,' failed, will try again...\n'+str(ex))
-			time.sleep(4)
+				print('Getclaims operation for',s,p,' failed, will try again...\n'+str(ex))
+				time.sleep(4)
+	if p == True: # return all claims
+		print('Will return all claims.')
+		return (s, claimcache['claims'])
+	if p in claimcache['claims']:
+		return (s, {p: claimcache['claims'][p]})
+	return (s, {})
 
 #get claim from statement ID
 def getclaimfromstatement(guid):
@@ -532,44 +569,59 @@ def getclaimfromstatement(guid):
 
 #update claims
 def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
-	global max1props
+	global card1props
 	global token
 	returnvalue = None
 	language = None
 	if dtype == "time":
+
+		value = json.dumps({
+		"entity-type":"time",
+		"time": o['time'],
+	    "timezone": 0,
+	    "before": 0,
+	    "after": 0,
+	    "precision": o['precision'],
+	    "calendarmodel": "http://www.wikidata.org/entity/Q1985727"})
+
+		# # old code (using wdi for time statements):
+
+		# global wdisetup
+		# if wdisetup == None: # if no wdi login has been done so far
+		# 	wdisetup = wdi_setup()
+		# data=[(wdi_core.WDTime(o['time'], prop_nr=p, precision=o['precision']))]
+		# #print(str(data))
+		# attempts = 1
+		# done = False
+		# while attempts < 5 and done == False:
+		# 	try:
+		# 		item = lwbEngine(wd_item_id=s, data=data)
+		# 	except Exception as ex:
+		# 		if 'badtoken' in str(ex):
+		# 			wdisetup = wdi_setup()
+		# 			attempt += 1
+		# 			continue
+		# 		else:
+		# 			print('WDI Time object write error: '+str(ex))
+		# 			attempt += 1
+		# 			continue
+		# 	done = True
+		#
+		# print('Claim with datatype Time: success, '+item.write(wdilogin))
+
+		# claims = getclaims(s,p)
+		# #print(str(claims))
+		# return claims[1][p][0]['id'] # guid of the datatype time statement
+
+	elif dtype == "globecoordinate": # done with WDI
 		global wdisetup
 		if wdisetup == None: # if no wdi login has been done so far
 			wdisetup = wdi_setup()
-		data=[(wdi_core.WDTime(o['time'], prop_nr=p, precision=o['precision']))]
-		#print(str(data))
-		attempts = 1
-		done = False
-		while attempts < 5 and done == False:
-			try:
-				item = lwbEngine(wd_item_id=s, data=data)
-			except Exception as ex:
-				if 'badtoken' in str(ex):
-					wdisetup = wdi_setup()
-					attempt += 1
-					continue
-				else:
-					print('WDI Time object write error: '+str(ex))
-					attempt += 1
-					continue
-			done = True
-
-		print('Claim with datatype Time: success, '+item.write(wdilogin))
-
-		claims = getclaims(s,p)
-		#print(str(claims))
-		return claims[1][p][0]['id'] # guid of the datatype time statement
-
-	elif dtype == "globecoordinate":
 		if not o['precision']: # sometimes, wikidata gives precision=None, wdi rejects that
 			o['precision'] = 0.000277778 # an arcminute
 		data=[(wdi_core.WDGlobeCoordinate(o['latitude'], o['longitude'], o['precision'], p))]
 		item = lwbEngine(wd_item_id=s, data=data)
-		print('Successful globecoordinate object write operation to item '+item.write(wdilogin))
+		print('Successful globecoordinate object WDI write operation to item '+item.write(wdilogin))
 		claims = getclaims(s,p)
 		#print(str(claims))
 		return claims[1][p][0]['id'] # guid of the datatype globecoordinate statement
@@ -590,6 +642,7 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 	claims = getclaims(s,p)
 	s = claims[0]
 	claims = claims[1]
+	#print(str(claims))
 	foundmonolinguallangs = []
 	foundobjs = []
 	if claims and bool(claims):
@@ -603,6 +656,8 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 				if isinstance(foundo, dict) and 'id' in foundo: # foundo is a {} with "id" as key in case of datatype wikibaseItem
 					#print(str(foundo))
 					foundo = foundo['id']
+				if "time" in foundo: # if datatype time
+					foundo = {'time': foundo['time'], 'precision': foundo['precision']}
 			elif claim['mainsnak']['snaktype'] == "novalue":
 				try: # take P38 quali literal value as found object
 					foundo = claim['qualifiers']['P38'][0]['datavalue']['value']
@@ -617,7 +672,7 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 				if results['success'] == 1:
 					print('Wb remove duplicate claim for '+s+' ('+p+') '+str(o)+': success.')
 			elif foundo != "novalue": # novalue statements without P38 qualifier are always written
-				if dtype == "monolingualtext" and p in max1props:
+				if dtype == "monolingualtext" and p in card1props:
 					if o['language'] == foundo['language']:
 						foundobjs.append(foundo)
 						print('There is another card1prop monolingualtext claim for the same language: '+foundo['language'])
@@ -626,13 +681,12 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 						continue
 				else:
 					foundobjs.append(foundo)
-					#print("A statement #"+str(statementcount)+" for prop "+p+" is already there: "+foundo)
 
 				if foundo == o or foundo == value:
 					print('Found redundant triple ('+p+') '+str(o)+' >> Claim update skipped.')
 					returnvalue = guid
 
-				if p in max1props:
+				if p in card1props:
 					if returnvalue and len(foundobjs) > 1 :
 						print('There is a second statement for a max1prop. Will delete that.')
 						results = site.post('wbremoveclaims', claim=guid, token=token)
@@ -721,13 +775,24 @@ def setclaimvalue(guid, value, dtype):
 
 
 # set a Qualifier
-def setqualifier(qid, prop, claimid, qualiprop, qualivalue, dtype):
+def setqualifier(qid, prop, claimid, qualiprop, qualio, dtype):
 	global token
-	if dtype == "string" or dtype == "url" or dtype == "monolingualtext":
-		qualivalue = '"'+qualivalue.replace('"', '\\"')+'"'
+	if dtype == "string" or dtype == "url":
+		qualivalue = '"'+qualio.replace('"', '\\"')+'"'
 	elif dtype == "item" or dtype =="wikibase-entityid":
-		qualivalue = json.dumps({"entity-type":"item","numeric-id":int(qualivalue.replace("Q",""))})
-	if qualiprop in config.max1props:
+		qualivalue = json.dumps({"entity-type":"item","numeric-id":int(qualio.replace("Q",""))})
+	elif dtype == "time":
+		qualivalue = json.dumps({
+		"entity-type":"time",
+		"time": qualio['time'],
+	    "timezone": 0,
+	    "before": 0,
+	    "after": 0,
+	    "precision": qualio['precision'],
+	    "calendarmodel": "http://www.wikidata.org/entity/Q1985727"})
+	elif dtype == "monolingualtext":
+		qualivalue = json.dumps(qualio)
+	if qualiprop in config.card1props:
 		#print('Detected max1prop as qualifier.')
 		existingclaims = getclaims(qid,prop)
 		#print(str(existingclaims))
@@ -736,20 +801,25 @@ def setqualifier(qid, prop, claimid, qualiprop, qualivalue, dtype):
 		if prop in existingclaims:
 			for claim in existingclaims[prop]:
 				if claim['id'] != claimid:
-					continue
+					continue # skip other claims
 				if "qualifiers" in claim:
 					if qualiprop in claim['qualifiers']:
 						existingqualihashes = {}
 						for quali in claim['qualifiers'][qualiprop]:
 							existingqualihash = quali['hash']
 							existingqualivalue = quali['datavalue']['value']
+							if isinstance(existingqualivalue, dict):
+								if "time" in existingqualivalue:
+									existingqualivalue = {"time":existingqualivalue['time'],"precision":existingqualivalue['precision']}
+								if "text" in existingqualivalue and "language" in existingqualivalue:
+									existingqualivalue = json.dumps(existingqualivalue)
 							existingqualihashes[existingqualihash] = existingqualivalue
-						print('Found an existing type max1 qualifier for that claim: '+str(list(existingqualihashes.values())))
+						print('Found an existing '+qualiprop+' type card1 qualifier: '+str(list(existingqualihashes.values())[0]))
 						allhashes = list(existingqualihashes.keys())
 						done = False
 						while (not done):
 							if len(existingqualihashes) > 1:
-								print('Found several qualis, but cardinality is 1; will delete all but one.')
+								print('Found several qualis, but cardinality is 1; will delete all but the newest.')
 								for delqualihash in allhashes:
 									if delqualihash == allhashes[len(allhashes)-1]: # leave the last one intact
 										print('Will leave intact this quali: '+existingqualihashes[delqualihash])
@@ -760,26 +830,30 @@ def setqualifier(qid, prop, claimid, qualiprop, qualivalue, dtype):
 							elif len(existingqualihashes) == 1:
 								done = True
 
-						if list(existingqualihashes.values())[0] in qualivalue:
-							print('Found duplicate value for max1quali. Skipped.')
+						if str(list(existingqualihashes.values())[0]) in qualivalue:
+							print('Found duplicate value for card1 quali. Skipped.')
 							return True
-						else:
-							print('New value to be written to existing max1 type qualifier.')
-							try:
-								while True:
-									setqualifier = site.post('wbsetqualifier', token=token, claim=claimid, snakhash=existingqualihash, property=qualiprop, snaktype="value", value=qualivalue, bot=1)
-									# always set!!
-									if setqualifier['success'] == 1:
-										print('Qualifier set ('+qualiprop+') '+qualivalue+': success.')
-										return True
-									print('Qualifier set failed, will try again...')
-									logging.error('Qualifier set failed for '+prop+' ('+qualiprop+') '+qualivalue+': '+str(ex))
-									time.sleep(2)
+						if dtype == "time":
+							if list(existingqualihashes.values())[0]['time'] == qualio['time'] and list(existingqualihashes.values())[0]['precision'] == qualio['precision']:
+								print('Found duplicate value for '+qualiprop+' type time card1 quali. Skipped.')
+								return True
 
-							except Exception as ex:
-								if 'The statement has already a qualifier' in str(ex):
-									print('**** The statement already has a ('+qualiprop+') '+qualivalue+' qualifier: skipped writing duplicate qualifier')
-									return False
+						print('New value to be written to existing card1 quali.')
+						try:
+							while True:
+								setqualifier = site.post('wbsetqualifier', token=token, claim=claimid, snakhash=existingqualihash, property=qualiprop, snaktype="value", value=qualivalue, bot=1)
+								# always set!!
+								if setqualifier['success'] == 1:
+									print('Qualifier set ('+qualiprop+') '+qualivalue+': success.')
+									return True
+								print('Qualifier set failed, will try again...')
+								logging.error('Qualifier set failed for '+prop+' ('+qualiprop+') '+qualivalue+': '+str(ex))
+								time.sleep(2)
+
+						except Exception as ex:
+							if 'The statement has already a qualifier' in str(ex):
+								print('The statement already has that object as ('+qualiprop+') qualifier: skipped writing duplicate qualifier')
+								return False
 	# not a max1quali >> write new quali in case value is different to existing value
 	try:
 		while True:
@@ -794,7 +868,7 @@ def setqualifier(qid, prop, claimid, qualiprop, qualivalue, dtype):
 
 	except Exception as ex:
 		if 'The statement has already a qualifier' in str(ex):
-			print('**** The statement already has a ('+qualiprop+') '+qualivalue+': skipped writing duplicate qualifier')
+			print('The statement already has a ('+qualiprop+') '+qualivalue+': skipped writing duplicate qualifier')
 			return False
 
 
@@ -828,8 +902,8 @@ def setref(claimid, refprop, refvalue, dtype):
 		except Exception as ex:
 			#print(str(ex))
 			if 'The statement has already a reference with hash' in str(ex):
-				print('**** The statement already has a reference (with the same hash)')
-				time.sleep(1)
+				print('The statement already has a reference (with the same hash)')
+				#time.sleep(1)
 			else:
 				logging.error('Unforeseen exception: '+str(ex))
 				print(str(ex))
