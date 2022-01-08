@@ -1,5 +1,5 @@
 ## assigns term candidates to bibitems. (Term labels are found in English full texts)
-
+import sys
 import re
 import json
 import sparql
@@ -54,17 +54,26 @@ for row in sparqlresults:
 	if bibItem in donelist:
 		print(bibItem+' appears in donelist, skipped.')
 		continue
+
+	# order foundterms list
+
+	freqterms = sorted(foundterms[bibItem], key=lambda x: foundterms[bibItem][x]['rfreq'], reverse=True)
+
+	# get existing P96 claims
 	existing = {}
 	p96claims = lwb.getclaims(bibItem,"P96")[1]
 	if "P96" in p96claims:
 		for claim in p96claims["P96"]:
 			existing[claim['mainsnak']['datavalue']['value']['id']] = claim['id']
 
-		# writing terms directly to lwb-item
-	for termqid in foundterms[bibItem]:
-		if foundterms[bibItem][termqid]['hits'] < 3:
-			print('This term appears less than three times (skipped): '+termqid)
-			continue
+	# write terms directly to lwb-item
+	writemax = 10 # write a maximum of 10 terms per bibItem
+	writecount = 0
+	while writecount < writemax and writecount < len(freqterms):
+		# if foundterms[bibItem][termqid]['hits'] < 3:
+		# 	print('This term appears less than three times (skipped): '+termqid)
+		# 	continue
+		termqid = freqterms[writecount]
 		if termqid in existing:
 			statement = existing[termqid]
 			del existing[termqid]
@@ -72,6 +81,7 @@ for row in sparqlresults:
 			statement = lwb.itemclaim(bibItem, "P96", termqid)
 		lwb.setqualifier(bibItem, "P96", statement, "P92", str(foundterms[bibItem][termqid]['hits']), "string")
 		#lwb.setqualifier(bibItem, "P96", statement, "P93", str(foundterms[bibItem][termqid]['rfreq']), "string")
+		writecount += 1
 
 	print('There are '+str(len(existing))+' P96 statements for terms that are not (any more) found.')
 	if len(existing) > 0:
