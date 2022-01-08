@@ -368,7 +368,7 @@ for item in data:
 						query ="""
 								PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
 								select ?item ?itemLabel where
-								{?item ldp:P44 <"""+container+"""> ; rdfs:label ?itemLabel . filter(lang(?itemLabel)="en")
+								{?item ldp:P44|ldp:P111 <"""+container+"""> ; rdfs:label ?itemLabel . filter(lang(?itemLabel)="en")
 								 }"""
 						sparqlresults = sparql.query('https://lexbib.elex.is/query/sparql',query)
 						print('Got data from LexBib v3 SPARQL.')
