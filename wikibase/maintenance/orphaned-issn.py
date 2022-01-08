@@ -13,9 +13,6 @@ print('Will get orphaned ISSN...')
 
 # PREFIX lwb: <http://lexbib.elex.is/entity/>
 # PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
-# PREFIX lp: <http://lexbib.elex.is/prop/>
-# PREFIX lps: <http://lexbib.elex.is/prop/statement/>
-# PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
 #
 # select distinct ?issn  where
 # { ?s ldp:P5 lwb:Q16; ldp:P20 ?issn .
@@ -94,9 +91,6 @@ print('Will get orphaned issues...')
 
 # PREFIX lwb: <http://lexbib.elex.is/entity/>
 # PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
-# PREFIX lp: <http://lexbib.elex.is/prop/>
-# PREFIX lps: <http://lexbib.elex.is/prop/statement/>
-# PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
 #
 # select ?issue ?issn ?journal where
 # { ?issue ldp:P5 lwb:Q16; ldp:P20 ?issn .
