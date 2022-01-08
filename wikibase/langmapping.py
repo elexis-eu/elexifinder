@@ -748,7 +748,7 @@ def getWikiLangCode(iso3):
 # PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
 # select ?iso3 ?langqid where {?langqid ldp:P32 ?iso3 . }
 
-with open(config.datafolder+'mappings/lwb_iso3.csv', 'r', encoding="utf-8") as csvfile:
+with open(config.datafolder+'mappings/lwb_iso3.csv', 'r') as csvfile:
 	mappings = csv.DictReader(csvfile)
 	iso3toQid = {}
 	for mapping in mappings:
