@@ -5,13 +5,17 @@ import json
 import os
 import csv
 import time
+import sparql
+import requests
 from datetime import datetime
 import shutil
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 import sys
-import sparql
-import requests
+sys.path.insert(1, os.path.realpath(os.path.pardir))
+from elexifinder import collection_images
+import wikify
+
 
 # items to export
 
@@ -30,10 +34,14 @@ Q11229""".split("\n")
 pubTime = str(datetime.now()).replace(' ','T')[0:22]
 print(pubTime)
 
-# Elexifinder API
+# Elexifinder API key
 with open('D:/LexBib/elexifinder/elexifinder_api_key.txt') as pwdfile:
 	EFapiKey = pwdfile.read()
-
+# Event Registry "news api" key
+with open('D:/LexBib/elexifinder/eventregistry_api_key.txt') as pwdfile:
+	ERapiKey = pwdfile.read()
+with open('D:/LexBib/bodytxt/foundwikiterms.json', "r", encoding="utf-8") as jsonfile:
+	wikiterms = json.load(jsonfile)
 EFhost = "http://finder.elex.is"
 
 # get donelist
@@ -132,15 +140,18 @@ limit 10
 # load subject list
 with open('D:/LexBib/terms/elexifinder-catlabels-3level.csv', encoding="utf-8") as csvfile:
 	catlabels_csv = csv.DictReader(csvfile)
+	termlabels = {}
 	catlabels = {}
 	for row in catlabels_csv:
 		termqid = row['term'].replace("http://lexbib.elex.is/entity/","")
 		#erlabel = re.search(r'[\w ]+$',row['ercat']).group(0)
+		termlabels[termqid] = row['termLabel']
 		catlabels[termqid] = {"uri":row['ercat'].replace(" ","_"),"label":row['ercat'].replace("Lexicography/","")}
+
 
 #print(str(catlabels))
 
-with open('D:/LexBib/bodytxt/foundterms.json', encoding="utf-8") as jsonfile:
+with open('D:/LexBib/bodytxt/foundterms_last.json', encoding="utf-8") as jsonfile:
 	foundterms = json.load(jsonfile)
 
 with open('D:/LexBib/bodytxt/bodytxt_collection.json', encoding="utf-8") as jsonfile:
@@ -155,19 +166,27 @@ for itemuri in export_items:
 		print(itemuri+" is in donelist, skipped.")
 		continue
 
-
+	conceptlabels = []
 	itemcount += 1
 	target = {}
 	target['uri'] = itemuri
 	print('\n['+str(itemcount)+'] '+itemuri)
 
 	# get term indexation
+	target['concepts'] = []
 	target['categories'] = []
 	if itemuri not in foundterms:
 		print('No term indexation found for item '+itemuri)
 		time.sleep(1)
 	else:
 		for foundterm in foundterms[itemuri]:
+			target['concepts'].append({
+			"uri": "lwb:"+foundterm,
+			"label": termlabels[foundterm],
+			"type": "wiki",
+			"wgt": 1
+			})
+			conceptlabels.append(termlabels[foundterm].lower())
 			if foundterm not in catlabels:
 				print('er-catlabel not found. Must be a redirect uri.')
 				time.sleep(1)
@@ -175,6 +194,9 @@ for itemuri in export_items:
 			if catlabels[foundterm] not in target['categories']:
 				target['categories'].append(catlabels[foundterm])
 				#print('Term found in this item: '+str(catlabels[foundterm]))
+
+
+
 
 	# get item data
 	itemdata = get_item_data(itemuri)
@@ -193,8 +215,8 @@ for itemuri in export_items:
 	target['url'] = itemdata[7]
 	collection = int(itemdata[2])
 	target['details']['collection'] = collection
-	target['images']="https://raw.githubusercontent.com/elexis-eu/elexifinder/master/elexifinder/collection-images/collection_"+str(collection)+".jpg"
-
+	#target['images']="https://raw.githubusercontent.com/elexis-eu/elexifinder/master/elexifinder/collection-images/collection_"+str(collection)+".jpg"
+	target['images'] = collection_images.images[collection]
 #	if 'container' in item:
 #		target['sourceUri'] = item['container']['value'] # replaced by containerFullTextUrl or containerUri
 	# if 'containerFullTextUrl' in item:
@@ -229,6 +251,16 @@ for itemuri in export_items:
 	if itemuri in bodytxts:
 		target['body'] = bodytxts[itemuri]['bodytxt']
 		print('Textbody found and copied.')
+		if itemuri in wikiterms:
+			wikiconcepts = wikiterms[itemuri]
+		else:
+			wikiconcepts = wikify.wikify(itemuri, target['body'])
+		for wikiconcept in wikiconcepts['concepts']:
+			if wikiconcept{'label'}.lower() not in conceptlabels:
+				target['concepts'].append(wikiconcept)
+		print('Wikification successful.')
+		with open('D:/LexBib/elexifinder/er_api/er_answer_'+itemuri+'.json', "w", encoding="utf-8") as jsonfile:
+			json.dump({'concepts':target['concepts']}, jsonfile, indent=2)
 	else:
 		print('No textbody found.')
 
