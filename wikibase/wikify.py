@@ -1,4 +1,4 @@
-import sys, re, time, requests, json, os
+import sys, re, time, requests, json, os, traceback
 
 def wikify(itemuri, bodytxt):
 	# Event Registry "news api"
@@ -34,15 +34,16 @@ def wikify(itemuri, bodytxt):
 						concept['wgt'] = term['wgt']
 						concepts.append(concept)
 						#print('Successfully wrote EF object')
-				except Exception as ex:
+				except Exception:
 					concepts = None
 					res['concepts_builderror'] = str(ex)
-					print('Got error building concepts EF object: '+str(ex))
+					print('Got error building concepts EF object: \n'+traceback.format_exc())
 				itemterms = {'annotations':res['annotations'], 'concepts': concepts}
 				with open('D:/LexBib/bodytxt/wikification/'+itemuri+'.json', 'w', encoding="utf-8") as jsonfile:
 					json.dump(itemterms, jsonfile, indent=2)
+				print('Returned wiki concepts: '+str(len(concepts))+'.')
 				return itemterms
-		except Exception as ex:
+		except Exception:
 			print('Error while interacting with ER API.')
-			print(str(ex))
+			print(traceback.format_exc())
 			time.sleep(2)
