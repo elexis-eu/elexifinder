@@ -40,8 +40,9 @@ with open('D:/LexBib/elexifinder/elexifinder_api_key.txt') as pwdfile:
 # Event Registry "news api" key
 with open('D:/LexBib/elexifinder/eventregistry_api_key.txt') as pwdfile:
 	ERapiKey = pwdfile.read()
-with open('D:/LexBib/bodytxt/foundwikiterms.json', "r", encoding="utf-8") as jsonfile:
-	wikiterms = json.load(jsonfile)
+# with open('D:/LexBib/bodytxt/foundwikiterms.json', "r", encoding="utf-8") as jsonfile:
+# 	wikiterms = json.load(jsonfile)
+wikidir = os.listdir('D:/LexBib/bodytxt/wikification')
 EFhost = "http://finder.elex.is"
 
 # get donelist
@@ -183,7 +184,7 @@ for itemuri in export_items:
 			target['concepts'].append({
 			"uri": "lwb:"+foundterm,
 			"label": termlabels[foundterm],
-			"type": "wiki",
+			"type": "person",
 			"wgt": 1
 			})
 			conceptlabels.append(termlabels[foundterm].lower())
@@ -217,6 +218,7 @@ for itemuri in export_items:
 	target['details']['collection'] = collection
 	#target['images']="https://raw.githubusercontent.com/elexis-eu/elexifinder/master/elexifinder/collection-images/collection_"+str(collection)+".jpg"
 	target['images'] = collection_images.images[collection]
+	print('Found image: '+target['images'])
 #	if 'container' in item:
 #		target['sourceUri'] = item['container']['value'] # replaced by containerFullTextUrl or containerUri
 	# if 'containerFullTextUrl' in item:
@@ -251,13 +253,18 @@ for itemuri in export_items:
 	if itemuri in bodytxts:
 		target['body'] = bodytxts[itemuri]['bodytxt']
 		print('Textbody found and copied.')
-		if itemuri in wikiterms:
-			wikiconcepts = wikiterms[itemuri]
+		if itemuri+".json" in wikidir:
+			print('Found wikification result file for '+itemuri)
+			with open('D:/LexBib/bodytxt/wikification/'+itemuri+'.json', 'r', encoding="utf-8") as jsonfile:
+				wikiconcepts = json.load(jsonfile)
 		else:
 			wikiconcepts = wikify.wikify(itemuri, target['body'])
 		for wikiconcept in wikiconcepts['concepts']:
-			if wikiconcept{'label'}.lower() not in conceptlabels:
-				target['concepts'].append(wikiconcept)
+			if wikiconcept['label'].lower() not in conceptlabels:
+				if wikiconcept['type'] == "person":
+					print('Skipped wikiperson '+wikiconcept['label'])
+				else:
+					target['concepts'].append(wikiconcept)
 		print('Wikification successful.')
 		with open('D:/LexBib/elexifinder/er_api/er_answer_'+itemuri+'.json', "w", encoding="utf-8") as jsonfile:
 			json.dump({'concepts':target['concepts']}, jsonfile, indent=2)
