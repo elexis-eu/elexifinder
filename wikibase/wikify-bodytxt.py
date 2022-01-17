@@ -13,23 +13,25 @@ resultdir = os.listdir('D:/LexBib/bodytxt/wikification')
 # 	foundterms = json.load(jsonfile)
 
 count = 0
+wikicount = 0
 total = str(len(bodytxts))
 wikipagelabels = {}
 for bibitem in bodytxts:
 	count += 1
 	if bibitem+".json" in resultdir:
-
-		with open('D:/LexBib/bodytxt/wikification/'+bibitem+'.json', 'r', encoding="utf-8") as jsonfile:
-			itemterms = json.load(jsonfile)
-		if itemterms['concepts'] != None:
-			print('Result already there, will skip wikification for '+bibitem)
-		else:
-			itemterms = wikify.wikify(bibitem, bodytxts[bibitem]['bodytxt'])
-			print(str(count)+' of '+total+': Successfully wikified bibitem '+bibitem+' (not succesfully in previous runs)')
-			time.sleep(0.2)
+		continue
+		# with open('D:/LexBib/bodytxt/wikification/'+bibitem+'.json', 'r', encoding="utf-8") as jsonfile:
+		# 	itemterms = json.load(jsonfile)
+		# if itemterms['concepts'] != None:
+		# 	print('Result already there, will skip wikification for '+bibitem)
+		# else:
+		# 	itemterms = wikify.wikify(bibitem, bodytxts[bibitem]['bodytxt'])
+		# 	print(str(count)+' of '+total+': Successfully wikified bibitem '+bibitem+' (not succesfully in previous runs)')
+		# 	time.sleep(0.2)
 	else:
 		itemterms = wikify.wikify(bibitem, bodytxts[bibitem]['bodytxt'])
-		print(str(count)+' of '+total+': Successfully wikified bibitem '+bibitem)
+		wikicount += 1
+		print(str(count)+' of '+total+': Successfully wikified bibitem '+bibitem+'. Wikifications in this run: '+str(wikicount)+'.')
 		time.sleep(0.2)
 	wikiterms[bibitem] = itemterms
 
