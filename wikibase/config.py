@@ -4,6 +4,8 @@ lwbuser = "DavidLbot"
 with open(datafolder+'zoteroapi/zotero_api_key.txt', 'r', encoding='utf-8') as pwdfile:
 	zotero_api_key = pwdfile.read()
 
+
+
 lwb_prefixes = """
 PREFIX lwb: <http://lexbib.elex.is/entity/>
 PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
@@ -15,8 +17,8 @@ PREFIX lno: <http://lexbib.elex.is/prop/novalue/>
 
 """
 
-# Properties with constraint: max. 1 value
-max1props = [
+# Properties with cardinality constraint: max. 1 value
+card1props = [
 #"P1",
 "P2",
 "P3",
