@@ -1,8 +1,8 @@
-import sys, re, time, requests, json, os, traceback
+import config, sys, re, time, requests, json, os, traceback
 
 def wikify(itemuri, bodytxt):
 	# Event Registry "news api"
-	with open('D:/LexBib/elexifinder/eventregistry_api_key.txt') as pwdfile:
+	with open(config.datafolder+'elexifinder/eventregistry_api_key.txt') as pwdfile:
 		ERapiKey = pwdfile.read()
 	print('Will upload BibItem '+itemuri+' to Event Registry.')
 	params = {
@@ -39,7 +39,7 @@ def wikify(itemuri, bodytxt):
 					res['concepts_builderror'] = str(ex)
 					print('Got error building concepts EF object: \n'+traceback.format_exc())
 				itemterms = {'annotations':res['annotations'], 'concepts': concepts}
-				with open('D:/LexBib/bodytxt/wikification/'+itemuri+'.json', 'w', encoding="utf-8") as jsonfile:
+				with open(config.datafolder+'bodytxt/wikification/'+itemuri+'.json', 'w', encoding="utf-8") as jsonfile:
 					json.dump(itemterms, jsonfile, indent=2)
 				print('Returned wiki concepts: '+str(len(concepts))+'.')
 				return itemterms
@@ -47,3 +47,18 @@ def wikify(itemuri, bodytxt):
 			print('Error while interacting with ER API.')
 			print(traceback.format_exc())
 			time.sleep(2)
+
+def update_elexifinder_indices():
+	EFhost = "http://finder.elex.is"
+	print('Will now update Elexifinder suggest indices...')
+	res = requests.get(EFhost + "/api/v1/suggestConcepts", { "action": "updatePrefixes" })
+	print(str(res))
+	time.sleep(1)
+	res = requests.get(EFhost + "/api/v1/suggestCategories", { "action": "updatePrefixes" })
+	print(str(res))
+	time.sleep(1)
+	res = requests.get(EFhost + "/api/v1/suggestSources", { "action": "updatePrefixes" })
+	print(str(res))
+	time.sleep(1)
+	res = requests.get(EFhost + "/api/v1/suggestAuthors", { "action": "updatePrefixes" })
+	print(str(res))
