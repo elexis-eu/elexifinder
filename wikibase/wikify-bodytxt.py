@@ -19,15 +19,15 @@ wikipagelabels = {}
 for bibitem in bodytxts:
 	count += 1
 	if bibitem+".json" in resultdir:
-		continue
-		# with open('D:/LexBib/bodytxt/wikification/'+bibitem+'.json', 'r', encoding="utf-8") as jsonfile:
-		# 	itemterms = json.load(jsonfile)
-		# if itemterms['concepts'] != None:
-		# 	print('Result already there, will skip wikification for '+bibitem)
-		# else:
-		# 	itemterms = wikify.wikify(bibitem, bodytxts[bibitem]['bodytxt'])
-		# 	print(str(count)+' of '+total+': Successfully wikified bibitem '+bibitem+' (not succesfully in previous runs)')
-		# 	time.sleep(0.2)
+		#continue
+		with open('D:/LexBib/bodytxt/wikification/'+bibitem+'.json', 'r', encoding="utf-8") as jsonfile:
+			itemterms = json.load(jsonfile)
+		if itemterms['concepts'] != None:
+			print('Result already there, will skip wikification for '+bibitem)
+		else:
+			itemterms = wikify.wikify(bibitem, bodytxts[bibitem]['bodytxt'])
+			print(str(count)+' of '+total+': Successfully wikified bibitem '+bibitem+' (not succesfully in previous runs)')
+			time.sleep(0.2)
 	else:
 		itemterms = wikify.wikify(bibitem, bodytxts[bibitem]['bodytxt'])
 		wikicount += 1
@@ -43,8 +43,8 @@ for bibitem in bodytxts:
 				wikipagelabels[term['uri']]['count'] += 1
 
 
-with open('D:/LexBib/bodytxt/foundwikiterms.json', "w", encoding="utf-8") as jsonfile:
-	json.dump(wikiterms, jsonfile, indent = 2)
+# with open('D:/LexBib/bodytxt/foundwikiterms.json', "w", encoding="utf-8") as jsonfile:
+# 	json.dump(wikiterms, jsonfile, indent = 2)
 with open('D:/LexBib/bodytxt/foundwikiterms_wikipagelabels.json', "w", encoding="utf-8") as jsonfile:
 	json.dump(wikipagelabels, jsonfile, indent = 2)
 
