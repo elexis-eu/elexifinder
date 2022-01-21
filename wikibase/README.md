@@ -11,6 +11,7 @@ Elexifinder user interface: http://finder.elex.is
 * lwb.py contains functions for reading and writing to LexBib Wikibase.
 * config.py contains basic configurations for interacting with LexBib Wikibase and LexBib Zotero.
 * nlp.py contains functions for lemmatizing and cleaning (English) text, and for extracting text bodies from GROBID TEI fulltext representations.
+* wikify.py contains functions for wikification of any language text using EventRegistry (needs API key)
 * langmapping.py contains mappings between ISO 639-1, ISO 639-3, wikilanguage codes, and BabelNet language codes.
 * buildbodytxt.py builds a JSON object containing full text data.
 * buildtermindex.py finds LexVoc terms in full text bodies.
