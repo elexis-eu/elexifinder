@@ -33,6 +33,7 @@ select
 (sample(?pdffolder) as ?pdf)
 ?zotero
 ?isolang
+?abstractLang
 
 where
 {
@@ -46,8 +47,9 @@ where
   ?zoterostatement lps:P16 ?zotero .
  OPTIONAL{?zoterostatement lpq:P70 ?pdffolder .}
  OPTIONAL{?zoterostatement lpq:P71 ?txtfolder .}
+ OPTIONAL{?zoterostatement lpq:P105 ?abstractLang . filter(?abstractLang = lwb:Q201)}
  }
-group by ?bibItem ?txt ?pdf ?zotero ?isolang
+group by ?bibItem ?txt ?pdf ?zotero ?isolang ?abstractLang
 """
 print(query)
 
@@ -56,7 +58,7 @@ print("Waiting for SPARQL...")
 sparqlresults = sparql.query(url,query)
 print('\nGot bibItem list from LexBib SPARQL.')
 
-sourcecount = {'failed':0,'manual_txt':0,'grobid':0,'zotero_pdf2text':0,'zotero_abstract':0,'zotero_title':0}
+sourcecount = {'failed':0,'manual_txt':0,'grobid':0,'zotero_pdf2text':0,'zotero_abstract':0,'zotero_title':0, 'zotero_english_abstract':0}
 
 #go through sparqlresults
 rowindex = 0
@@ -86,6 +88,9 @@ for row in sparqlresults:
 		lang = item[4].replace("http://lexbib.elex.is/entity/","")
 	else:
 		lang = None
+	enAbstract = False
+	if item[5] == "http://lexbib.elex.is/entity/Q201":
+		enAbstract = True
 
 	# load txt. Try (1), txt file manually attached to Zotero item (excluding manually attached pdf2text and grobidbody files), (2) GROBID body TXT, (3) pdf2txt Zotero cache file, (4) abstract, (5) title
 
@@ -159,8 +164,25 @@ for row in sparqlresults:
 		if lang in list(nlp.sp.keys()):
 			bodylemclean = nlp.lemmatize_clean(bodytxt, lang=lang)
 		else:
-			print('Language '+lang+" not implemented in nlp.py, skipped lemmatization.")
-			bodylemclean = None
+			print('Language '+lang+' not implemented in nlp.py, will check for English abstract.')
+			if enAbstract:
+				print('Will now try to get abstract text from Zotero...')
+				#time.sleep(2)
+				try:
+					request_uri = "https://api.zotero.org/groups/1892855/items/"+zotItem
+					r = requests.get(request_uri)
+					#print(str(r.json()))
+					if 'abstractNote' in r.json()['data']:
+						enabstxt = r.json()['data']['abstractNote'].replace("\n", " ")
+						bodytxtsource = "zotero_english_abstract"
+						bodylemclean = nlp.lemmatize_clean(enabstxt, lang="eng")
+						print('Took Zotero English abstract for bodylem, not replacing non-English bodytxt.')
+				except Exception as ex:
+					print('Access to Zotero API failed. '+str(ex))
+					time.sleep(4)
+			else:
+				print('No English abstract. Skipped lemmatization.')
+				bodylemclean = None
 		bodytxtcoll[bibItem] = {'zotItem': zotItem, 'source': bodytxtsource, 'lang': lang, 'bodytxt': bodytxt, 'bodylemclean' : bodylemclean}
 	else:
 		bodytxtsource = "failed"
