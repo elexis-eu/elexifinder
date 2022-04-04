@@ -10,7 +10,7 @@ import lwb
 descriptions = {
 # "Q2": "a LexBib Ontology Class",
 # "Q4":"a lexical-conceptual resource",
- "Q5":"a person"
+# "Q5":"a person"
 # "Q6":"an event",
 # "Q7":"a term",
 # "Q8":"a natural language",
@@ -25,11 +25,13 @@ descriptions = {
 # "Q21":"a BibItem type"
 # "Q34":"a conference series",
 # "Q12":"a BibCollection",
+"Q53": "a skos:ConceptScheme",
+"Q33": "a skos:Collection (a term source)"
 
 }
 
 setalways = [
-"Q41"
+"Q53", "Q33"
 ]
 
 wikilang = "en"
