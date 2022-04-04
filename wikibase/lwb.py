@@ -9,6 +9,8 @@ import sys
 import unidecode
 import sparql
 import logging
+# import romanize3
+# hebrewdict = romanize3.__dict__['heb']
 from wikidataintegrator import wdi_core, wdi_login
 # import os
 # import sys
@@ -643,7 +645,7 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 	s = claims[0]
 	claims = claims[1]
 	#print(str(claims))
-	foundmonolinguallangs = []
+
 	foundobjs = []
 	if claims and bool(claims):
 		statementcount = 0
@@ -657,7 +659,18 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 					#print(str(foundo))
 					foundo = foundo['id']
 				if "time" in foundo: # if datatype time
-					foundo = {'time': foundo['time'], 'precision': foundo['precision']}
+					try:
+						foundo = {'time': foundo['time'], 'precision': foundo['precision']}
+					except: # raises exception if text "time" is contained in string but not as datatype value
+						pass
+
+				# try:
+				# 	if foundo['language'] == "he":
+				# 		foundo['text'] == hebrewdict.convert(foundo['text'])
+				# 		print('Hebrew: ',str(foundo))
+				# except Exception as ex:
+				# 	print(str(ex))
+				# 	pass
 			elif claim['mainsnak']['snaktype'] == "novalue":
 				try: # take P38 quali literal value as found object
 					foundo = claim['qualifiers']['P38'][0]['datavalue']['value']
@@ -667,10 +680,10 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 					print('Found Novalue, but no P38 "source string" quali.')
 
 			if foundo in foundobjs:
-				print('Will remove a duplicate claim: '+guid)
+				print('Will remove a duplicate claim: '+guid,str(foundo))
 				results = site.post('wbremoveclaims', claim=guid, token=token)
 				if results['success'] == 1:
-					print('Wb remove duplicate claim for '+s+' ('+p+') '+str(o)+': success.')
+					print('Wb remove duplicate claim for '+s+' ('+p+') '+str(foundo)+': success.')
 			elif foundo != "novalue": # novalue statements without P38 qualifier are always written
 				if dtype == "monolingualtext" and p in card1props:
 					if o['language'] == foundo['language']:
@@ -711,7 +724,7 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 									print('Claim update failed... Will try again.')
 									time.sleep(4)
 
-	if returnvalue: # means statement needs not to be written, returns guid
+	if returnvalue: # means statement needs not to be written, returns guid of existing claim
 		return returnvalue
 
 	if o not in foundobjs and value not in foundobjs: # must create new statement
@@ -814,7 +827,7 @@ def setqualifier(qid, prop, claimid, qualiprop, qualio, dtype):
 								if "text" in existingqualivalue and "language" in existingqualivalue:
 									existingqualivalue = json.dumps(existingqualivalue)
 							existingqualihashes[existingqualihash] = existingqualivalue
-						print('Found an existing '+qualiprop+' type card1 qualifier: '+str(list(existingqualihashes.values())[0]))
+						#print('Found an existing '+qualiprop+' type card1 qualifier: '+str(list(existingqualihashes.values())[0]))
 						allhashes = list(existingqualihashes.keys())
 						done = False
 						while (not done):
@@ -831,11 +844,11 @@ def setqualifier(qid, prop, claimid, qualiprop, qualio, dtype):
 								done = True
 
 						if str(list(existingqualihashes.values())[0]) in qualivalue:
-							print('Found duplicate value for card1 quali. Skipped.')
+							#print('Found duplicate value for card1 quali. Skipped.')
 							return True
 						if dtype == "time":
 							if list(existingqualihashes.values())[0]['time'] == qualio['time'] and list(existingqualihashes.values())[0]['precision'] == qualio['precision']:
-								print('Found duplicate value for '+qualiprop+' type time card1 quali. Skipped.')
+								#print('Found duplicate value for '+qualiprop+' type time card1 quali. Skipped.')
 								return True
 
 						print('New value to be written to existing card1 quali.')
