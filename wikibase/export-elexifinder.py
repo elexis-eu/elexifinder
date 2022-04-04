@@ -71,6 +71,11 @@ EFhost = "http://finder.elex.is"
 with open(config.datafolder+'elexifinder/export_last_donelist.txt', 'r', encoding="utf-8") as txt_file:
 	donelist = txt_file.read().split("\n")
 
+# write to list of missing bodytxt items
+def add_missing_list(itemuri):
+	with open(config.datafolder+'/elexifinder/missing_bodytxts.txt', 'a', encoding="utf-8") as failed_list:
+		failed_list.write(itemuri+'\n')
+
 def get_item_data(itemuri):
 	query = """
 	PREFIX lwb: <http://lexbib.elex.is/entity/>
@@ -165,10 +170,12 @@ with open(config.datafolder+'terms/elexifinder-catlabels-3level.csv', encoding="
 	catlabels_csv = csv.DictReader(csvfile)
 	termlabels = {}
 	catlabels = {}
+	labellist = []
 	for row in catlabels_csv:
 		termqid = row['term'].replace("http://lexbib.elex.is/entity/","")
 		#erlabel = re.search(r'[\w ]+$',row['ercat']).group(0)
 		termlabels[termqid] = row['termLabel']
+		labellist.append(row['termLabel'].lower())
 		catlabels[termqid] = {"uri":row['ercat'].replace(" ","_"),"label":row['ercat'].replace("Lexicography/","")}
 
 
@@ -204,7 +211,7 @@ for itemuri in export_items:
 	else:
 		print('Found lexvoc term indexation data.')
 		for foundterm in foundterms[itemuri]:
-			if termlabels[foundterm] not in conceptlabels: # avoids double listing of homograph term labels
+			if termlabels[foundterm].lower() not in conceptlabels: # avoids double listing of homograph term labels
 				target['concepts'].append({
 				"uri": "lexbib:"+foundterm,
 				"label": termlabels[foundterm],
@@ -225,18 +232,31 @@ for itemuri in export_items:
 
 	# get item data
 	itemdata = get_item_data(itemuri)
-
+	if itemdata == None:
+		print('ERROR: Got no itemdata (missing result). There is something wrong with '+itemuri+'.')
+		with open(config.datafolder+'elexifinder/upload-errors.txt', 'a', encoding="utf-8") as errorfile:
+			errorfile.write(itemuri+"\t"+str(datetime.now()).replace(' ','T')[0:22]+"\tItemdata SPARQL failed\n")
+		continue
 	target['pubTm'] = pubTime
 	target['version'] = 3
 	target['details'] = {'collection_version': 3}
-
-	target['authors'] = json.loads(itemdata[1])
-	target['title'] = itemdata[3]
-	target['articleTm'] = str(itemdata[4])[0:22].replace(' ','T')
+	if itemdata[1]:
+		target['authors'] = json.loads(itemdata[1])
+	else:
+		print('Authors JSON missing.')
+	if itemdata[3]:
+		target['title'] = itemdata[3]
+	else:
+		print('Title missing.')
+	if itemdata[4]:
+		target['articleTm'] = str(itemdata[4])[0:22].replace(' ','T')
+	else:
+		print('Publication date missing.')
 
 	# target['crawlTm'] = item['modTM']['value'][0:22]
 	zotItemUri = "https://www.zotero.org/groups/1892855/lexbib/items/"+itemdata[5]+"/item-details"
 	target['details']['zotItemUri'] = zotItemUri
+	target['details']['lexBibUri'] = "http://lexbib.elex.is/entity/"+itemuri
 	if itemdata[7]:
 		target['url'] = itemdata[7]
 	else:
@@ -285,6 +305,8 @@ for itemuri in export_items:
 		target['type'] = "news" # item type for all except videos
 	if itemuri in bodytxts:
 		target['body'] = bodytxts[itemuri]['bodytxt']
+		if len(target['body']) < 20: # at least an item title of 20 chars can serve as bodytxt
+			add_missing_list(itemuri)
 		print('Textbody found and copied.')
 		if itemuri+".json" in wikidir:
 			print('Found wikification result file for '+itemuri)
@@ -296,14 +318,18 @@ for itemuri in export_items:
 		for wikiconcept in wikiconcepts['concepts']:
 			wikiconcept['label'] = wikiconcept['label'].lower() # convert wikipage title to lowercase
 			wikiconcept['uri'] = re.sub(r'^wd:Q', 'wikidata:Q', wikiconcept['uri']) # wikify.py returns "wd:" prefix for wikidata items
-			if wikiconcept['label'] not in conceptlabels:
+			if wikiconcept['label'].lower() not in labellist: # adds wikiconcept only if its label does not exist as lexvoc category label
 				if wikiconcept['type'] == "person":
 					print('Skipped wikiperson '+wikiconcept['label'])
 				else:
 					target['concepts'].append(wikiconcept)
-		print('Wikification successful.')
+		print('Wikiconcepts successfully added. Concept label list:')
+		# for concept in target['concepts']:
+		# 	print('* '+concept['label'])
 	else:
 		print('Textbody missing for this item.')
+		add_missing_list(itemuri)
+
 
 # upload to elexifinder
 	print('Will upload BibItem '+itemuri+' to Elexifinder.')
