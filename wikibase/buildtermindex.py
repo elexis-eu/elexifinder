@@ -120,8 +120,11 @@ foundterms = {}
 for bibItem in bodytxtcoll:
 	rowindex += 1
 	print('\nNow processing item ['+str(rowindex)+'] of '+str(len(bodytxtcoll))+':')
-
 	isolang = bodytxtcoll[bibItem]['lang']
+	if isolang !="eng" and isolang !="spa" and bodytxtcoll[bibItem]['bodylemclean']: # if an English abstract is at bodylemclean
+		isolang = "eng"
+	if isolang !="eng" and isolang !="spa":
+		continue
 
 	# load txt.
 	bodytxt = bodytxtcoll[bibItem]['bodytxt']
@@ -167,6 +170,8 @@ for bibItem in bodytxtcoll:
 
 
 with open(config.datafolder+'bodytxt/foundterms_'+time.strftime("%Y%m%d-%H%M%S")+'.json', 'w', encoding="utf-8") as json_file: # path to result JSON file
+	json.dump(foundterms, json_file, indent=2)
+with open(config.datafolder+'bodytxt/foundterms_last.json', 'w', encoding="utf-8") as json_file: # path to result JSON file
 	json.dump(foundterms, json_file, indent=2)
 with open(config.datafolder+'bodytxt/termstats_'+time.strftime("%Y%m%d-%H%M%S")+'.json', 'w', encoding="utf-8") as json_file: # path to result JSON file
 	json.dump(termstats, json_file, indent=2)
