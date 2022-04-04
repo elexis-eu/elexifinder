@@ -38,6 +38,7 @@ progressive
 note
 person
 degree
+perfect
 """.split('\n')
 
 stoptermlabels['spa'] = """
