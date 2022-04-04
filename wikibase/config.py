@@ -61,6 +61,7 @@ card1props = [
 "P100",
 "P101",
 "P102",
+"P105", # abstract language
 "P109",
 "P117",
 "P128"
