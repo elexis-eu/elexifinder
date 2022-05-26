@@ -9,9 +9,9 @@ import lwb
 import config
 
 # load found terms
-with open(config.datafolder+'bodytxt/writefoundterms/foundterms.json', encoding="utf-8") as infile:
+with open(config.datafolder+'bodytxt/foundterms_last.json', encoding="utf-8") as infile:
 	foundterms = json.load(infile)
-with open(config.datafolder+'bodytxt/writefoundterms/foundterms_donelist.txt', encoding="utf-8") as txtfile:
+with open(config.datafolder+'bodytxt/writefoundterms/foundterms_last_donelist.txt', encoding="utf-8") as txtfile:
 	donelist = txtfile.read().split("\n")
 
 #get bibitems to process
@@ -74,6 +74,7 @@ for row in sparqlresults:
 		# 	print('This term appears less than three times (skipped): '+termqid)
 		# 	continue
 		termqid = freqterms[writecount]
+		print('Term '+termqid+':')
 		if termqid in existing:
 			statement = existing[termqid]
 			del existing[termqid]
@@ -83,9 +84,8 @@ for row in sparqlresults:
 		#lwb.setqualifier(bibItem, "P96", statement, "P93", str(foundterms[bibItem][termqid]['rfreq']), "string")
 		writecount += 1
 
-	print('There are '+str(len(existing))+' P96 statements for terms that are not (any more) found.')
+	print('There are '+str(len(existing))+' P96 statements not on the list; they will be kicked out.')
 	if len(existing) > 0:
-		print('...will proceed to delete...')
 		for garbage in existing:
 			lwb.removeclaim(existing[garbage])
 

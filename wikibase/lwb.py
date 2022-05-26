@@ -844,7 +844,7 @@ def setqualifier(qid, prop, claimid, qualiprop, qualio, dtype):
 								done = True
 
 						if str(list(existingqualihashes.values())[0]) in qualivalue:
-							#print('Found duplicate value for card1 quali. Skipped.')
+							print('Found duplicate value for card1 quali. Skipped.')
 							return True
 						if dtype == "time":
 							if list(existingqualihashes.values())[0]['time'] == qualio['time'] and list(existingqualihashes.values())[0]['precision'] == qualio['precision']:
@@ -883,6 +883,9 @@ def setqualifier(qid, prop, claimid, qualiprop, qualio, dtype):
 		if 'The statement has already a qualifier' in str(ex):
 			print('The statement already has a ('+qualiprop+') '+qualivalue+': skipped writing duplicate qualifier')
 			return False
+		else:
+			print('Error: '+str(ex))
+			time.sleep(5)
 
 
 

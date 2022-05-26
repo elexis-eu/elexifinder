@@ -23,7 +23,7 @@ for bibitem in bodytxts:
 		with open('D:/LexBib/bodytxt/wikification/'+bibitem+'.json', 'r', encoding="utf-8") as jsonfile:
 			itemterms = json.load(jsonfile)
 		if itemterms['concepts'] != None:
-			print('Result already there, will skip wikification for '+bibitem)
+			print('Result already there, will get wikification from file for '+bibitem)
 		else:
 			itemterms = wikify.wikify(bibitem, bodytxts[bibitem]['bodytxt'])
 			print(str(count)+' of '+total+': Successfully wikified bibitem '+bibitem+' (not succesfully in previous runs)')

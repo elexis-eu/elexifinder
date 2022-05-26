@@ -12,12 +12,20 @@ stats = {}
 dates = []
 for file in os.listdir(stats_dir):
 	print(file)
-	jsonfile = stats_dir+"/"+file
-	date = file.replace("statistics-","").replace(".json","")
-	date = re.sub(r'([0-9]{4}\-[0-9]{2})\-([0-9])$',r'\1-0\2',date)
-	dates.append(date)
-	with open(jsonfile, "r", encoding="utf-8") as statsfile:
-		stats[date] = json.load(statsfile)
+	if file.startswith("statistics"):
+		jsonfile = stats_dir+"/"+file
+		date = file.replace("statistics-","").replace(".json","")
+		date = re.search(r'([0-9]{4})\-([0-9]+)\-([0-9]+)$',date)
+		year = date.group(1)
+		month = date.group(2)
+		if len(month) == 1:
+			month = "0"+month
+		day = date.group(3)
+		if len(day) == 1:
+			day = "0"+day
+		dates.append(year+"-"+month+"-"+day)
+		with open(jsonfile, "r", encoding="utf-8") as statsfile:
+			stats[year+"-"+month+"-"+day] = json.load(statsfile)
 print('stats files loaded.')
 
 # sort dates
