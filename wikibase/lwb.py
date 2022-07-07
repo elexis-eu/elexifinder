@@ -426,7 +426,7 @@ def setlabel(s, lang, val, type="label", set=False):
 			elif type == "alias" and set == True:
 				request = site.post('wbsetaliases', id=s, language=lang, set=value, token=token, bot=1)
 			if request['success'] == 1:
-				print('Label creation done: '+s+' ('+lang+') '+str(val)+', type: '+type)
+				print('Label creation done: '+s+' ('+lang+') '+str(val)+', type: '+type+', overwrite: '+str(set))
 				return True
 		except Exception as ex:
 			if 'Invalid CSRF token.' in str(ex):
@@ -679,7 +679,7 @@ def updateclaim(s, p, o, dtype): # for novalue: o="novalue", dtype="novalue"
 					foundo = "novalue"
 					print('Found Novalue, but no P38 "source string" quali.')
 
-			if foundo in foundobjs:
+			if foundo in foundobjs and foundo['language'] != "he":
 				print('Will remove a duplicate claim: '+guid,str(foundo))
 				results = site.post('wbremoveclaims', claim=guid, token=token)
 				if results['success'] == 1:
