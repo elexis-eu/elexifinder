@@ -28,13 +28,13 @@ except Exception as ex:
 # load owl:sameAs redirect mappings
 
 query = """
-PREFIX lwb: <http://lexbib.elex.is/entity/>
-PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
-PREFIX lp: <http://lexbib.elex.is/prop/>
-PREFIX lps: <http://lexbib.elex.is/prop/statement/>
-PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
-PREFIX lpr: <http://lexbib.elex.is/prop/reference/>
-PREFIX lno: <http://lexbib.elex.is/prop/novalue/>
+PREFIX lwb: <https://lexbib.elex.is/entity/>
+PREFIX ldp: <https://lexbib.elex.is/prop/direct/>
+PREFIX lp: <https://lexbib.elex.is/prop/>
+PREFIX lps: <https://lexbib.elex.is/prop/statement/>
+PREFIX lpq: <https://lexbib.elex.is/prop/qualifier/>
+PREFIX lpr: <https://lexbib.elex.is/prop/reference/>
+PREFIX lno: <https://lexbib.elex.is/prop/novalue/>
 
 select ?redirected ?term ?label where
 {?redirected owl:sameAs ?term.
@@ -49,7 +49,7 @@ print('Got data from LexBib v3 SPARQL.')
 redirects = {}
 for row in sparqlresults:
 	item = sparql.unpack_row(row, convert=None, convert_type={})
-	redirects[item[0].replace('http://lexbib.elex.is/entity/','')] = item[1].replace('http://lexbib.elex.is/entity/','')
+	redirects[item[0].replace('https://lexbib.elex.is/entity/','')] = item[1].replace('https://lexbib.elex.is/entity/','')
 print(str(redirects))
 completedterms = {}
 completedlangs = {}
@@ -88,14 +88,14 @@ for entry in root:
 						if altLabel.text:
 							altLabelStatement = lwb.updateclaim(termqid,"P130",{'language':wikilang,'text':altLabel.text.strip()},"monolingualtext")
 							lwb.setqualifier(termqid,"P130",altLabelStatement,"P128",status,"string")
-				if prefLabel and status == "COMPLETED":
-					lwb.setlabel(termqid,wikilang,prefLabel.strip(),type="label")
-					aliasstring = ""
-					if altLabels:
-						for altLabel in altLabels:
-							if altLabel.text:
-								aliasstring += "|"+altLabel.text.strip()
-						lwb.setlabel(termqid,wikilang,aliasstring[1:],type="alias",set=True)
+				# if prefLabel and status == "COMPLETED":
+				# 	lwb.setlabel(termqid,wikilang,prefLabel.strip(),type="label")
+				# 	aliasstring = ""
+				# 	if altLabels:
+				# 		for altLabel in altLabels:
+				# 			if altLabel.text:
+				# 				aliasstring += "|"+altLabel.text.strip()
+				# 		lwb.setlabel(termqid,wikilang,aliasstring[1:],type="alias",set=True)
 
 					if termqid not in completedterms:
 						completedterms[termqid] = []
