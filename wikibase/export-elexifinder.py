@@ -19,7 +19,7 @@ import wikify, config
 
 print('Will now get a list of all bibitems that have P85 Elexifinder collection...')
 
-url = "https://lexbib.elex.is/query/sparql?format=json&query=PREFIX%20lwb%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fentity%2F%3E%0APREFIX%20ldp%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fdirect%2F%3E%0APREFIX%20lp%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2F%3E%0APREFIX%20lps%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fstatement%2F%3E%0APREFIX%20lpq%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fqualifier%2F%3E%0APREFIX%20lpr%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Freference%2F%3E%0APREFIX%20lno%3A%20%3Chttp%3A%2F%2Flexbib.elex.is%2Fprop%2Fnovalue%2F%3E%0A%0Aselect%20%3FbibItem%0A%0Awhere%20%7B%0A%20%20%3FbibItem%20ldp%3AP85%20%3Fcollection%20.%0A%20%20%7D"
+url = "https://lexbib.elex.is/query/sparql?format=json&query=PREFIX%20lwb%3A%20%3Chttps%3A%2F%2Flexbib.elex.is%2Fentity%2F%3E%0APREFIX%20ldp%3A%20%3Chttps%3A%2F%2Flexbib.elex.is%2Fprop%2Fdirect%2F%3E%0APREFIX%20lp%3A%20%3Chttps%3A%2F%2Flexbib.elex.is%2Fprop%2F%3E%0APREFIX%20lps%3A%20%3Chttps%3A%2F%2Flexbib.elex.is%2Fprop%2Fstatement%2F%3E%0APREFIX%20lpq%3A%20%3Chttps%3A%2F%2Flexbib.elex.is%2Fprop%2Fqualifier%2F%3E%0APREFIX%20lpr%3A%20%3Chttps%3A%2F%2Flexbib.elex.is%2Fprop%2Freference%2F%3E%0APREFIX%20lno%3A%20%3Chttps%3A%2F%2Flexbib.elex.is%2Fprop%2Fnovalue%2F%3E%0A%0Aselect%20%3FbibItem%0A%0Awhere%20%7B%0A%20%20%3FbibItem%20ldp%3AP85%20%3Fcollection%20.%0A%20%20%7D"
 done = False
 while (not done):
 	try:
@@ -34,7 +34,7 @@ while (not done):
 
 export_items = []
 for binding in bindings:
-	export_items.append(binding['bibItem']['value'].replace("http://lexbib.elex.is/entity/",""))
+	export_items.append(binding['bibItem']['value'].replace("https://lexbib.elex.is/entity/",""))
 print('Found '+str(len(export_items))+' items.\n')
 time.sleep(1)
 
@@ -78,13 +78,13 @@ def add_missing_list(itemuri):
 
 def get_item_data(itemuri):
 	query = """
-	PREFIX lwb: <http://lexbib.elex.is/entity/>
-PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
-PREFIX lp: <http://lexbib.elex.is/prop/>
-PREFIX lps: <http://lexbib.elex.is/prop/statement/>
-PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
-PREFIX lpr: <http://lexbib.elex.is/prop/reference/>
-PREFIX lno: <http://lexbib.elex.is/prop/novalue/>
+	PREFIX lwb: <https://lexbib.elex.is/entity/>
+PREFIX ldp: <https://lexbib.elex.is/prop/direct/>
+PREFIX lp: <https://lexbib.elex.is/prop/>
+PREFIX lps: <https://lexbib.elex.is/prop/statement/>
+PREFIX lpq: <https://lexbib.elex.is/prop/qualifier/>
+PREFIX lpr: <https://lexbib.elex.is/prop/reference/>
+PREFIX lno: <https://lexbib.elex.is/prop/novalue/>
 
 SELECT
 ?bibItem
@@ -104,7 +104,7 @@ SELECT
 ?articleLoc
 ?articleLocLabel
 ?articleCountryLabel
-(sample(strafter(str(?p100),"http://lexbib.elex.is/entity/")) as ?bibitemtype)
+(sample(strafter(str(?p100),"https://lexbib.elex.is/entity/")) as ?bibitemtype)
 
 where {
   BIND(lwb:"""+itemuri+""" as ?bibItem)
@@ -112,7 +112,7 @@ where {
   ?authorstatement lps:P12 ?authornode .
   ?authorstatement lpq:P33 ?listpos .
   ?authornode rdfs:label ?authorlabel .
- BIND ( concat ('{"uri": "', strafter(str(?authornode),"http://lexbib.elex.is/entity/"),
+ BIND ( concat ('{"uri": "', strafter(str(?authornode),"https://lexbib.elex.is/entity/"),
                 '", "name": "', ?authorlabel, '", "listpos": "', ?listpos, '"}') as ?authordata )
   ?bibItem ldp:P5 lwb:Q3 .
   ?bibItem ldp:P85 ?collection .
@@ -172,7 +172,7 @@ with open(config.datafolder+'terms/elexifinder-catlabels-3level.csv', encoding="
 	catlabels = {}
 	labellist = []
 	for row in catlabels_csv:
-		termqid = row['term'].replace("http://lexbib.elex.is/entity/","")
+		termqid = row['term'].replace("https://lexbib.elex.is/entity/","")
 		#erlabel = re.search(r'[\w ]+$',row['ercat']).group(0)
 		termlabels[termqid] = row['termLabel']
 		labellist.append(row['termLabel'].lower())
@@ -256,7 +256,7 @@ for itemuri in export_items:
 	# target['crawlTm'] = item['modTM']['value'][0:22]
 	zotItemUri = "https://www.zotero.org/groups/1892855/lexbib/items/"+itemdata[5]+"/item-details"
 	target['details']['zotItemUri'] = zotItemUri
-	target['details']['lexBibUri'] = "http://lexbib.elex.is/entity/"+itemuri
+	target['details']['lexBibUri'] = "https://lexbib.elex.is/entity/"+itemuri
 	if itemdata[7]:
 		target['url'] = itemdata[7]
 	else:

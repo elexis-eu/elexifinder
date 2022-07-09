@@ -20,11 +20,11 @@ with open(config.datafolder+'bodytxt/bodytxt_collection.json', encoding="utf-8")
 
 #get bibitems to process
 query = """
-PREFIX lwb: <http://lexbib.elex.is/entity/>
-PREFIX ldp: <http://lexbib.elex.is/prop/direct/>
-PREFIX lp: <http://lexbib.elex.is/prop/>
-PREFIX lps: <http://lexbib.elex.is/prop/statement/>
-PREFIX lpq: <http://lexbib.elex.is/prop/qualifier/>
+PREFIX lwb: <https://lexbib.elex.is/entity/>
+PREFIX ldp: <https://lexbib.elex.is/prop/direct/>
+PREFIX lp: <https://lexbib.elex.is/prop/>
+PREFIX lps: <https://lexbib.elex.is/prop/statement/>
+PREFIX lpq: <https://lexbib.elex.is/prop/qualifier/>
 
 select
 
@@ -66,7 +66,7 @@ for row in sparqlresults:
 	rowindex += 1
 	item = sparql.unpack_row(row, convert=None, convert_type={})
 	print('\nNow processing item ['+str(rowindex)+']:\n'+str(item))
-	bibItem = item[0].replace("http://lexbib.elex.is/entity/","")
+	bibItem = item[0].replace("https://lexbib.elex.is/entity/","")
 
 
 	# check if already processed
@@ -85,11 +85,11 @@ for row in sparqlresults:
 		pdfFolder = None
 	zotItem = item[3]
 	if item[4]:
-		lang = item[4].replace("http://lexbib.elex.is/entity/","")
+		lang = item[4].replace("https://lexbib.elex.is/entity/","")
 	else:
 		lang = None
 	enAbstract = False
-	if item[5] == "http://lexbib.elex.is/entity/Q201":
+	if item[5] == "https://lexbib.elex.is/entity/Q201":
 		enAbstract = True
 
 	# load txt. Try (1), txt file manually attached to Zotero item (excluding manually attached pdf2text and grobidbody files), (2) GROBID body TXT, (3) pdf2txt Zotero cache file, (4) abstract, (5) title
